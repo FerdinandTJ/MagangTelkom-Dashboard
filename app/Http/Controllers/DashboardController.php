@@ -1,0 +1,344 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Services\RevenueAnalyticsService;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+class DashboardController extends Controller
+{
+    protected $analyticsService;
+
+    public function __construct(RevenueAnalyticsService $analyticsService)
+    {
+        $this->analyticsService = $analyticsService;
+    }
+
+    /**
+     * Display main dashboard page
+     */
+    public function index()
+    {
+        $currentYear = date('Y');
+        
+        return Inertia::render('Dashboard', [
+            'dashboardSummary' => $this->analyticsService->getDashboardSummary($currentYear),
+            'yearlyRevenue' => $this->analyticsService->getYearlyRevenue(),
+            'monthlyRevenue' => $this->analyticsService->getMonthlyRevenue($currentYear),
+            'ytdComparison' => $this->analyticsService->getYtdComparison($currentYear),
+            'subsegmentRevenue' => $this->analyticsService->getSubsegmentRevenue($currentYear),
+            'topCompanies' => $this->analyticsService->getTopCompanies($currentYear, 5),
+            'currentYear' => $currentYear,
+        ]);
+    }
+
+    /**
+     * Display Performance AM page
+     */
+    public function performanceAM()
+    {
+        $currentYear = date('Y');
+        
+        return Inertia::render('PerformanceAm', [
+            'amMetrics' => [
+                'total_accounts' => 150,
+                'active_accounts' => 135,
+                'revenue_target' => 50000000000, // 50B
+                'revenue_achieved' => 38000000000, // 38B
+                'achievement_rate' => 76.0,
+            ],
+            'amPerformance' => $this->getAMPerformanceData(),
+            'accountDistribution' => $this->getAccountDistributionData(),
+            'currentYear' => $currentYear,
+        ]);
+    }
+
+    /**
+     * Get AM performance placeholder data
+     */
+    private function getAMPerformanceData()
+    {
+        return [
+            ['name' => 'Ahmad Santoso', 'accounts' => 25, 'revenue' => 8500000000, 'achievement' => 85.0],
+            ['name' => 'Sari Dewi', 'accounts' => 22, 'revenue' => 7800000000, 'achievement' => 78.0],
+            ['name' => 'Budi Pratama', 'accounts' => 28, 'revenue' => 9200000000, 'achievement' => 92.0],
+            ['name' => 'Maya Indira', 'accounts' => 20, 'revenue' => 6800000000, 'achievement' => 68.0],
+            ['name' => 'Rizki Fauzi', 'accounts' => 24, 'revenue' => 8100000000, 'achievement' => 81.0],
+        ];
+    }
+
+    /**
+     * Get account distribution placeholder data
+     */
+    private function getAccountDistributionData()
+    {
+        return [
+            ['subsegment' => 'Airport', 'count' => 35, 'percentage' => 23.3],
+            ['subsegment' => 'Hospital', 'count' => 42, 'percentage' => 28.0],
+            ['subsegment' => 'PTN', 'count' => 28, 'percentage' => 18.7],
+            ['subsegment' => 'PTS', 'count' => 25, 'percentage' => 16.7],
+            ['subsegment' => 'Media', 'count' => 20, 'percentage' => 13.3],
+        ];
+    }
+
+    /**
+     * Get monthly revenue data for specific year
+     */
+    public function getMonthlyData(Request $request)
+    {
+        $year = $request->input('year', date('Y'));
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'monthly_revenue' => $this->analyticsService->getMonthlyRevenue($year),
+                'ytd_comparison' => $this->analyticsService->getYtdComparison($year),
+                'year' => $year
+            ]
+        ]);
+    }
+
+    /**
+     * Get subsegment details for specific month
+     */
+    public function getMonthDetails(Request $request)
+    {
+        $request->validate([
+            'year' => 'required|integer|min:2020|max:2030',
+            'month' => 'required|integer|min:1|max:12'
+        ]);
+
+        $year = $request->input('year');
+        $month = $request->input('month');
+
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret',
+            4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September',
+            10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'subsegments' => $this->analyticsService->getSubsegmentRevenue($year, $month),
+                'month_name' => $monthNames[$month],
+                'month' => $month,
+                'year' => $year
+            ]
+        ]);
+    }
+
+    /**
+     * Get company details for specific subsegment and month
+     */
+    public function getCompanyDetails(Request $request)
+    {
+        $request->validate([
+            'year' => 'required|integer|min:2020|max:2030',
+            'month' => 'required|integer|min:1|max:12',
+            'subsegment' => 'required|string|in:Airport,Hospital,PTN,PTS,Media'
+        ]);
+
+        $year = $request->input('year');
+        $month = $request->input('month');
+        $subsegment = $request->input('subsegment');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'companies' => $this->analyticsService->getCompanyDetails($year, $month, $subsegment),
+                'subsegment' => $subsegment,
+                'month' => $month,
+                'year' => $year
+            ]
+        ]);
+    }
+
+    /**
+     * Get subsegment companies with revenue details
+     */
+    public function getSubsegmentDetails(Request $request)
+    {
+        $request->validate([
+            'subsegment' => 'required|string|in:Airport,Hospital,PTN,PTS,Media',
+            'year' => 'required|integer|min:2020|max:2030',
+            'month' => 'nullable|integer|min:1|max:12'
+        ]);
+
+        $subsegment = $request->input('subsegment');
+        $year = $request->input('year');
+        $month = $request->input('month');
+
+        $companies = $this->analyticsService->getCompanyDetails($year, $month, $subsegment);
+        
+        // Calculate summary
+        $totalRevenue = collect($companies)->sum('revenue');
+        $totalCompanies = count($companies);
+        $avgRevenue = $totalCompanies > 0 ? $totalRevenue / $totalCompanies : 0;
+
+        $summaryData = [
+            'total_revenue' => $totalRevenue,
+            'total_companies' => $totalCompanies,
+            'avg_revenue' => $avgRevenue,
+            'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue / 1000000000, 2) . 'M',
+            'formatted_avg_revenue' => 'Rp ' . number_format($avgRevenue / 1000000000, 2) . 'M'
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'companies' => $companies,
+                'summary' => $summaryData,
+                'subsegment' => $subsegment,
+                'year' => $year,
+                'month' => $month
+            ]
+        ]);
+    }
+
+    /**
+     * Get individual company details with historical data
+     */
+    public function getIndividualCompanyDetails(Request $request)
+    {
+        $request->validate([
+            'company_id' => 'required|integer|exists:companies,id'
+        ]);
+
+        $companyId = $request->input('company_id');
+        
+        // Get company basic info
+        $company = \App\Models\Company::findOrFail($companyId);
+        
+        // Get revenue history
+        $monthlyData = \App\Models\Revenue::where('company_id', $companyId)
+            ->selectRaw('tahun, bulan, revenue')
+            ->selectRaw('CASE 
+                WHEN bulan = 1 THEN "Jan"
+                WHEN bulan = 2 THEN "Feb" 
+                WHEN bulan = 3 THEN "Mar"
+                WHEN bulan = 4 THEN "Apr"
+                WHEN bulan = 5 THEN "May"
+                WHEN bulan = 6 THEN "Jun"
+                WHEN bulan = 7 THEN "Jul"
+                WHEN bulan = 8 THEN "Aug"
+                WHEN bulan = 9 THEN "Sep"
+                WHEN bulan = 10 THEN "Oct"
+                WHEN bulan = 11 THEN "Nov"
+                WHEN bulan = 12 THEN "Dec"
+                END as bulan_name')
+            ->orderBy('tahun', 'asc')
+            ->orderBy('bulan', 'asc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'tahun' => $item->tahun,
+                    'bulan' => $item->bulan,
+                    'bulan_name' => $item->bulan_name,
+                    'revenue' => $item->revenue,
+                    'formatted_revenue' => 'Rp ' . number_format($item->revenue / 1000000000, 2) . 'M'
+                ];
+            });
+
+        // Get yearly totals
+        $yearlyData = \App\Models\Revenue::where('company_id', $companyId)
+            ->selectRaw('tahun, SUM(revenue) as total_revenue, COUNT(*) as months_count')
+            ->groupBy('tahun')
+            ->orderBy('tahun', 'asc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'tahun' => $item->tahun,
+                    'total_revenue' => $item->total_revenue,
+                    'formatted_total_revenue' => 'Rp ' . number_format($item->total_revenue / 1000000000, 2) . 'M',
+                    'months_count' => $item->months_count
+                ];
+            });
+
+        // Calculate summary
+        $totalRevenue = $monthlyData->sum('revenue');
+        $avgMonthlyRevenue = $monthlyData->count() > 0 ? $totalRevenue / $monthlyData->count() : 0;
+        $bestMonth = $monthlyData->sortByDesc('revenue')->first();
+        $bestYear = $yearlyData->sortByDesc('total_revenue')->first();
+
+        $summaryData = [
+            'total_revenue' => $totalRevenue,
+            'avg_monthly_revenue' => $avgMonthlyRevenue,
+            'best_month' => $bestMonth ? $bestMonth['bulan_name'] . ' ' . $bestMonth['tahun'] : null,
+            'best_year' => $bestYear ? $bestYear['tahun'] : null,
+            'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue / 1000000000, 2) . 'M',
+            'formatted_avg_monthly' => 'Rp ' . number_format($avgMonthlyRevenue / 1000000000, 2) . 'M'
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'company' => $company,
+                'monthly_data' => $monthlyData,
+                'yearly_data' => $yearlyData,
+                'summary' => $summaryData
+            ]
+        ]);
+    }
+
+    /**
+     * Get subsegment trend data
+     */
+    public function getSubsegmentTrend(Request $request)
+    {
+        $request->validate([
+            'subsegment' => 'required|string|in:Airport,Hospital,PTN,PTS,Media',
+            'year' => 'required|integer|min:2020|max:2030'
+        ]);
+
+        $subsegment = $request->input('subsegment');
+        $year = $request->input('year');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'trend' => $this->analyticsService->getSubsegmentTrend($subsegment, $year),
+                'subsegment' => $subsegment,
+                'year' => $year
+            ]
+        ]);
+    }
+
+    /**
+     * Get yearly comparison data
+     */
+    public function getYearlyComparison(Request $request)
+    {
+        $startYear = $request->input('start_year', date('Y') - 4);
+        $endYear = $request->input('end_year', date('Y'));
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'yearly_revenue' => $this->analyticsService->getYearlyRevenue($startYear, $endYear),
+                'start_year' => $startYear,
+                'end_year' => $endYear
+            ]
+        ]);
+    }
+
+    /**
+     * Get dashboard analytics summary
+     */
+    public function getAnalyticsSummary(Request $request)
+    {
+        $year = $request->input('year', date('Y'));
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'summary' => $this->analyticsService->getDashboardSummary($year),
+                'top_companies' => $this->analyticsService->getTopCompanies($year, 10),
+                'subsegment_breakdown' => $this->analyticsService->getSubsegmentRevenue($year),
+                'year' => $year
+            ]
+        ]);
+    }
+}

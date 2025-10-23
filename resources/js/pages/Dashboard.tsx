@@ -1,0 +1,312 @@
+import RevenueBarChart from '@/components/charts/RevenueBarChart';
+import SubsegmentPieChart from '@/components/charts/SubsegmentPieChart';
+import YearlyLineChart from '@/components/charts/YearlyLineChart';
+import StatCard from '@/components/StatCard';
+import MonthDetailModal from '@/components/modals/MonthDetailModal';
+import SubsegmentDetailModal from '@/components/modals/SubsegmentDetailModal';
+import CompanyDetailModal from '@/components/modals/CompanyDetailModal';
+import AppLayout from '@/layouts/app-layout';
+import { dashboard } from '@/routes';
+import { type BreadcrumbItem } from '@/types';
+import { Head } from '@inertiajs/react';
+import { useState } from 'react';
+
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Dashboard',
+        href: dashboard().url,
+    },
+];
+
+interface DashboardProps {
+    dashboardSummary: {
+        total_revenue: number;
+        total_companies: number;
+        active_subsegments: number;
+        current_month_revenue: number;
+        formatted_total_revenue: string;
+        formatted_current_month_revenue: string;
+        avg_revenue_per_company: number;
+    };
+    yearlyRevenue: Array<{
+        tahun: number;
+        total_revenue: number;
+        total_companies: number;
+        formatted_revenue: string;
+    }>;
+    monthlyRevenue: Array<{
+        bulan: number;
+        bulan_name: string;
+        total_revenue: number;
+        target_revenue: number;
+        total_companies: number;
+        formatted_revenue: string;
+        formatted_target: string;
+        achievement_percentage: number;
+    }>;
+    ytdComparison: {
+        current_year: number;
+        previous_year: number;
+        current_ytd: number;
+        previous_ytd: number;
+        growth_percentage: number;
+        growth_amount: number;
+        formatted_current_ytd: string;
+        formatted_previous_ytd: string;
+        formatted_growth_amount: string;
+        is_positive_growth: boolean;
+    };
+    subsegmentRevenue: Array<{
+        subsegment: string;
+        total_revenue: number;
+        total_companies: number;
+        avg_revenue: number;
+        formatted_total_revenue: string;
+        formatted_avg_revenue: string;
+    }>;
+    topCompanies: Array<{
+        id: number;
+        nip_nas: string;
+        nama_perusahaan: string;
+        subsegment: string;
+        source_data: string;
+        total_revenue: number;
+        formatted_total_revenue: string;
+    }>;
+    currentYear: number;
+}
+
+export default function Dashboard({
+    dashboardSummary,
+    yearlyRevenue,
+    monthlyRevenue,
+    ytdComparison,
+    subsegmentRevenue,
+    topCompanies,
+    currentYear
+}: DashboardProps) {
+    const [selectedMonth, setSelectedMonth] = useState<any>(null);
+    const [selectedSubsegment, setSelectedSubsegment] = useState<string | null>(null);
+    const [selectedCompany, setSelectedCompany] = useState<any>(null);
+    const [monthModalOpen, setMonthModalOpen] = useState(false);
+    const [subsegmentModalOpen, setSubsegmentModalOpen] = useState(false);
+    const [companyModalOpen, setCompanyModalOpen] = useState(false);
+
+    const handleMonthClick = (monthData: any) => {
+        setSelectedMonth(monthData);
+        setMonthModalOpen(true);
+    };
+
+    const handleSubsegmentClick = (subsegmentData: any) => {
+        setSelectedSubsegment(subsegmentData.subsegment);
+        setSubsegmentModalOpen(true);
+    };
+
+    const handleSubsegmentClickFromMonth = (subsegment: string) => {
+        setSelectedSubsegment(subsegment);
+        setMonthModalOpen(false);
+        setSubsegmentModalOpen(true);
+    };
+
+    const handleCompanyClick = (company: any) => {
+        setSelectedCompany(company);
+        setCompanyModalOpen(true);
+    };
+
+    const handleTopCompanyClick = (company: any) => {
+        setSelectedCompany(company);
+        setCompanyModalOpen(true);
+    };
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Revenue Analytics" />
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gray-50/30">
+                
+                {/* Summary Cards */}
+                <div className="grid auto-rows-min gap-6 md:grid-cols-4">
+                    <StatCard
+                        title="Total Revenue YTD"
+                        value={dashboardSummary.formatted_total_revenue}
+                        subtitle={`${currentYear} Year-to-Date`}
+                        trend={{
+                            value: ytdComparison.growth_percentage,
+                            isPositive: ytdComparison.is_positive_growth,
+                            label: `vs ${ytdComparison.previous_year}`
+                        }}
+                        icon={
+                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                            </svg>
+                        }
+                    />
+                    
+                    <StatCard
+                        title="Active Companies"
+                        value={dashboardSummary.total_companies}
+                        subtitle={`${dashboardSummary.active_subsegments} Subsegments`}
+                        icon={
+                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        }
+                    />
+                    
+                    <StatCard
+                        title="Current Month"
+                        value={dashboardSummary.formatted_current_month_revenue}
+                        subtitle="Oktober 2025"
+                        icon={
+                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        }
+                    />
+                    
+                    <StatCard
+                        title="Avg per Company"
+                        value={`Rp ${(dashboardSummary.avg_revenue_per_company / 1000000000).toFixed(1)}M`}
+                        subtitle="Annual Average"
+                        icon={
+                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        }
+                    />
+                </div>
+
+                {/* Charts Section */}
+                <div className="grid auto-rows-min gap-6 lg:grid-cols-2">
+                    {/* Monthly Revenue Chart */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-red-50 rounded-lg">
+                                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">Monthly Revenue Trend</h3>
+                                    <p className="text-sm text-gray-500">Click bars to view subsegment details</p>
+                                </div>
+                            </div>
+                            <RevenueBarChart 
+                                data={monthlyRevenue} 
+                                height={350}
+                                onBarClick={handleMonthClick}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Subsegment Breakdown */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-red-50 rounded-lg">
+                                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">Revenue by Subsegment</h3>
+                                    <p className="text-sm text-gray-500">YTD {currentYear}</p>
+                                </div>
+                            </div>
+                            <SubsegmentPieChart 
+                                data={subsegmentRevenue} 
+                                height={350}
+                                onSegmentClick={handleSubsegmentClick}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Yearly Trend and Top Companies */}
+                <div className="grid auto-rows-min gap-6 lg:grid-cols-3">
+                    {/* Yearly Trend */}
+                    <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-red-50 rounded-lg">
+                                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">5-Year Revenue Trend</h3>
+                                    <p className="text-sm text-gray-500">Historical performance</p>
+                                </div>
+                            </div>
+                            <YearlyLineChart data={yearlyRevenue} height={300} />
+                        </div>
+                    </div>
+
+                    {/* Top Companies */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-red-50 rounded-lg">
+                                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">Top Performers</h3>
+                                    <p className="text-sm text-gray-500">{currentYear} YTD</p>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                {topCompanies.map((company, index) => (
+                                    <div 
+                                        key={company.id} 
+                                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                                        onClick={() => handleTopCompanyClick(company)}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center justify-center w-8 h-8 bg-red-100 text-red-600 rounded-full text-sm font-semibold">
+                                                {index + 1}
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900 text-sm leading-tight">{company.nama_perusahaan}</p>
+                                                <p className="text-xs text-gray-500">{company.subsegment} • {company.nip_nas}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-semibold text-gray-900 text-sm">{company.formatted_total_revenue}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Drill-down Modals */}
+                <MonthDetailModal
+                    isOpen={monthModalOpen}
+                    onClose={() => setMonthModalOpen(false)}
+                    monthData={selectedMonth}
+                    year={currentYear}
+                    onSubsegmentClick={handleSubsegmentClickFromMonth}
+                />
+
+                <SubsegmentDetailModal
+                    isOpen={subsegmentModalOpen}
+                    onClose={() => setSubsegmentModalOpen(false)}
+                    subsegment={selectedSubsegment}
+                    year={currentYear}
+                    month={selectedMonth?.bulan}
+                    onCompanyClick={handleCompanyClick}
+                />
+
+                <CompanyDetailModal
+                    isOpen={companyModalOpen}
+                    onClose={() => setCompanyModalOpen(false)}
+                    company={selectedCompany}
+                />
+            </div>
+        </AppLayout>
+    );
+}
