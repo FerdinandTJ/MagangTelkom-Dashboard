@@ -8,7 +8,7 @@ Dashboard analitik revenue untuk monitoring performa perusahaan subsegment Telko
 - **🎯 Target vs Actual**: Monitoring pencapaian target revenue per bulan
 - **🏢 Company Management**: Detail revenue per perusahaan dengan subsegment breakdown
 - **📈 Interactive Charts**: Drill-down charts untuk analisis mendalam
-- **👨‍💼 Performance AM**: Dashboard khusus untuk Account Manager performance
+- **👨‍💼 Performance AM**: Dashboard khusus untuk AM performance
 - **🔍 Responsive Design**: Optimized untuk desktop dan mobile
 
 ## 🛠️ Tech Stack
