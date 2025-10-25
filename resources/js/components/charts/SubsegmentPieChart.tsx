@@ -16,11 +16,15 @@ interface SubsegmentPieChartProps {
 }
 
 const COLORS = {
-    'Airport': '#dc2626',    // Red
-    'Hospital': '#ea580c',   // Orange
-    'PTN': '#d97706',        // Amber
-    'PTS': '#ca8a04',        // Yellow
-    'Media': '#65a30d'       // Green
+    'Airport': '#dc2626',              // Red
+    'Hospital': '#ea580c',             // Orange
+    'PTN': '#d97706',                  // Amber
+    'PTS': '#ca8a04',                  // Yellow
+    'Media': '#65a30d',                // Green
+    'Airlines': '#0891b2',             // Cyan
+    'OLO': '#4f46e5',                  // Indigo
+    'Professional Service': '#7c3aed', // Violet
+    'Tourism and MICE': '#db2777'      // Pink
 };
 
 const SubsegmentPieChart: React.FC<SubsegmentPieChartProps> = ({ 
@@ -41,7 +45,7 @@ const SubsegmentPieChart: React.FC<SubsegmentPieChartProps> = ({
     const renderCustomizedLabel = ({
         cx, cy, midAngle, innerRadius, outerRadius, percent
     }: any) => {
-        if (percent < 0.05) return null; // Don't show label for segments < 5%
+        if (percent < 0.05) return null;
         
         const RADIAN = Math.PI / 180;
         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;

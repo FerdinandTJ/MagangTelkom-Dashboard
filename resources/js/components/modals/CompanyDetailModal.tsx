@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Building2, TrendingUp, Calendar, BarChart3, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { CompanyData, MonthlyRevenue, YearlyRevenue } from '@/types/dashboard';
-import axios from 'axios';
+import axios from '@/lib/axios';
 
 interface CompanyDetailModalProps {
     isOpen: boolean;
@@ -194,14 +194,17 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                 {/* Monthly Revenue Trend */}
                                 {monthlyData.length > 0 && (
                                     <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Revenue Trend</h3>
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Revenue Trend (Last 12 Months)</h3>
                                         <ResponsiveContainer width="100%" height={320}>
                                             <LineChart data={monthlyData}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                                 <XAxis 
                                                     dataKey="bulan_name" 
-                                                    tick={{ fontSize: 12 }}
+                                                    tick={{ fontSize: 11 }}
                                                     stroke="#666"
+                                                    angle={-45}
+                                                    textAnchor="end"
+                                                    height={60}
                                                 />
                                                 <YAxis 
                                                     tick={{ fontSize: 12 }}
@@ -210,7 +213,13 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                                 />
                                                 <Tooltip 
                                                     formatter={(value: number) => [`Rp ${(value / 1000000000).toFixed(2)}M`, 'Revenue']}
-                                                    labelFormatter={(label) => `Month: ${label}`}
+                                                    labelFormatter={(label, payload) => {
+                                                        if (payload && payload.length > 0) {
+                                                            const data = payload[0].payload;
+                                                            return `${data.bulan_name} ${data.tahun}`;
+                                                        }
+                                                        return label;
+                                                    }}
                                                     contentStyle={{
                                                         backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                                         border: '1px solid #e5e7eb',

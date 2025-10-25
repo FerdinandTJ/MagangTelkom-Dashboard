@@ -162,7 +162,7 @@ class DashboardController extends Controller
     public function getSubsegmentDetails(Request $request)
     {
         $request->validate([
-            'subsegment' => 'required|string|in:Airport,Hospital,PTN,PTS,Media',
+            'subsegment' => 'required|string|in:Airport,Hospital,PTN,PTS,Media,Airlines,OLO,Professional Service,Tourism and MICE',
             'year' => 'required|integer|min:2020|max:2030',
             'month' => 'nullable|integer|min:1|max:12'
         ]);
@@ -212,33 +212,44 @@ class DashboardController extends Controller
         // Get company basic info
         $company = \App\Models\Company::findOrFail($companyId);
         
-        // Get revenue history
+        // Get all revenue history for summary calculations
+        $allMonthlyData = \App\Models\Revenue::where('company_id', $companyId)
+            ->selectRaw('tahun, bulan, revenue')
+            ->orderBy('tahun', 'asc')
+            ->orderBy('bulan', 'asc')
+            ->get();
+        
+        // Get last 12 months revenue data for chart
         $monthlyData = \App\Models\Revenue::where('company_id', $companyId)
             ->selectRaw('tahun, bulan, revenue')
             ->selectRaw('CASE 
-                WHEN bulan = 1 THEN "Jan"
-                WHEN bulan = 2 THEN "Feb" 
-                WHEN bulan = 3 THEN "Mar"
-                WHEN bulan = 4 THEN "Apr"
-                WHEN bulan = 5 THEN "May"
-                WHEN bulan = 6 THEN "Jun"
-                WHEN bulan = 7 THEN "Jul"
-                WHEN bulan = 8 THEN "Aug"
-                WHEN bulan = 9 THEN "Sep"
-                WHEN bulan = 10 THEN "Oct"
-                WHEN bulan = 11 THEN "Nov"
-                WHEN bulan = 12 THEN "Dec"
+                WHEN bulan = 1 THEN "Januari"
+                WHEN bulan = 2 THEN "Februari" 
+                WHEN bulan = 3 THEN "Maret"
+                WHEN bulan = 4 THEN "April"
+                WHEN bulan = 5 THEN "Mei"
+                WHEN bulan = 6 THEN "Juni"
+                WHEN bulan = 7 THEN "Juli"
+                WHEN bulan = 8 THEN "Agustus"
+                WHEN bulan = 9 THEN "September"
+                WHEN bulan = 10 THEN "Oktober"
+                WHEN bulan = 11 THEN "November"
+                WHEN bulan = 12 THEN "Desember"
                 END as bulan_name')
-            ->orderBy('tahun', 'asc')
-            ->orderBy('bulan', 'asc')
+            ->orderBy('tahun', 'desc')
+            ->orderBy('bulan', 'desc')
+            ->limit(12)
             ->get()
+            ->reverse()
+            ->values()
             ->map(function ($item) {
                 return [
                     'tahun' => $item->tahun,
                     'bulan' => $item->bulan,
                     'bulan_name' => $item->bulan_name,
                     'revenue' => $item->revenue,
-                    'formatted_revenue' => 'Rp ' . number_format($item->revenue / 1000000000, 2) . 'M'
+                    'formatted_revenue' => 'Rp ' . number_format($item->revenue / 1000000000, 2) . 'M',
+                    'period_label' => $item->bulan_name . ' ' . $item->tahun
                 ];
             });
 
@@ -257,16 +268,20 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Calculate summary
-        $totalRevenue = $monthlyData->sum('revenue');
-        $avgMonthlyRevenue = $monthlyData->count() > 0 ? $totalRevenue / $monthlyData->count() : 0;
-        $bestMonth = $monthlyData->sortByDesc('revenue')->first();
+        // Calculate summary using all data
+        $totalRevenue = $allMonthlyData->sum('revenue');
+        $avgMonthlyRevenue = $allMonthlyData->count() > 0 ? $totalRevenue / $allMonthlyData->count() : 0;
+        $bestMonthRecord = $allMonthlyData->sortByDesc('revenue')->first();
         $bestYear = $yearlyData->sortByDesc('total_revenue')->first();
+        
+        // Get month name for best month
+        $monthNames = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+                      7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
 
         $summaryData = [
             'total_revenue' => $totalRevenue,
             'avg_monthly_revenue' => $avgMonthlyRevenue,
-            'best_month' => $bestMonth ? $bestMonth['bulan_name'] . ' ' . $bestMonth['tahun'] : null,
+            'best_month' => $bestMonthRecord ? $monthNames[$bestMonthRecord->bulan] . ' ' . $bestMonthRecord->tahun : null,
             'best_year' => $bestYear ? $bestYear['tahun'] : null,
             'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue / 1000000000, 2) . 'M',
             'formatted_avg_monthly' => 'Rp ' . number_format($avgMonthlyRevenue / 1000000000, 2) . 'M'

@@ -1,5 +1,3 @@
-// Shared types for dashboard drill-down components
-
 export interface SubsegmentData {
     subsegment: string;
     total_revenue: number;
@@ -7,7 +5,7 @@ export interface SubsegmentData {
     formatted_total_revenue: string;
     avg_revenue?: number;
     formatted_avg_revenue?: string;
-    [key: string]: any; // Add index signature for Recharts compatibility
+    [key: string]: any; 
 }
 
 export interface MonthData {
@@ -35,6 +33,7 @@ export interface MonthlyRevenue {
     tahun: number;
     revenue: number;
     formatted_revenue: string;
+    period_label?: string;
 }
 
 export interface YearlyRevenue {

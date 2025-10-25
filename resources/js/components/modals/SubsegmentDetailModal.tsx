@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, Building2, TrendingUp, Users, Calendar } from 'lucide-react';
 import { CompanyData } from '@/types/dashboard';
-import axios from 'axios';
+import axios from '@/lib/axios';
 
 interface SubsegmentDetailModalProps {
     isOpen: boolean;
@@ -42,6 +42,8 @@ const SubsegmentDetailModal: React.FC<SubsegmentDetailModalProps> = ({
     const fetchCompanyDetails = async () => {
         if (!subsegment) return;
         
+        console.log('Fetching subsegment details for:', { subsegment, year, month });
+        
         setLoading(true);
         setError(null);
         
@@ -55,15 +57,21 @@ const SubsegmentDetailModal: React.FC<SubsegmentDetailModalProps> = ({
                 params.month = month;
             }
             
+            console.log('API request params:', params);
+            
             const response = await axios.get(`/api/dashboard/subsegment-details`, {
                 params
             });
             
+            console.log('API response:', response.data);
+            
             if (response.data.success) {
                 setCompanies(response.data.data.companies);
                 setSummary(response.data.data.summary);
+                console.log('Companies loaded:', response.data.data.companies.length);
             } else {
                 setError('Failed to fetch company details');
+                console.error('API response not successful:', response.data);
             }
         } catch (err) {
             setError('Error loading company data');

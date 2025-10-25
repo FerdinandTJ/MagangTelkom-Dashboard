@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import SubsegmentPieChart from '@/components/charts/SubsegmentPieChart';
 import { Loader2, Calendar, TrendingUp, Building2 } from 'lucide-react';
 import { SubsegmentData, MonthData } from '@/types/dashboard';
-import axios from 'axios';
+import axios from '@/lib/axios';
 
 interface MonthDetailModalProps {
     isOpen: boolean;
