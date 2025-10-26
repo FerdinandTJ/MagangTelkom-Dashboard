@@ -172,7 +172,7 @@ class DashboardController extends Controller
         $month = $request->input('month');
 
         $companies = $this->analyticsService->getCompanyDetails($year, $month, $subsegment);
-        
+
         // Calculate summary
         $totalRevenue = collect($companies)->sum('revenue');
         $totalCompanies = count($companies);
