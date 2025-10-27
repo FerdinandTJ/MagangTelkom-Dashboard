@@ -9,7 +9,8 @@ import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -91,6 +92,23 @@ export default function Dashboard({
     const [monthModalOpen, setMonthModalOpen] = useState(false);
     const [subsegmentModalOpen, setSubsegmentModalOpen] = useState(false);
     const [companyModalOpen, setCompanyModalOpen] = useState(false);
+    
+    // Filter states
+    const [monthlySortOrder, setMonthlySortOrder] = useState<'chronological' | 'asc' | 'desc'>('chronological');
+
+    // Filtered and sorted data
+    const sortedMonthlyRevenue = useMemo(() => {
+        if (monthlySortOrder === 'chronological') {
+            return monthlyRevenue; // Keep original order
+        }
+        return [...monthlyRevenue].sort((a, b) => {
+            if (monthlySortOrder === 'asc') {
+                return a.total_revenue - b.total_revenue;
+            } else {
+                return b.total_revenue - a.total_revenue;
+            }
+        });
+    }, [monthlyRevenue, monthlySortOrder]);
 
     const handleMonthClick = (monthData: any) => {
         setSelectedMonth(monthData);
@@ -180,19 +198,33 @@ export default function Dashboard({
                     {/* Monthly Revenue Chart */}
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2 bg-red-50 rounded-lg">
-                                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                    </svg>
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-red-50 rounded-lg">
+                                        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-900">Monthly Revenue Trend</h3>
+                                        <p className="text-sm text-gray-500">Click bars to view subsegment details</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-gray-900">Monthly Revenue Trend</h3>
-                                    <p className="text-sm text-gray-500">Click bars to view subsegment details</p>
+                                <div className="relative">
+                                    <select
+                                        value={monthlySortOrder}
+                                        onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
+                                        className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                    >
+                                        <option value="chronological">Original</option>
+                                        <option value="desc">Revenue: High to Low</option>
+                                        <option value="asc">Revenue: Low to High</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
                                 </div>
                             </div>
                             <RevenueBarChart 
-                                data={monthlyRevenue} 
+                                data={sortedMonthlyRevenue} 
                                 height={350}
                                 onBarClick={handleMonthClick}
                             />
@@ -258,7 +290,7 @@ export default function Dashboard({
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                {topCompanies.map((company, index) => (
+                                {topCompanies.slice(0, 10).map((company, index) => (
                                     <div 
                                         key={company.id} 
                                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
