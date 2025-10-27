@@ -54,18 +54,18 @@ class RevenueAnalyticsService
 
         // Monthly targets (in billions) - you can adjust these values
         $monthlyTargets = [
-            1 => 15000000000,   // Jan: 15B
-            2 => 15500000000,   // Feb: 15.5B
-            3 => 16000000000,   // Mar: 16B
-            4 => 16500000000,   // Apr: 16.5B
-            5 => 17000000000,   // May: 17B
-            6 => 17500000000,   // Jun: 17.5B
-            7 => 18000000000,   // Jul: 18B
-            8 => 18500000000,   // Aug: 18.5B
-            9 => 19000000000,   // Sep: 19B
-            10 => 19500000000,  // Oct: 19.5B
-            11 => 20000000000,  // Nov: 20B
-            12 => 20500000000,  // Dec: 20.5B
+            1 => 150000000000,   // Jan: 15B
+            2 => 155000000000,   // Feb: 15.5B
+            3 => 160000000000,   // Mar: 16B
+            4 => 165000000000,   // Apr: 16.5B
+            5 => 170000000000,   // May: 17B
+            6 => 175000000000,   // Jun: 17.5B
+            7 => 180000000000,   // Jul: 18B
+            8 => 185000000000,   // Aug: 18.5B
+            9 => 190000000000,   // Sep: 19B
+            10 => 195000000000,  // Oct: 19.5B
+            11 => 200000000000,  // Nov: 20B
+            12 => 205000000000,  // Dec: 20.5B
         ];
 
         // Determine last month to display
@@ -182,8 +182,11 @@ class RevenueAnalyticsService
                 'companies.nama_perusahaan',
                 'companies.subsegment',
                 'companies.source_data',
-                'revenues.revenue',
-                'revenues.notes'
+                DB::raw('SUM(revenues.revenue) as total_revenue'),
+                DB::raw('COUNT(revenues.id) as payment_count'),
+                DB::raw('AVG(revenues.revenue) as avg_revenue'),
+                DB::raw('MAX(revenues.revenue) as max_payment'),
+                DB::raw('MIN(revenues.revenue) as min_payment')
             )
             ->join('companies', 'revenues.company_id', '=', 'companies.id')
             ->where('revenues.tahun', $year)
@@ -194,7 +197,8 @@ class RevenueAnalyticsService
         }
         
         return $query
-            ->orderByDesc('revenues.revenue')
+            ->groupBy('companies.id', 'companies.nip_nas', 'companies.nama_perusahaan', 'companies.subsegment', 'companies.source_data')
+            ->orderByDesc('total_revenue')
             ->get()
             ->map(function ($item) {
                 return [
@@ -203,9 +207,13 @@ class RevenueAnalyticsService
                     'nama_perusahaan' => $item->nama_perusahaan,
                     'subsegment' => $item->subsegment,
                     'source_data' => $item->source_data,
-                    'revenue' => (float) $item->revenue,
-                    'formatted_revenue' => 'Rp ' . number_format($item->revenue, 0, ',', '.'),
-                    'notes' => $item->notes
+                    'revenue' => (float) $item->total_revenue,
+                    'payment_count' => $item->payment_count,
+                    'avg_revenue' => (float) $item->avg_revenue,
+                    'max_payment' => (float) $item->max_payment,
+                    'min_payment' => (float) $item->min_payment,
+                    'formatted_revenue' => 'Rp ' . number_format($item->total_revenue, 0, ',', '.'),
+                    'formatted_avg_revenue' => 'Rp ' . number_format($item->avg_revenue, 0, ',', '.'),
                 ];
             })
             ->toArray();

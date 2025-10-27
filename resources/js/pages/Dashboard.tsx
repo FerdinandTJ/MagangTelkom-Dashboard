@@ -256,9 +256,9 @@ export default function Dashboard({
                 </div>
 
                 {/* Yearly Trend and Top Companies */}
-                <div className="grid auto-rows-min gap-6 lg:grid-cols-3">
+                <div className="grid auto-rows-min gap-6 lg:grid-cols-5">
                     {/* Yearly Trend */}
-                    <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="p-2 bg-red-50 rounded-lg">
@@ -275,41 +275,84 @@ export default function Dashboard({
                         </div>
                     </div>
 
-                    {/* Top Companies */}
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    {/* Top & Lowest Performers */}
+                    <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2 bg-red-50 rounded-lg">
-                                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                    </svg>
-                                </div>
+                            <div className="space-y-6">
+                                {/* Top Performer */}
                                 <div>
-                                    <h3 className="font-semibold text-gray-900">Top Performers</h3>
-                                    <p className="text-sm text-gray-500">{currentYear} YTD</p>
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                {topCompanies.slice(0, 10).map((company, index) => (
-                                    <div 
-                                        key={company.id} 
-                                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                                        onClick={() => handleTopCompanyClick(company)}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex items-center justify-center w-8 h-8 bg-red-100 text-red-600 rounded-full text-sm font-semibold">
-                                                {index + 1}
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-gray-900 text-sm leading-tight">{company.nama_perusahaan}</p>
-                                                <p className="text-xs text-gray-500">{company.subsegment} • {company.nip_nas}</p>
-                                            </div>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2 bg-green-50 rounded-lg">
+                                            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                            </svg>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-semibold text-gray-900 text-sm">{company.formatted_total_revenue}</p>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900">Top Performer</h3>
+                                            <p className="text-sm text-gray-500">{currentYear} YTD</p>
                                         </div>
                                     </div>
-                                ))}
+                                    {topCompanies.length > 0 && (
+                                        <div 
+                                            className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                                            onClick={() => handleTopCompanyClick(topCompanies[0])}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center justify-center w-10 h-10 bg-green-600 text-white rounded-full text-base font-bold">
+                                                    1
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-gray-900 text-base leading-tight">{topCompanies[0].nama_perusahaan}</p>
+                                                    <p className="text-sm text-gray-600 mt-1">{topCompanies[0].subsegment}</p>
+                                                    <p className="text-xs text-gray-500">{topCompanies[0].nip_nas}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold text-green-700 text-base">{topCompanies[0].formatted_total_revenue}</p>
+                                                <p className="text-xs text-gray-500 mt-1">Highest Revenue</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Divider */}
+                                <div className="border-t border-gray-200"></div>
+
+                                {/* Lowest Performer */}
+                                <div>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2 bg-orange-50 rounded-lg">
+                                            <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900">Lowest Performer</h3>
+                                            <p className="text-sm text-gray-500">{currentYear} YTD</p>
+                                        </div>
+                                    </div>
+                                    {topCompanies.length > 0 && (
+                                        <div 
+                                            className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                                            onClick={() => handleTopCompanyClick(topCompanies[topCompanies.length - 1])}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center justify-center w-10 h-10 bg-orange-600 text-white rounded-full text-base font-bold">
+                                                    {topCompanies.length}
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-gray-900 text-base leading-tight">{topCompanies[topCompanies.length - 1].nama_perusahaan}</p>
+                                                    <p className="text-sm text-gray-600 mt-1">{topCompanies[topCompanies.length - 1].subsegment}</p>
+                                                    <p className="text-xs text-gray-500">{topCompanies[topCompanies.length - 1].nip_nas}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold text-orange-700 text-base">{topCompanies[topCompanies.length - 1].formatted_total_revenue}</p>
+                                                <p className="text-xs text-gray-500 mt-1">Lowest Revenue</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
