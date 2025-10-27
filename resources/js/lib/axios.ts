@@ -1,18 +1,60 @@
 import axios from 'axios';
 
-// Configure axios defaults
-axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+// Create axios instance with proper configuration
+const axiosInstance = axios.create({
+    baseURL: window.location.origin,
+    withCredentials: true,
+    headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+    },
+});
 
-// Add CSRF token from meta tag if it exists
-const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-if (token) {
-    axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
-}
+// Function to get CSRF token from meta tag or cookie
+const getCsrfToken = (): string | null => {
+    // Try to get from meta tag first
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) {
+        return metaTag.getAttribute('content');
+    }
+    
+    // Try to get from cookie (for API routes)
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    if (match) {
+        return decodeURIComponent(match[1]);
+    }
+    
+    return null;
+};
 
-// Ensure credentials are included with requests
-axios.defaults.withCredentials = true;
+// Add request interceptor to include CSRF token
+axiosInstance.interceptors.request.use(
+    (config) => {
+        const token = getCsrfToken();
+        if (token) {
+            config.headers['X-CSRF-TOKEN'] = token;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
 
-// Configure base URL to handle relative URLs properly
-axios.defaults.baseURL = window.location.origin;
+// Add response interceptor to handle 419 errors (CSRF token mismatch)
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 419) {
+            console.error('CSRF token mismatch. Reloading page to get fresh token...');
+            // Reload the page to get fresh CSRF token
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+        return Promise.reject(error);
+    }
+);
 
-export default axios;
+export default axiosInstance;
