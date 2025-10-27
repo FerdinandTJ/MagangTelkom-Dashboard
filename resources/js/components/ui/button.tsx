@@ -10,16 +10,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-red-600 text-white shadow-lg hover:bg-red-700 focus-visible:ring-red-500/50 active:bg-red-800 transition-all duration-200",
+          "bg-red-600 dark:bg-red-700 text-white shadow-lg hover:bg-red-700 dark:hover:bg-red-800 focus-visible:ring-red-500/50 active:bg-red-800 dark:active:bg-red-900 transition-all duration-200",
         destructive:
           "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         outline:
-          "border-2 border-red-600 bg-white text-red-600 shadow-xs hover:bg-red-50 hover:border-red-700 focus-visible:ring-red-500/50",
+          "border-2 border-red-600 dark:border-red-500 bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 shadow-xs hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-700 dark:hover:border-red-600 focus-visible:ring-red-500/50",
         secondary:
-          "bg-gray-100 text-gray-700 shadow-xs hover:bg-gray-200 border border-gray-300",
-        ghost: "hover:bg-red-50 hover:text-red-700 text-gray-700",
-        link: "text-red-600 underline-offset-4 hover:underline hover:text-red-700",
-        telkom: "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg hover:from-red-700 hover:to-red-800 focus-visible:ring-red-500/50 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200",
+          "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 shadow-xs hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700",
+        ghost: "hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700 dark:hover:text-red-400 text-gray-700 dark:text-gray-300",
+        link: "text-red-600 dark:text-red-400 underline-offset-4 hover:underline hover:text-red-700 dark:hover:text-red-300",
+        telkom: "bg-gradient-to-r from-red-600 to-red-700 dark:from-red-700 dark:to-red-800 text-white shadow-lg hover:from-red-700 hover:to-red-800 dark:hover:from-red-800 dark:hover:to-red-900 focus-visible:ring-red-500/50 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

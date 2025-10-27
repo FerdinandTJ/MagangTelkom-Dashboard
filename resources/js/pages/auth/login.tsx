@@ -88,56 +88,56 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             <Head title="Login" />
 
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className={`absolute top-20 right-20 w-16 h-16 border-2 border-red-200 transition-all duration-2000 ${mounted ? 'opacity-30 rotate-45' : 'opacity-0 rotate-0'}`}
+                <div className={`absolute top-20 right-20 w-16 h-16 border-2 border-red-200 dark:border-red-800 transition-all duration-2000 ${mounted ? 'opacity-30 rotate-45' : 'opacity-0 rotate-0'}`}
                      style={{animation: 'float 6s ease-in-out infinite, morphShape 4s ease-in-out infinite'}}>
                 </div>
                 
                 <div className={`absolute top-1/3 right-1/3 w-2 h-2 transition-all duration-1500 ${mounted ? 'opacity-40' : 'opacity-0'}`}
                      style={{animation: 'gentleFloat 8s ease-in-out infinite'}}>
-                    <div className="w-full h-full bg-red-300 rounded-full"></div>
+                    <div className="w-full h-full bg-red-300 dark:bg-red-700 rounded-full"></div>
                 </div>
                 
                 <div className={`absolute top-2/3 left-1/5 w-1 h-1 transition-all duration-2000 ${mounted ? 'opacity-60' : 'opacity-0'}`}
                      style={{animation: 'gentleFloat 6s ease-in-out infinite 1s'}}>
-                    <div className="w-full h-full bg-pink-300 rounded-full"></div>
+                    <div className="w-full h-full bg-pink-300 dark:bg-pink-700 rounded-full"></div>
                 </div>
                 
                 <div className={`absolute top-1/4 left-1/4 w-4 h-4 transition-all duration-2500 ${mounted ? 'opacity-50' : 'opacity-0'}`}
                      style={{animation: 'orbit 15s linear infinite'}}>
-                    <div className="w-full h-full bg-gradient-to-r from-red-400 to-pink-400 rounded-full"></div>
+                    <div className="w-full h-full bg-gradient-to-r from-red-400 to-pink-400 dark:from-red-600 dark:to-pink-600 rounded-full"></div>
                 </div>
                 
                 <div className={`absolute bottom-1/3 right-1/4 w-3 h-3 transition-all duration-3000 ${mounted ? 'opacity-40' : 'opacity-0'}`}
                      style={{animation: 'orbit 12s linear infinite reverse'}}>
-                    <div className="w-full h-full bg-gradient-to-r from-pink-400 to-red-400 rounded-full"></div>
+                    <div className="w-full h-full bg-gradient-to-r from-pink-400 to-red-400 dark:from-pink-600 dark:to-red-600 rounded-full"></div>
                 </div>
                 
                 <div className={`absolute top-1/2 right-1/6 w-3 h-3 transition-all duration-2200 ${mounted ? 'opacity-30 rotate-45' : 'opacity-0 rotate-0'}`}
                      style={{animation: 'gentleFloat 10s ease-in-out infinite, wiggle 4s ease-in-out infinite'}}>
-                    <div className="w-full h-full bg-gradient-to-br from-red-300 to-pink-300 transform rotate-45"></div>
+                    <div className="w-full h-full bg-gradient-to-br from-red-300 to-pink-300 dark:from-red-700 dark:to-pink-700 transform rotate-45"></div>
                 </div>
 
-                <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-400 to-transparent transition-all duration-1000 ${mounted ? 'opacity-60' : 'opacity-0'}`}
+                <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-400 dark:via-red-600 to-transparent transition-all duration-1000 ${mounted ? 'opacity-60' : 'opacity-0'}`}
                      style={{animation: 'progressLine 8s ease-in-out infinite'}}>
                 </div>
 
-                <div className={`absolute top-32 left-20 w-32 h-0.5 bg-gradient-to-r from-red-200 to-transparent transition-all duration-2000 ${mounted ? 'opacity-30 rotate-12' : 'opacity-0 rotate-0'}`}
+                <div className={`absolute top-32 left-20 w-32 h-0.5 bg-gradient-to-r from-red-200 dark:from-red-800 to-transparent transition-all duration-2000 ${mounted ? 'opacity-30 rotate-12' : 'opacity-0 rotate-0'}`}
                      style={{animation: 'lineGrow 6s ease-in-out infinite'}}>
                 </div>
                 
-                <div className={`absolute bottom-1/4 right-20 w-6 h-6 border border-red-300 rounded transition-all duration-2200 ${mounted ? 'opacity-30' : 'opacity-0'}`}
+                <div className={`absolute bottom-1/4 right-20 w-6 h-6 border border-red-300 dark:border-red-700 rounded transition-all duration-2200 ${mounted ? 'opacity-30' : 'opacity-0'}`}
                      style={{animation: 'pulse 3s ease-in-out infinite'}}>
                 </div>
                 
                 <div className={`absolute top-16 left-16 w-24 h-24 transition-all duration-1800 ${mounted ? 'opacity-10' : 'opacity-0'}`}
                      style={{animation: 'breathe 8s ease-in-out infinite'}}>
-                    <div className="w-full h-full border border-red-200 rounded-lg transform rotate-12"></div>
+                    <div className="w-full h-full border border-red-200 dark:border-red-800 rounded-lg transform rotate-12"></div>
                 </div>
             </div>
 
             <div className={`mb-8 transition-all duration-1000 overflow-visible ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8'}`}>
                 <div className="flex items-center gap-2 mb-2 min-h-[2.5rem] relative overflow-visible">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 via-red-700 to-red-800 bg-clip-text text-transparent">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 via-red-700 to-red-800 dark:from-red-400 dark:via-red-500 dark:to-red-600 bg-clip-text text-transparent">
                         <span>{typingText}</span>
                         {!showWave && (
                             <span className={`${showCursor ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100`}>|</span>
@@ -159,7 +159,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <p className="text-gray-600">Let's get you signed in</p>
+                    <p className="text-gray-600 dark:text-gray-400">Let's get you signed in</p>
                 </div>
             </div>
 
@@ -172,20 +172,20 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             <div className={`transition-all duration-700 delay-200 ${showForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                 <div className="relative">
                     {/* Subtle form breathing animation */}
-                    <div className="absolute -inset-4 bg-gradient-to-r from-red-50/30 via-pink-50/20 to-red-50/30 rounded-2xl opacity-0 animate-pulse"
+                    <div className="absolute -inset-4 bg-gradient-to-r from-red-50/30 via-pink-50/20 to-red-50/30 dark:from-red-900/20 dark:via-pink-900/10 dark:to-red-900/20 rounded-2xl opacity-0 animate-pulse"
                          style={{animation: 'breathe 6s ease-in-out infinite'}}></div>
                     
                     <Form
                         {...store.form()}
                         resetOnSuccess={['password']}
-                        className="flex flex-col gap-6 relative z-10 bg-white/50 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-sm"
+                        className="flex flex-col gap-6 relative z-10 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-white/20 dark:border-gray-700/20 shadow-sm"
                         style={{animation: 'gentleFloat 8s ease-in-out infinite'}}
                     >
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-6">
                                 <div className={`grid gap-3 transition-all duration-500 delay-300 ${showForm ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
-                                    <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2 group cursor-pointer hover:text-red-600 transition-colors duration-300">
+                                    <Label htmlFor="email" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 group cursor-pointer hover:text-red-600 dark:hover:text-red-400 transition-colors duration-300">
                                         <span className="group-hover:translate-x-1 transition-transform duration-300">Email or Username</span>
                                         <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -193,9 +193,9 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                     </Label>
                                     <div className="relative group">
 
-                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-pink-600 to-red-600 rounded-lg opacity-0 group-hover:opacity-75 group-focus-within:opacity-75 transition-all duration-300 animate-pulse"></div>
+                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-pink-600 to-red-600 dark:from-red-500 dark:via-pink-500 dark:to-red-500 rounded-lg opacity-0 group-hover:opacity-75 group-focus-within:opacity-75 transition-all duration-300 animate-pulse"></div>
                                         
-                                        <div className="absolute -inset-1 bg-gradient-to-r from-red-400/20 to-pink-400/20 rounded-lg opacity-0 group-focus-within:opacity-100 transition-all duration-500 blur-md"></div>
+                                        <div className="absolute -inset-1 bg-gradient-to-r from-red-400/20 to-pink-400/20 dark:from-red-600/20 dark:to-pink-600/20 rounded-lg opacity-0 group-focus-within:opacity-100 transition-all duration-500 blur-md"></div>
                                         
                                         <Input
                                             id="email"
@@ -206,11 +206,10 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                             tabIndex={1}
                                             autoComplete="username"
                                             placeholder="Enter your email or username"
-                                            className="relative h-12 px-4 text-base text-gray-900 bg-white border-2 border-gray-200 focus:border-red-500 focus:ring-0 rounded-lg placeholder:text-gray-400 transition-all duration-300 hover:border-red-300 transform hover:scale-[1.02] focus:scale-[1.02] group-focus-within:shadow-lg"
-                                            style={{color: '#111827', backgroundColor: '#ffffff'}}
+                                            className="relative h-12 px-4 text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 focus:border-red-500 dark:focus:border-red-400 focus:ring-0 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 hover:border-red-300 dark:hover:border-red-600 transform hover:scale-[1.02] focus:scale-[1.02] group-focus-within:shadow-lg"
                                         />
                                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300">
-                                            <div className="w-5 h-5 border-2 border-red-400 rounded-full animate-spin group-focus-within:border-red-500"></div>
+                                            <div className="w-5 h-5 border-2 border-red-400 dark:border-red-500 rounded-full animate-spin group-focus-within:border-red-500 dark:group-focus-within:border-red-400"></div>
                                         </div>
                                     </div>
                                     <InputError message={errors.email} />
@@ -218,7 +217,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
 
                                 <div className={`grid gap-3 transition-all duration-500 delay-400 ${showForm ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
                                     <div className="flex items-center">
-                                        <Label htmlFor="password" className="text-sm font-semibold text-gray-700 flex items-center gap-2 group cursor-pointer hover:text-red-600 transition-colors duration-300">
+                                        <Label htmlFor="password" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 group cursor-pointer hover:text-red-600 dark:hover:text-red-400 transition-colors duration-300">
                                             <span className="group-hover:translate-x-1 transition-transform duration-300">Password</span>
                                             <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -227,7 +226,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                         {canResetPassword && (
                                             <TextLink
                                                 href={request()}
-                                                className="ml-auto text-sm text-red-600 hover:text-red-700 font-medium transition-colors duration-200 hover:underline"
+                                                className="ml-auto text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 font-medium transition-colors duration-200 hover:underline"
                                                 tabIndex={5}
                                             >
                                                 Forgot password?
@@ -236,10 +235,10 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                     </div>
                                     <div className="relative group">
                                         {/* Animated border */}
-                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-pink-600 to-red-600 rounded-lg opacity-0 group-hover:opacity-75 group-focus-within:opacity-75 transition-all duration-300 animate-pulse"></div>
+                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-pink-600 to-red-600 dark:from-red-500 dark:via-pink-500 dark:to-red-500 rounded-lg opacity-0 group-hover:opacity-75 group-focus-within:opacity-75 transition-all duration-300 animate-pulse"></div>
                                         
                                         {/* Focus glow effect */}
-                                        <div className="absolute -inset-1 bg-gradient-to-r from-red-400/20 to-pink-400/20 rounded-lg opacity-0 group-focus-within:opacity-100 transition-all duration-500 blur-md"></div>
+                                        <div className="absolute -inset-1 bg-gradient-to-r from-red-400/20 to-pink-400/20 dark:from-red-600/20 dark:to-pink-600/20 rounded-lg opacity-0 group-focus-within:opacity-100 transition-all duration-500 blur-md"></div>
                                         
                                         <Input
                                             id="password"
@@ -249,12 +248,11 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                             tabIndex={2}
                                             autoComplete="current-password"
                                             placeholder="Enter your password"
-                                            className="relative h-12 px-4 text-base text-gray-900 bg-white border-2 border-gray-200 focus:border-red-500 focus:ring-0 rounded-lg placeholder:text-gray-400 transition-all duration-300 hover:border-red-300 transform hover:scale-[1.02] focus:scale-[1.02] group-focus-within:shadow-lg"
-                                            style={{color: '#111827', backgroundColor: '#ffffff'}}
+                                            className="relative h-12 px-4 text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 focus:border-red-500 dark:focus:border-red-400 focus:ring-0 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 hover:border-red-300 dark:hover:border-red-600 transform hover:scale-[1.02] focus:scale-[1.02] group-focus-within:shadow-lg"
                                         />
                                         {/* Lock icon animation */}
                                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300">
-                                            <svg className="w-5 h-5 text-red-400 group-focus-within:text-red-500 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            <svg className="w-5 h-5 text-red-400 dark:text-red-500 group-focus-within:text-red-500 dark:group-focus-within:text-red-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                                  style={{animation: 'wiggle 2s ease-in-out infinite'}}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                             </svg>
@@ -266,15 +264,15 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                 <div className={`flex items-center space-x-3 py-2 transition-all duration-500 delay-500 ${showForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                                     <div className="relative group">
                                         {/* Checkbox glow effect */}
-                                        <div className="absolute -inset-1 bg-red-400/20 rounded opacity-0 group-hover:opacity-100 transition-all duration-300 blur-sm"></div>
+                                        <div className="absolute -inset-1 bg-red-400/20 dark:bg-red-600/20 rounded opacity-0 group-hover:opacity-100 transition-all duration-300 blur-sm"></div>
                                         <Checkbox
                                             id="remember"
                                             name="remember"
                                             tabIndex={3}
-                                            className="text-red-600 focus:ring-red-500 transition-all duration-200 hover:scale-110 relative z-10"
+                                            className="text-red-600 dark:text-red-400 focus:ring-red-500 dark:focus:ring-red-400 transition-all duration-200 hover:scale-110 relative z-10"
                                         />
                                     </div>
-                                    <Label htmlFor="remember" className="text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200 cursor-pointer select-none hover:tracking-wide">
+                                    <Label htmlFor="remember" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200 cursor-pointer select-none hover:tracking-wide">
                                         Remember me for 30 days
                                     </Label>
                                 </div>

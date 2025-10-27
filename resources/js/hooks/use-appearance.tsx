@@ -43,6 +43,11 @@ const handleSystemThemeChange = () => {
 export function initializeTheme() {
     const savedAppearance =
         (localStorage.getItem('appearance') as Appearance) || 'system';
+    
+    // Set default to 'system' if not exists
+    if (!localStorage.getItem('appearance')) {
+        localStorage.setItem('appearance', 'system');
+    }
 
     applyTheme(savedAppearance);
 

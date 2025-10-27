@@ -42,6 +42,12 @@ const SubsegmentPieChart: React.FC<SubsegmentPieChartProps> = ({
         }
     };
 
+    // Check if dark mode is active
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const tooltipBg = isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+    const tooltipBorder = isDarkMode ? '#374151' : '#e5e7eb';
+    const textColor = isDarkMode ? '#e5e7eb' : '#374151';
+
     const renderCustomizedLabel = ({
         cx, cy, midAngle, innerRadius, outerRadius, percent
     }: any) => {
@@ -98,20 +104,28 @@ const SubsegmentPieChart: React.FC<SubsegmentPieChartProps> = ({
                         ]}
                         labelFormatter={() => ''}
                         contentStyle={{
-                            backgroundColor: '#ffffff',
-                            border: '1px solid #e5e7eb',
+                            backgroundColor: tooltipBg,
+                            border: `1px solid ${tooltipBorder}`,
                             borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                            color: textColor
+                        }}
+                        itemStyle={{
+                            color: textColor
+                        }}
+                        labelStyle={{ 
+                            color: textColor 
                         }}
                     />
                     <Legend 
                         verticalAlign="bottom" 
                         height={36}
                         formatter={(value, entry: any) => (
-                            <span style={{ color: entry.color }}>
+                            <span style={{ color: textColor }}>
                                 {entry.payload.subsegment}
                             </span>
                         )}
+                        wrapperStyle={{ color: textColor }}
                     />
                 </PieChart>
             </ResponsiveContainer>

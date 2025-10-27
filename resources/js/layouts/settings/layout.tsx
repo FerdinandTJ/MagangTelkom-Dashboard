@@ -26,11 +26,11 @@ const sidebarNavItems: NavItem[] = [
         href: show(),
         icon: null,
     },
-    // {
-    //     title: 'Appearance',
-    //     href: editAppearance(),
-    //     icon: null,
-    // },
+    {
+        title: 'Appearance',
+        href: editAppearance(),
+        icon: null,
+    },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
@@ -42,7 +42,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
     const currentPath = window.location.pathname;
 
     return (
-        <div className="px-4 py-6">
+        <div className="px-4 py-6 bg-gray-50/30 dark:bg-gray-950/30 min-h-screen">
             <Heading
                 title="Settings"
                 description="Manage your profile and account settings"
@@ -50,15 +50,15 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
 
             <div className="flex flex-col lg:flex-row lg:space-x-12">
                 <aside className="w-full max-w-xl lg:w-48">
-                    <nav className="flex flex-col space-y-1 space-x-0">
+                    <nav className="flex flex-col space-y-1 space-x-0 bg-white dark:bg-gray-900 rounded-lg p-2 border border-gray-200 dark:border-gray-800">
                         {sidebarNavItems.map((item, index) => (
                             <Button
                                 key={`${typeof item.href === 'string' ? item.href : item.href.url}-${index}`}
                                 size="sm"
                                 variant="ghost"
                                 asChild
-                                className={cn('w-full justify-start', {
-                                    'bg-muted':
+                                className={cn('w-full justify-start text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800', {
+                                    'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white':
                                         currentPath ===
                                         (typeof item.href === 'string'
                                             ? item.href
@@ -76,10 +76,10 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                     </nav>
                 </aside>
 
-                <Separator className="my-6 lg:hidden" />
+                <Separator className="my-6 lg:hidden dark:bg-gray-800" />
 
                 <div className="flex-1 md:max-w-2xl">
-                    <section className="max-w-xl space-y-12">
+                    <section className="max-w-xl space-y-12 bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-800">
                         {children}
                     </section>
                 </div>

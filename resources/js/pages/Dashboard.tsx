@@ -139,7 +139,7 @@ export default function Dashboard({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Revenue Analytics" />
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gray-50/30">
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gray-50/30 dark:bg-gray-950/30">
                 
                 {/* Summary Cards */}
                 <div className="grid auto-rows-min gap-6 md:grid-cols-4">
@@ -153,7 +153,7 @@ export default function Dashboard({
                             label: `vs ${ytdComparison.previous_year}`
                         }}
                         icon={
-                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                             </svg>
                         }
@@ -164,7 +164,7 @@ export default function Dashboard({
                         value={dashboardSummary.total_companies}
                         subtitle={`${dashboardSummary.active_subsegments} Subsegments`}
                         icon={
-                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         }
@@ -175,7 +175,7 @@ export default function Dashboard({
                         value={dashboardSummary.formatted_current_month_revenue}
                         subtitle="Oktober 2025"
                         icon={
-                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         }
@@ -186,7 +186,7 @@ export default function Dashboard({
                         value={`Rp ${(dashboardSummary.avg_revenue_per_company / 1000000000).toFixed(1)}M`}
                         subtitle="Annual Average"
                         icon={
-                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                         }
@@ -196,31 +196,31 @@ export default function Dashboard({
                 {/* Charts Section */}
                 <div className="grid auto-rows-min gap-6 lg:grid-cols-2">
                     {/* Monthly Revenue Chart */}
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-red-50 rounded-lg">
-                                        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                                        <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900">Monthly Revenue Trend</h3>
-                                        <p className="text-sm text-gray-500">Click bars to view subsegment details</p>
+                                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Monthly Revenue Trend</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Click bars to view subsegment details</p>
                                     </div>
                                 </div>
                                 <div className="relative">
                                     <select
                                         value={monthlySortOrder}
                                         onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
-                                        className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                     >
                                         <option value="chronological">Original</option>
                                         <option value="desc">Revenue: High to Low</option>
                                         <option value="asc">Revenue: Low to High</option>
                                     </select>
-                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
                                 </div>
                             </div>
                             <RevenueBarChart 
@@ -232,18 +232,18 @@ export default function Dashboard({
                     </div>
 
                     {/* Subsegment Breakdown */}
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2 bg-red-50 rounded-lg">
-                                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                                    <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-gray-900">Revenue by Subsegment</h3>
-                                    <p className="text-sm text-gray-500">YTD {currentYear}</p>
+                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">Revenue by Subsegment</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">YTD {currentYear}</p>
                                 </div>
                             </div>
                             <SubsegmentPieChart 
@@ -258,17 +258,17 @@ export default function Dashboard({
                 {/* Yearly Trend and Top Companies */}
                 <div className="grid auto-rows-min gap-6 lg:grid-cols-5">
                     {/* Yearly Trend */}
-                    <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2 bg-red-50 rounded-lg">
-                                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                                    <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-gray-900">5-Year Revenue Trend</h3>
-                                    <p className="text-sm text-gray-500">Historical performance</p>
+                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">5-Year Revenue Trend</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Historical performance</p>
                                 </div>
                             </div>
                             <YearlyLineChart data={yearlyRevenue} height={300} />
@@ -276,79 +276,79 @@ export default function Dashboard({
                     </div>
 
                     {/* Top & Lowest Performers */}
-                    <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
                             <div className="space-y-6">
                                 {/* Top Performer */}
                                 <div>
                                     <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2 bg-green-50 rounded-lg">
-                                            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="p-2 bg-green-50 dark:bg-green-950 rounded-lg">
+                                            <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                                             </svg>
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-gray-900">Top Performer</h3>
-                                            <p className="text-sm text-gray-500">{currentYear} YTD</p>
+                                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Top Performer</h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">{currentYear} YTD</p>
                                         </div>
                                     </div>
                                     {topCompanies.length > 0 && (
                                         <div 
-                                            className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                                            className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-2 border-green-200 dark:border-green-800 rounded-lg hover:shadow-md transition-all cursor-pointer"
                                             onClick={() => handleTopCompanyClick(topCompanies[0])}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className="flex items-center justify-center w-10 h-10 bg-green-600 text-white rounded-full text-base font-bold">
+                                                <div className="flex items-center justify-center w-10 h-10 bg-green-600 dark:bg-green-700 text-white rounded-full text-base font-bold">
                                                     1
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-gray-900 text-base leading-tight">{topCompanies[0].nama_perusahaan}</p>
-                                                    <p className="text-sm text-gray-600 mt-1">{topCompanies[0].subsegment}</p>
-                                                    <p className="text-xs text-gray-500">{topCompanies[0].nip_nas}</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight">{topCompanies[0].nama_perusahaan}</p>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{topCompanies[0].subsegment}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-500">{topCompanies[0].nip_nas}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="font-bold text-green-700 text-base">{topCompanies[0].formatted_total_revenue}</p>
-                                                <p className="text-xs text-gray-500 mt-1">Highest Revenue</p>
+                                                <p className="font-bold text-green-700 dark:text-green-400 text-base">{topCompanies[0].formatted_total_revenue}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Highest Revenue</p>
                                             </div>
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Divider */}
-                                <div className="border-t border-gray-200"></div>
+                                <div className="border-t border-gray-200 dark:border-gray-700"></div>
 
                                 {/* Lowest Performer */}
                                 <div>
                                     <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2 bg-orange-50 rounded-lg">
-                                            <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className="p-2 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                                            <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
                                             </svg>
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-gray-900">Lowest Performer</h3>
-                                            <p className="text-sm text-gray-500">{currentYear} YTD</p>
+                                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Lowest Performer</h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">{currentYear} YTD</p>
                                         </div>
                                     </div>
                                     {topCompanies.length > 0 && (
                                         <div 
-                                            className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                                            className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/50 dark:to-amber-950/50 border-2 border-orange-200 dark:border-orange-800 rounded-lg hover:shadow-md transition-all cursor-pointer"
                                             onClick={() => handleTopCompanyClick(topCompanies[topCompanies.length - 1])}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className="flex items-center justify-center w-10 h-10 bg-orange-600 text-white rounded-full text-base font-bold">
+                                                <div className="flex items-center justify-center w-10 h-10 bg-orange-600 dark:bg-orange-700 text-white rounded-full text-base font-bold">
                                                     {topCompanies.length}
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-gray-900 text-base leading-tight">{topCompanies[topCompanies.length - 1].nama_perusahaan}</p>
-                                                    <p className="text-sm text-gray-600 mt-1">{topCompanies[topCompanies.length - 1].subsegment}</p>
-                                                    <p className="text-xs text-gray-500">{topCompanies[topCompanies.length - 1].nip_nas}</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight">{topCompanies[topCompanies.length - 1].nama_perusahaan}</p>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{topCompanies[topCompanies.length - 1].subsegment}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-500">{topCompanies[topCompanies.length - 1].nip_nas}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="font-bold text-orange-700 text-base">{topCompanies[topCompanies.length - 1].formatted_total_revenue}</p>
-                                                <p className="text-xs text-gray-500 mt-1">Lowest Revenue</p>
+                                                <p className="font-bold text-orange-700 dark:text-orange-400 text-base">{topCompanies[topCompanies.length - 1].formatted_total_revenue}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Lowest Revenue</p>
                                             </div>
                                         </div>
                                     )}

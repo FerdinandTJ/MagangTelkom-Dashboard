@@ -162,7 +162,7 @@ class DashboardController extends Controller
     public function getSubsegmentDetails(Request $request)
     {
         $request->validate([
-            'subsegment' => 'required|string|in:Airport,Hospital,PTN,PTS,Media,Airlines,OLO,Professional Service,Tourism and MICE',
+            'subsegment' => 'required|string',
             'year' => 'required|integer|min:2020|max:2030',
             'month' => 'nullable|integer|min:1|max:12'
         ]);

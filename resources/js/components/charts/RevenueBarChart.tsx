@@ -42,6 +42,13 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
         }
     };
 
+    // Check if dark mode is active
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const textColor = isDarkMode ? '#ffffff' : '#374151';
+    const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
+    const tooltipBg = isDarkMode ? '#1f2937' : '#ffffff';
+    const tooltipBorder = isDarkMode ? '#374151' : '#e5e7eb';
+
     return (
         <div className="w-full">
             <ResponsiveContainer width="100%" height={height}>
@@ -54,17 +61,19 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
                         bottom: 5,
                     }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} className="opacity-30" />
                     <XAxis 
                         dataKey="bulan_name" 
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 12, fill: textColor }}
+                        stroke={textColor}
                         angle={-45}
                         textAnchor="end"
                         height={80}
                     />
                     <YAxis 
                         tickFormatter={formatCurrency}
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 12, fill: textColor }}
+                        stroke={textColor}
                     />
                     <Tooltip
                         formatter={(value: number, name: string) => [
@@ -73,13 +82,18 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
                         ]}
                         labelFormatter={(label) => `Bulan: ${label}`}
                         contentStyle={{
-                            backgroundColor: '#ffffff',
-                            border: '1px solid #e5e7eb',
+                            backgroundColor: tooltipBg,
+                            border: `1px solid ${tooltipBorder}`,
                             borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                            color: textColor
                         }}
+                        labelStyle={{ color: textColor }}
                     />
-                    <Legend />
+                    <Legend 
+                        wrapperStyle={{ color: textColor }}
+                        iconType="rect"
+                    />
                     <Bar 
                         dataKey="target_revenue" 
                         fill="#94a3b8" 
