@@ -9,6 +9,20 @@ use Illuminate\Support\Facades\DB;
 class RevenueAnalyticsService
 {
     /**
+     * Format currency value with appropriate suffix (M for Miliar, T for Triliun)
+     */
+    private function formatCurrency(float $value, int $decimals = 2): string
+    {
+        if ($value >= 1000000000000) {
+            // Triliun (>= 1000 Miliar)
+            return 'Rp ' . number_format($value / 1000000000000, $decimals) . 'T';
+        } else {
+            // Miliar
+            return 'Rp ' . number_format($value / 1000000000, $decimals) . 'M';
+        }
+    }
+
+    /**
      * Get yearly revenue data for the last 5 years or specified range
      */
     public function getYearlyRevenue(?int $startYear = null, ?int $endYear = null): array
@@ -314,8 +328,8 @@ class RevenueAnalyticsService
             'total_companies' => $totalCompanies,
             'active_subsegments' => $activeSubsegments,
             'current_month_revenue' => (float) $currentMonthRevenue,
-            'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'),
-            'formatted_current_month_revenue' => 'Rp ' . number_format($currentMonthRevenue, 0, ',', '.'),
+            'formatted_total_revenue' => $this->formatCurrency($totalRevenue),
+            'formatted_current_month_revenue' => $this->formatCurrency($currentMonthRevenue),
             'avg_revenue_per_company' => $totalCompanies > 0 ? (float) ($totalRevenue / $totalCompanies) : 0
         ];
     }

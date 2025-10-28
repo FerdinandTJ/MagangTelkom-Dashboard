@@ -9,6 +9,7 @@ import {
     Legend,
     ResponsiveContainer
 } from 'recharts';
+import { formatCurrency, formatCurrencyShort } from '@/utils/currency';
 
 interface MonthlyRevenueData {
     bulan: number;
@@ -32,10 +33,6 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
     height = 400,
     onBarClick 
 }) => {
-    const formatCurrency = (value: number) => {
-        return `Rp ${(value / 1000000000).toFixed(1)}M`;
-    };
-
     const handleBarClick = (data: any) => {
         if (onBarClick) {
             onBarClick(data);
@@ -70,13 +67,13 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
                         height={80}
                     />
                     <YAxis 
-                        tickFormatter={formatCurrency}
+                        tickFormatter={formatCurrencyShort}
                         tick={{ fontSize: 12, fill: textColor }}
                         stroke={textColor}
                     />
                     <Tooltip
                         formatter={(value: number, name: string) => [
-                            formatCurrency(value),
+                            formatCurrency(value, 2),
                             name === 'total_revenue' ? 'Actual Revenue' : 'Target Revenue'
                         ]}
                         labelFormatter={(label) => `Bulan: ${label}`}

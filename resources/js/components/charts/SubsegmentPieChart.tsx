@@ -8,6 +8,7 @@ import {
     Legend
 } from 'recharts';
 import { SubsegmentData } from '@/types/dashboard';
+import { formatCurrency } from '@/utils/currency';
 
 interface SubsegmentPieChartProps {
     data: SubsegmentData[];
@@ -32,10 +33,6 @@ const SubsegmentPieChart: React.FC<SubsegmentPieChartProps> = ({
     height = 400,
     onSegmentClick 
 }) => {
-    const formatCurrency = (value: number) => {
-        return `Rp ${(value / 1000000000).toFixed(1)}M`;
-    };
-
     const handleSegmentClick = (data: any) => {
         if (onSegmentClick) {
             onSegmentClick(data);
@@ -99,7 +96,7 @@ const SubsegmentPieChart: React.FC<SubsegmentPieChartProps> = ({
                     </Pie>
                     <Tooltip
                         formatter={(value: number, name: string, props: any) => [
-                            formatCurrency(value),
+                            formatCurrency(value, 2),
                             props.payload.subsegment
                         ]}
                         labelFormatter={() => ''}

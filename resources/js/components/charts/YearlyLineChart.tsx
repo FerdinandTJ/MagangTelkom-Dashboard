@@ -9,6 +9,7 @@ import {
     Legend,
     ResponsiveContainer
 } from 'recharts';
+import { formatCurrency, formatCurrencyShort } from '@/utils/currency';
 
 interface YearlyRevenueData {
     tahun: number;
@@ -29,10 +30,6 @@ const YearlyLineChart: React.FC<YearlyLineChartProps> = ({
     height = 300,
     onPointClick 
 }) => {
-    const formatCurrency = (value: number) => {
-        return `Rp ${(value / 1000000000).toFixed(1)}M`;
-    };
-
     const handlePointClick = (data: any) => {
         if (onPointClick) {
             onPointClick(data);
@@ -65,13 +62,13 @@ const YearlyLineChart: React.FC<YearlyLineChartProps> = ({
                         stroke={textColor}
                     />
                     <YAxis 
-                        tickFormatter={formatCurrency}
+                        tickFormatter={formatCurrencyShort}
                         tick={{ fontSize: 12, fill: textColor }}
                         stroke={textColor}
                     />
                     <Tooltip
                         formatter={(value: number, name: string) => [
-                            formatCurrency(value),
+                            formatCurrency(value, 2),
                             'Revenue'
                         ]}
                         labelFormatter={(label) => `Tahun: ${label}`}

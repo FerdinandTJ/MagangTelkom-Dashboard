@@ -11,6 +11,7 @@ interface StatCardProps {
         label: string;
     };
     className?: string;
+    tooltip?: string;
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -19,14 +20,25 @@ const StatCard: React.FC<StatCardProps> = ({
     subtitle,
     icon,
     trend,
-    className = ''
+    className = '',
+    tooltip
 }) => {
     return (
         <div className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 p-6 ${className}`}>
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{value}</p>
+                    <p 
+                        className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1 group relative cursor-help"
+                        title={tooltip}
+                    >
+                        {value}
+                        {tooltip && (
+                            <span className="invisible group-hover:visible absolute left-0 top-full mt-2 w-max max-w-xs bg-gray-900 dark:bg-gray-700 text-white text-sm px-3 py-2 rounded-lg shadow-lg z-10 whitespace-nowrap">
+                                {tooltip}
+                            </span>
+                        )}
+                    </p>
                     {subtitle && (
                         <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
                     )}

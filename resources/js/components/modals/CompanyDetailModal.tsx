@@ -11,6 +11,7 @@ import { Loader2, Building2, TrendingUp, Calendar, BarChart3, Info } from 'lucid
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { CompanyData, MonthlyRevenue, YearlyRevenue } from '@/types/dashboard';
 import axios from '@/lib/axios';
+import { formatCurrency, formatCurrencyShort } from '@/utils/currency';
 
 interface CompanyDetailModalProps {
     isOpen: boolean;
@@ -229,10 +230,10 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                                 <YAxis 
                                                     tick={{ fontSize: 12, fill: isDarkMode ? '#e5e7eb' : '#666' }}
                                                     stroke={isDarkMode ? '#6b7280' : '#666'}
-                                                    tickFormatter={(value) => `${(value / 1000000000).toFixed(1)}M`}
+                                                    tickFormatter={formatCurrencyShort}
                                                 />
                                                 <Tooltip 
-                                                    formatter={(value: number) => [`Rp ${(value / 1000000000).toFixed(2)}M`, 'Revenue']}
+                                                    formatter={(value: number) => [formatCurrency(value, 2), 'Revenue']}
                                                     labelFormatter={(label, payload) => {
                                                         if (payload && payload.length > 0) {
                                                             const data = payload[0].payload;
@@ -275,10 +276,10 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                                 <YAxis 
                                                     tick={{ fontSize: 12, fill: isDarkMode ? '#e5e7eb' : '#666' }}
                                                     stroke={isDarkMode ? '#6b7280' : '#666'}
-                                                    tickFormatter={(value) => `${(value / 1000000000).toFixed(1)}M`}
+                                                    tickFormatter={formatCurrencyShort}
                                                 />
                                                 <Tooltip 
-                                                    formatter={(value: number) => [`Rp ${(value / 1000000000).toFixed(2)}M`, 'Revenue']}
+                                                    formatter={(value: number) => [formatCurrency(value, 2), 'Revenue']}
                                                     labelFormatter={(label) => `Year: ${label}`}
                                                     contentStyle={{
                                                         backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
