@@ -8,7 +8,7 @@ import CompanyDetailModal from '@/components/modals/CompanyDetailModal';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 
@@ -95,6 +95,12 @@ export default function Dashboard({
     
     // Filter states
     const [monthlySortOrder, setMonthlySortOrder] = useState<'chronological' | 'asc' | 'desc'>('chronological');
+    const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+    
+    // Get available years from yearlyRevenue data
+    const availableYears = useMemo(() => {
+        return yearlyRevenue.map(y => y.tahun).sort((a, b) => b - a);
+    }, [yearlyRevenue]);
 
     // Filtered and sorted data
     const sortedMonthlyRevenue = useMemo(() => {
@@ -113,6 +119,15 @@ export default function Dashboard({
     const handleMonthClick = (monthData: any) => {
         setSelectedMonth(monthData);
         setMonthModalOpen(true);
+    };
+
+    const handleYearChange = (year: number) => {
+        setSelectedYear(year);
+        // Reload data dengan tahun yang dipilih
+        router.get(dashboard().url, { year }, { 
+            preserveState: true,
+            preserveScroll: true 
+        });
     };
 
     const handleSubsegmentClick = (subsegmentData: any) => {
@@ -142,7 +157,7 @@ export default function Dashboard({
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gray-50/30 dark:bg-gray-950/30">
                 
                 {/* Summary Cards */}
-                <div className="grid auto-rows-min gap-6 md:grid-cols-4">
+                {/* <div className="grid auto-rows-min gap-6 md:grid-cols-4">
                     <StatCard
                         title="Total Revenue YTD"
                         value={dashboardSummary.formatted_total_revenue}
@@ -191,7 +206,7 @@ export default function Dashboard({
                             </svg>
                         }
                     />
-                </div>
+                </div> */}
 
                 {/* Charts Section */}
                 <div className="grid auto-rows-min gap-6 lg:grid-cols-2">
@@ -210,17 +225,34 @@ export default function Dashboard({
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Click bars to view subsegment details</p>
                                     </div>
                                 </div>
-                                <div className="relative">
-                                    <select
-                                        value={monthlySortOrder}
-                                        onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
-                                        className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                    >
-                                        <option value="chronological">Original</option>
-                                        <option value="desc">Revenue: High to Low</option>
-                                        <option value="asc">Revenue: Low to High</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                <div className="flex items-center gap-2">
+                                    {/* Year Filter */}
+                                    <div className="relative">
+                                        <select
+                                            value={selectedYear}
+                                            onChange={(e) => handleYearChange(Number(e.target.value))}
+                                            className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        >
+                                            {availableYears.map(year => (
+                                                <option key={year} value={year}>{year}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                    </div>
+                                    
+                                    {/* Sort Order Filter */}
+                                    <div className="relative">
+                                        <select
+                                            value={monthlySortOrder}
+                                            onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
+                                            className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        >
+                                            <option value="chronological">Original</option>
+                                            <option value="desc">Revenue: High to Low</option>
+                                            <option value="asc">Revenue: Low to High</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                    </div>
                                 </div>
                             </div>
                             <RevenueBarChart 
@@ -243,7 +275,7 @@ export default function Dashboard({
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-gray-900 dark:text-gray-100">Revenue by Subsegment</h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">YTD {currentYear}</p>
+                                    {/* <p className="text-sm text-gray-500 dark:text-gray-400">YTD {currentYear}</p> */}
                                 </div>
                             </div>
                             <SubsegmentPieChart 

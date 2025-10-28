@@ -18,9 +18,9 @@ class DashboardController extends Controller
     /**
      * Display main dashboard page
      */
-    public function index()
+    public function index(Request $request)
     {
-        $currentYear = date('Y');
+        $currentYear = $request->input('year', date('Y'));
         
         return Inertia::render('Dashboard', [
             'dashboardSummary' => $this->analyticsService->getDashboardSummary($currentYear),
@@ -29,7 +29,7 @@ class DashboardController extends Controller
             'ytdComparison' => $this->analyticsService->getYtdComparison($currentYear),
             'subsegmentRevenue' => $this->analyticsService->getSubsegmentRevenue($currentYear),
             'topCompanies' => $this->analyticsService->getTopCompanies($currentYear, 5),
-            'currentYear' => $currentYear,
+            'currentYear' => (int)$currentYear,
         ]);
     }
 
