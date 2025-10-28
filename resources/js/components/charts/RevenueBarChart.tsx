@@ -42,7 +42,6 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
         }
     };
 
-    // Check if dark mode is active
     const isDarkMode = document.documentElement.classList.contains('dark');
     const textColor = isDarkMode ? '#ffffff' : '#374151';
     const gridColor = isDarkMode ? '#374151' : '#e5e7eb';

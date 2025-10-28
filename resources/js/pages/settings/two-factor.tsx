@@ -51,8 +51,8 @@ export default function TwoFactor({
                     />
                     {twoFactorEnabled ? (
                         <div className="flex flex-col items-start justify-start space-y-4">
-                            <Badge variant="default">Enabled</Badge>
-                            <p className="text-muted-foreground">
+                            <Badge variant="default" className="dark:bg-green-900 dark:text-green-300 dark:border-green-800">Enabled</Badge>
+                            <p className="text-muted-foreground dark:text-gray-400">
                                 With two-factor authentication enabled, you will
                                 be prompted for a secure, random pin during
                                 login, which you can retrieve from the
@@ -81,8 +81,8 @@ export default function TwoFactor({
                         </div>
                     ) : (
                         <div className="flex flex-col items-start justify-start space-y-4">
-                            <Badge variant="destructive">Disabled</Badge>
-                            <p className="text-muted-foreground">
+                            <Badge variant="destructive" className="dark:bg-red-950 dark:text-red-300 dark:border-red-900">Disabled</Badge>
+                            <p className="text-muted-foreground dark:text-gray-400">
                                 When you enable two-factor authentication, you
                                 will be prompted for a secure pin during login.
                                 This pin can be retrieved from a TOTP-supported

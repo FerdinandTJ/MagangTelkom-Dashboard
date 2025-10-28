@@ -30,16 +30,16 @@ const mainNavItems: NavItem[] = [
 ];
 
 const footerNavItems: NavItem[] = [
-    {
-        title: 'About',
-        href: '#',
-        icon: Folder,
-    },
-    {
-        title: 'Help',
-        href: '#',
-        icon: BookOpen,
-    },
+    // {
+    //     title: 'About',
+    //     href: '#',
+    //     icon: Folder,
+    // },
+    // {
+    //     title: 'Help',
+    //     href: '#',
+    //     icon: BookOpen,
+    // },
 ];
 
 export function AppSidebar() {

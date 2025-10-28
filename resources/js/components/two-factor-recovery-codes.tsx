@@ -53,13 +53,13 @@ export default function TwoFactorRecoveryCodes({
     const RecoveryCodeIconComponent = codesAreVisible ? EyeOff : Eye;
 
     return (
-        <Card>
+        <Card className="dark:bg-gray-900 dark:border-gray-800">
             <CardHeader>
-                <CardTitle className="flex gap-3">
-                    <LockKeyhole className="size-4" aria-hidden="true" />
+                <CardTitle className="flex gap-3 dark:text-white">
+                    <LockKeyhole className="size-4 dark:text-red-400" aria-hidden="true" />
                     2FA Recovery Codes
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="dark:text-gray-400">
                     Recovery codes let you regain access if you lose your 2FA
                     device. Store them in a secure password manager.
                 </CardDescription>
@@ -110,7 +110,7 @@ export default function TwoFactorRecoveryCodes({
                             <>
                                 <div
                                     ref={codesSectionRef}
-                                    className="grid gap-1 rounded-lg bg-muted p-4 font-mono text-sm"
+                                    className="grid gap-1 rounded-lg bg-muted dark:bg-gray-800 p-4 font-mono text-sm dark:text-gray-100"
                                     role="list"
                                     aria-label="Recovery codes"
                                 >
@@ -143,12 +143,12 @@ export default function TwoFactorRecoveryCodes({
                                     )}
                                 </div>
 
-                                <div className="text-xs text-muted-foreground select-none">
+                                <div className="text-xs text-muted-foreground dark:text-gray-400 select-none">
                                     <p id="regenerate-warning">
                                         Each recovery code can be used once to
                                         access your account and will be removed
                                         after use. If you need more, click{' '}
-                                        <span className="font-bold">
+                                        <span className="font-bold dark:text-gray-200">
                                             Regenerate Codes
                                         </span>{' '}
                                         above.
