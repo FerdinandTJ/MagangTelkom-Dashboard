@@ -98,6 +98,9 @@ export default function Dashboard({
     const [monthlySortOrder, setMonthlySortOrder] = useState<'chronological' | 'asc' | 'desc'>('chronological');
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
     
+    // Get current month name
+    const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long' });
+    
     // Get available years from yearlyRevenue data
     const availableYears = useMemo(() => {
         return yearlyRevenue.map(y => y.tahun).sort((a, b) => b - a);
@@ -158,11 +161,11 @@ export default function Dashboard({
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gray-50/30 dark:bg-gray-950/30">
                 
                 {/* Summary Cards */}
-                <div className="grid auto-rows-min gap-6 md:grid-cols-4">
+                  <div className="grid auto-rows-min gap-6 md:grid-cols-4">
                     <StatCard
                         title="Total Revenue YTD"
                         value={dashboardSummary.formatted_total_revenue}
-                        subtitle={`${currentYear} Year-to-Date`}
+                        subtitle={`${currentMonthName} ${currentYear} Year-to-Date`}
                         tooltip={formatCurrencyFull(dashboardSummary.total_revenue)}
                         trend={{
                             value: ytdComparison.growth_percentage,
@@ -323,7 +326,7 @@ export default function Dashboard({
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-gray-900 dark:text-gray-100">Top Performer</h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">{currentYear} YTD</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">{currentMonthName} {currentYear} YTD</p>
                                         </div>
                                     </div>
                                     {topCompanies.length > 0 && (
@@ -362,7 +365,7 @@ export default function Dashboard({
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-gray-900 dark:text-gray-100">Lowest Performer</h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">{currentYear} YTD</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">{currentMonthName} {currentYear} YTD</p>
                                         </div>
                                     </div>
                                     {topCompanies.length > 0 && (
