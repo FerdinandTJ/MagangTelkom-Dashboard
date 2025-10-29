@@ -203,4 +203,4 @@ This project is licensed under the MIT License.
 
 ---
 
-<p align="center">Made with ❤️ for TWS Division - Telkom Indonesia,</p>
+<p align="center">Made with ❤️ for TWS Division - Telkom Indonesia</p>
