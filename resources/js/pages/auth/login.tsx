@@ -313,12 +313,12 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                 </div>
                             </div>
 
-                            <div className={`text-center text-sm text-gray-500 transition-all duration-500 delay-700 ${showForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                            {/* <div className={`text-center text-sm text-gray-500 transition-all duration-500 delay-700 ${showForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                                 Don't have an account?{' '}
                                 <TextLink href={register()} tabIndex={5} className="text-red-600 hover:text-red-700 font-medium transition-colors duration-200 hover:underline">
                                     Create account
                                 </TextLink>
-                            </div>
+                            </div> */}
                         </>
                     )}
                     </Form>

@@ -109,7 +109,7 @@ export default function Dashboard({
     // Filtered and sorted data
     const sortedMonthlyRevenue = useMemo(() => {
         if (monthlySortOrder === 'chronological') {
-            return monthlyRevenue; // Keep original order
+            return monthlyRevenue; 
         }
         return [...monthlyRevenue].sort((a, b) => {
             if (monthlySortOrder === 'asc') {
@@ -127,7 +127,7 @@ export default function Dashboard({
 
     const handleYearChange = (year: number) => {
         setSelectedYear(year);
-        // Reload data dengan tahun yang dipilih
+
         router.get(dashboard().url, { year }, { 
             preserveState: true,
             preserveScroll: true 
@@ -141,7 +141,7 @@ export default function Dashboard({
 
     const handleSubsegmentClickFromMonth = (subsegment: string) => {
         setSelectedSubsegment(subsegment);
-        setMonthModalOpen(false);
+        // Keep MonthDetailModal open in background
         setSubsegmentModalOpen(true);
     };
 
@@ -161,7 +161,7 @@ export default function Dashboard({
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gray-50/30 dark:bg-gray-950/30">
                 
                 {/* Summary Cards */}
-                  <div className="grid auto-rows-min gap-6 md:grid-cols-4">
+                  {/* <div className="grid auto-rows-min gap-6 md:grid-cols-4">
                     <StatCard
                         title="Total Revenue YTD"
                         value={dashboardSummary.formatted_total_revenue}
@@ -210,11 +210,12 @@ export default function Dashboard({
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                         }
-                    />
-                </div>
+                    /> 
+                </div> */}
 
                 {/* Charts Section */}
-                <div className="grid auto-rows-min gap-6 lg:grid-cols-2">
+                {/* <div className="grid auto-rows-min gap-6 lg:grid-cols-2"> */}
+                <div className="">
                     {/* Monthly Revenue Chart */}
                     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
@@ -262,14 +263,13 @@ export default function Dashboard({
                             </div>
                             <RevenueBarChart 
                                 data={sortedMonthlyRevenue} 
-                                height={350}
+                                height={450}
                                 onBarClick={handleMonthClick}
                             />
                         </div>
                     </div>
 
-                    {/* Subsegment Breakdown */}
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    {/* <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
@@ -280,16 +280,15 @@ export default function Dashboard({
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-gray-900 dark:text-gray-100">Revenue by Subsegment</h3>
-                                    {/* <p className="text-sm text-gray-500 dark:text-gray-400">YTD {currentYear}</p> */}
-                                </div>
+                               </div>
                             </div>
                             <SubsegmentPieChart 
                                 data={subsegmentRevenue} 
                                 height={350}
                                 onSegmentClick={handleSubsegmentClick}
                             />
-                        </div>
-                    </div>
+                        </div> 
+                    </div> */}
                 </div>
 
                 {/* Yearly Trend and Top Companies */}

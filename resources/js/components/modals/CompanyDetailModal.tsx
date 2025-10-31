@@ -78,7 +78,6 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
             }
         } catch (err) {
             setError('Error loading company data');
-            console.error('Error fetching company details:', err);
         } finally {
             setLoading(false);
         }
@@ -115,7 +114,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
 
                 {/* Company Info Card */}
                 <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30 rounded-lg border border-red-100 dark:border-red-900 p-6 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1">
                                 <Info className="h-4 w-4 text-red-600 dark:text-red-400" />
@@ -129,6 +128,34 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                 <span className="text-sm font-medium text-red-700 dark:text-red-300">Subsegment</span>
                             </div>
                             <p className="font-semibold text-gray-900 dark:text-gray-100">{company.subsegment}</p>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                </svg>
+                                <span className="text-sm font-medium text-red-700 dark:text-red-300">Region</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {company.regions && company.regions.length > 0 ? (
+                                    company.regions.map((region, idx) => (
+                                        <span 
+                                            key={idx}
+                                            title={`${region.region_name}${region.witel_name ? ` - ${region.witel_name}` : ''}`}
+                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                                                region.is_primary 
+                                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800' 
+                                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
+                                            }`}
+                                        >
+                                            {region.is_primary && <span className="text-yellow-500">★</span>}
+                                            {region.region_code}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-gray-900 dark:text-gray-100">-</span>
+                                )}
+                            </div>
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">

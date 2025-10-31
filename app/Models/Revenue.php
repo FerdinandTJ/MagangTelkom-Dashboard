@@ -16,6 +16,8 @@ class Revenue extends Model
         'bulan',
         'revenue',
         'notes',
+        'region_id',
+        'witel_id',
     ];
 
     protected $casts = [
@@ -25,6 +27,22 @@ class Revenue extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * Get the region for this revenue
+     */
+    public function region(): BelongsTo
+    {
+        return $this->belongsTo(Region::class);
+    }
+
+    /**
+     * Get the WITEL for this revenue
+     */
+    public function witel(): BelongsTo
+    {
+        return $this->belongsTo(Witel::class);
     }
 
     public function getFormattedRevenueAttribute(): string

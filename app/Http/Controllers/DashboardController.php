@@ -178,6 +178,9 @@ class DashboardController extends Controller
         $totalCompanies = count($companies);
         $avgRevenue = $totalCompanies > 0 ? $totalRevenue / $totalCompanies : 0;
 
+        // Get regional breakdown
+        $regionalBreakdown = $this->getRegionalBreakdown($year, $month, $subsegment);
+
         $summaryData = [
             'total_revenue' => $totalRevenue,
             'total_companies' => $totalCompanies,
@@ -191,11 +194,54 @@ class DashboardController extends Controller
             'data' => [
                 'companies' => $companies,
                 'summary' => $summaryData,
+                'regional_breakdown' => $regionalBreakdown,
                 'subsegment' => $subsegment,
                 'year' => $year,
                 'month' => $month
             ]
         ]);
+    }
+
+    /**
+     * Get regional breakdown for subsegment
+     */
+    private function getRegionalBreakdown(int $year, ?int $month, string $subsegment): array
+    {
+        $query = \DB::table('revenues')
+            ->join('companies', 'revenues.company_id', '=', 'companies.id')
+            ->leftJoin('regions', 'companies.primary_region_id', '=', 'regions.id')
+            ->where('companies.subsegment', $subsegment)
+            ->where('revenues.tahun', $year)
+            ->whereNotNull('companies.primary_region_id'); // Only include companies with regions
+
+        if ($month) {
+            $query->where('revenues.bulan', $month);
+        }
+
+        $regionalData = $query
+            ->select(
+                'regions.id',
+                'regions.code',
+                'regions.name',
+                \DB::raw('COUNT(DISTINCT companies.id) as total_companies'),
+                \DB::raw('SUM(revenues.revenue) as total_revenue')
+            )
+            ->groupBy('regions.id', 'regions.code', 'regions.name')
+            ->orderBy('total_revenue', 'desc')
+            ->get();
+
+        return $regionalData->map(function ($item) {
+            $revenue = $item->total_revenue ?? 0;
+            return [
+                'region_id' => $item->id,
+                'region_code' => $item->code,
+                'region_name' => $item->name,
+                'total_companies' => $item->total_companies,
+                'total_revenue' => (float) $revenue,
+                'formatted_revenue' => $this->formatCurrency($revenue, 2),
+                'percentage' => 0 // Will be calculated on frontend
+            ];
+        })->toArray();
     }
 
     /**
@@ -355,5 +401,19 @@ class DashboardController extends Controller
                 'year' => $year
             ]
         ]);
+    }
+
+    /**
+     * Format currency helper
+     */
+    private function formatCurrency(float $value, int $decimals = 1): string
+    {
+        if ($value >= 1000000000000) {
+            // Triliun (>= 1000 Miliar)
+            return 'Rp ' . number_format($value / 1000000000000, $decimals) . 'T';
+        } else {
+            // Miliar
+            return 'Rp ' . number_format($value / 1000000000, $decimals) . 'M';
+        }
     }
 }

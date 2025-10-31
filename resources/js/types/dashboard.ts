@@ -16,6 +16,14 @@ export interface MonthData {
     formatted_revenue: string;
 }
 
+export interface CompanyRegion {
+    region_code: string;
+    region_name: string;
+    witel_code: string | null;
+    witel_name: string | null;
+    is_primary: boolean;
+}
+
 export interface CompanyData {
     id: number;
     nip_nas: string;
@@ -25,6 +33,7 @@ export interface CompanyData {
     formatted_total_revenue: string;
     status: string;
     source_data?: string;
+    regions?: CompanyRegion[];
 }
 
 export interface MonthlyRevenue {

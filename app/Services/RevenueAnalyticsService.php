@@ -215,6 +215,31 @@ class RevenueAnalyticsService
             ->orderByDesc('total_revenue')
             ->get()
             ->map(function ($item) {
+                // Get regions for this company
+                $regions = DB::table('company_regions')
+                    ->join('regions', 'company_regions.region_id', '=', 'regions.id')
+                    ->leftJoin('witels', 'company_regions.witel_id', '=', 'witels.id')
+                    ->where('company_regions.company_id', $item->id)
+                    ->select(
+                        'regions.code as region_code',
+                        'regions.name as region_name',
+                        'witels.code as witel_code',
+                        'witels.name as witel_name',
+                        'company_regions.is_primary'
+                    )
+                    ->orderByDesc('company_regions.is_primary')
+                    ->get()
+                    ->map(function ($region) {
+                        return [
+                            'region_code' => $region->region_code,
+                            'region_name' => $region->region_name,
+                            'witel_code' => $region->witel_code,
+                            'witel_name' => $region->witel_name,
+                            'is_primary' => (bool) $region->is_primary,
+                        ];
+                    })
+                    ->toArray();
+
                 return [
                     'id' => $item->id,
                     'nip_nas' => $item->nip_nas,
@@ -228,6 +253,7 @@ class RevenueAnalyticsService
                     'min_payment' => (float) $item->min_payment,
                     'formatted_revenue' => 'Rp ' . number_format($item->total_revenue, 0, ',', '.'),
                     'formatted_avg_revenue' => 'Rp ' . number_format($item->avg_revenue, 0, ',', '.'),
+                    'regions' => $regions,
                 ];
             })
             ->toArray();
