@@ -30,7 +30,6 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [summary, setSummary] = useState<any>(null);
     
-    // Detect dark mode
     const [isDarkMode, setIsDarkMode] = useState(false);
 
     useEffect(() => {
@@ -40,7 +39,6 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
         
         checkDarkMode();
         
-        // Watch for dark mode changes
         const observer = new MutationObserver(checkDarkMode);
         observer.observe(document.documentElement, {
             attributes: true,

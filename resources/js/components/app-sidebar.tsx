@@ -22,11 +22,11 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
-    // {
-    //     title: 'Performance AM',
-    //     href: performanceAm(),
-    //     icon: TrendingUp,
-    // },
+    {
+        title: 'Performance AM',
+        href: performanceAm(),
+        icon: TrendingUp,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
