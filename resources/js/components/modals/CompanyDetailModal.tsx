@@ -81,20 +81,6 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        const statusStyles = {
-            'Active': 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 border-green-200 dark:border-green-900',
-            'Inactive': 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900',
-            'Suspended': 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-900'
-        };
-        
-        return (
-            <span className={`px-3 py-1 text-sm font-medium rounded-full border ${statusStyles[status as keyof typeof statusStyles] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}>
-                {status}
-            </span>
-        );
-    };
-
     if (!company) return null;
 
     return (
@@ -112,7 +98,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
 
                 {/* Company Info Card */}
                 <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30 rounded-lg border border-red-100 dark:border-red-900 p-6 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1">
                                 <Info className="h-4 w-4 text-red-600 dark:text-red-400" />
@@ -154,12 +140,6 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                     <span className="text-gray-900 dark:text-gray-100">-</span>
                                 )}
                             </div>
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-medium text-red-700 dark:text-red-300">Status</span>
-                            </div>
-                            {getStatusBadge(company.status)}
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
