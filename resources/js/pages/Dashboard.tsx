@@ -5,6 +5,7 @@ import StatCard from '@/components/StatCard';
 import MonthDetailModal from '@/components/modals/MonthDetailModal';
 import SubsegmentDetailModal from '@/components/modals/SubsegmentDetailModal';
 import CompanyDetailModal from '@/components/modals/CompanyDetailModal';
+import SubsegmentRegionalTable from '@/components/SubsegmentRegionalTable';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
@@ -66,6 +67,7 @@ interface DashboardProps {
         formatted_total_revenue: string;
         formatted_avg_revenue: string;
     }>;
+    subsegmentRegionalData: Array<any>;
     topCompanies: Array<{
         id: number;
         nip_nas: string;
@@ -84,6 +86,7 @@ export default function Dashboard({
     monthlyRevenue,
     ytdComparison,
     subsegmentRevenue,
+    subsegmentRegionalData,
     topCompanies,
     currentYear
 }: DashboardProps) {
@@ -290,6 +293,12 @@ export default function Dashboard({
                         </div> 
                     </div> */}
                 </div>
+
+                {/* Subsegment Regional Performance Table */}
+                <SubsegmentRegionalTable 
+                    data={subsegmentRegionalData} 
+                    onSubsegmentClick={handleSubsegmentClick}
+                />
 
                 {/* Yearly Trend and Top Companies */}
                 <div className="grid auto-rows-min gap-6 lg:grid-cols-5">
