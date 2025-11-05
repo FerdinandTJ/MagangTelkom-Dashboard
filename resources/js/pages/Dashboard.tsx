@@ -164,7 +164,7 @@ export default function Dashboard({
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gray-50/30 dark:bg-gray-950/30">
                 
                 {/* Summary Cards */}
-                  {/* <div className="grid auto-rows-min gap-6 md:grid-cols-4">
+                  <div className="grid auto-rows-min gap-6 md:grid-cols-4">
                     <StatCard
                         title="Total Revenue YTD"
                         value={dashboardSummary.formatted_total_revenue}
@@ -196,7 +196,7 @@ export default function Dashboard({
                     <StatCard
                         title="Current Month"
                         value={dashboardSummary.formatted_current_month_revenue}
-                        subtitle="Oktober 2025"
+                        subtitle={`${currentMonthName} ${currentYear}`}
                         icon={
                             <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -214,7 +214,7 @@ export default function Dashboard({
                             </svg>
                         }
                     /> 
-                </div> */}
+                </div>
 
                 {/* Charts Section */}
                 {/* <div className="grid auto-rows-min gap-6 lg:grid-cols-2"> */}
