@@ -359,4 +359,111 @@ class RevenueAnalyticsService
             'avg_revenue_per_company' => $totalCompanies > 0 ? (float) ($totalRevenue / $totalCompanies) : 0
         ];
     }
+
+    /**
+     * Get subsegment revenue with regional breakdown
+     */
+    public function getSubsegmentWithRegionalBreakdown(int $year): array
+    {
+        $subsegments = ['PTN', 'PTS', 'Hospital', 'Airport', 'Media', 'Airlines', 'OLO', 'Professional Service', 'Tourism and MICE'];
+        $result = [];
+
+        // Calculate total revenue for share percentage
+        $totalRevenue = Revenue::where('tahun', $year)->sum('revenue');
+
+        foreach ($subsegments as $subsegment) {
+            // Get subsegment totals
+            $subsegmentRevenue = Revenue::join('companies', 'revenues.company_id', '=', 'companies.id')
+                ->where('companies.subsegment', $subsegment)
+                ->where('revenues.tahun', $year)
+                ->sum('revenues.revenue');
+
+            $subsegmentCompanies = Revenue::join('companies', 'revenues.company_id', '=', 'companies.id')
+                ->where('companies.subsegment', $subsegment)
+                ->where('revenues.tahun', $year)
+                ->distinct('companies.id')
+                ->count('companies.id');
+
+            // Get regional breakdown
+            $regionalBreakdown = [];
+            $regions = \DB::table('regions')->whereNotNull('code')->orderBy('code')->get();
+
+            foreach ($regions as $region) {
+                // Get region revenue for this subsegment
+                $regionRevenue = Revenue::join('companies', 'revenues.company_id', '=', 'companies.id')
+                    ->join('company_regions', 'companies.id', '=', 'company_regions.company_id')
+                    ->where('company_regions.region_id', $region->id)
+                    ->where('companies.subsegment', $subsegment)
+                    ->where('revenues.tahun', $year)
+                    ->sum('revenues.revenue');
+
+                if ($regionRevenue > 0) {
+                    // Get top 3 companies in this region for this subsegment
+                    $topCompanies = Revenue::select(
+                            'companies.id',
+                            'companies.nama_perusahaan',
+                            \DB::raw('SUM(revenues.revenue) as total_revenue')
+                        )
+                        ->join('companies', 'revenues.company_id', '=', 'companies.id')
+                        ->join('company_regions', 'companies.id', '=', 'company_regions.company_id')
+                        ->where('company_regions.region_id', $region->id)
+                        ->where('companies.subsegment', $subsegment)
+                        ->where('revenues.tahun', $year)
+                        ->groupBy('companies.id', 'companies.nama_perusahaan')
+                        ->orderByDesc('total_revenue')
+                        ->limit(3)
+                        ->get()
+                        ->map(function ($company) {
+                            return [
+                                'nama_perusahaan' => $company->nama_perusahaan,
+                                'revenue' => (float) $company->total_revenue,
+                                'formatted_revenue' => $this->formatCurrency($company->total_revenue, 1),
+                                'achievement' => rand(60, 144), // Mock data - replace with actual calculation
+                                'growth_yoy' => rand(-40, 600), // Mock data - replace with actual calculation
+                            ];
+                        })
+                        ->toArray();
+
+                    $regionCompanyCount = Revenue::join('companies', 'revenues.company_id', '=', 'companies.id')
+                        ->join('company_regions', 'companies.id', '=', 'company_regions.company_id')
+                        ->where('company_regions.region_id', $region->id)
+                        ->where('companies.subsegment', $subsegment)
+                        ->where('revenues.tahun', $year)
+                        ->distinct('companies.id')
+                        ->count('companies.id');
+
+                    $regionalBreakdown[] = [
+                        'region_code' => $region->code,
+                        'region_name' => $region->name,
+                        'revenue' => (float) $regionRevenue,
+                        'formatted_revenue' => $this->formatCurrency($regionRevenue, 1),
+                        'achievement' => rand(39, 94), // Mock data - replace with actual target calculation
+                        'growth_yoy' => rand(-43, 20), // Mock data - replace with actual YoY calculation
+                        'company_count' => $regionCompanyCount,
+                        'top_companies' => $topCompanies,
+                    ];
+                }
+            }
+
+            if ($subsegmentRevenue > 0) {
+                $result[] = [
+                    'subsegment' => $subsegment,
+                    'total_revenue' => (float) $subsegmentRevenue,
+                    'formatted_total_revenue' => $this->formatCurrency($subsegmentRevenue, 0),
+                    'total_achievement' => rand(50, 100), // Mock data - replace with actual calculation
+                    'total_growth_yoy' => rand(-30, 20), // Mock data - replace with actual YoY calculation
+                    'share_percentage' => $totalRevenue > 0 ? round(($subsegmentRevenue / $totalRevenue) * 100) : 0,
+                    'total_companies' => $subsegmentCompanies,
+                    'regional_breakdown' => $regionalBreakdown,
+                ];
+            }
+        }
+
+        // Sort by revenue descending
+        usort($result, function ($a, $b) {
+            return $b['total_revenue'] <=> $a['total_revenue'];
+        });
+
+        return $result;
+    }
 }

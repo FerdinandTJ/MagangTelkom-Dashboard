@@ -28,6 +28,7 @@ class DashboardController extends Controller
             'monthlyRevenue' => $this->analyticsService->getMonthlyRevenue($currentYear),
             'ytdComparison' => $this->analyticsService->getYtdComparison($currentYear),
             'subsegmentRevenue' => $this->analyticsService->getSubsegmentRevenue($currentYear),
+            'subsegmentRegionalData' => $this->analyticsService->getSubsegmentWithRegionalBreakdown($currentYear),
             'topCompanies' => $this->analyticsService->getTopCompanies($currentYear, 5),
             'currentYear' => (int)$currentYear,
         ]);

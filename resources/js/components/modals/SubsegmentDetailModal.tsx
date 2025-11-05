@@ -127,19 +127,7 @@ const SubsegmentDetailModal: React.FC<SubsegmentDetailModalProps> = ({
         return data;
     }, [regionalBreakdown]);
 
-    const getStatusBadge = (status: string) => {
-        const statusStyles = {
-            'Active': 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 border-green-200 dark:border-green-900',
-            'Inactive': 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900',
-            'Suspended': 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-900'
-        };
-        
-        return (
-            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${statusStyles[status as keyof typeof statusStyles] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}>
-                {status}
-            </span>
-        );
-    };
+    // Status badge removed - status column intentionally not displayed in the company list
 
     if (!subsegment) return null;
 
@@ -313,9 +301,7 @@ const SubsegmentDetailModal: React.FC<SubsegmentDetailModalProps> = ({
                                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                 Revenue
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                Status
-                                            </th>
+                                            {/* Status column removed */}
                                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                 Action
                                             </th>
@@ -370,9 +356,7 @@ const SubsegmentDetailModal: React.FC<SubsegmentDetailModalProps> = ({
                                                         </p>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    {getStatusBadge(company.status)}
-                                                </td>
+                                                {/* Status column removed */}
                                                 <td className="px-4 py-3">
                                                     <Button
                                                         variant="outline"
