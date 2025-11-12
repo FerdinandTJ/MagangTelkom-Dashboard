@@ -230,7 +230,7 @@ class RevenueAnalyticsService
                     )
                     ->orderByDesc('account_manager_company.proporsi')
                     ->get()
-                    ->map(function ($region) {
+                    ->map(function ($region, $index) {
                         return [
                             'region_code' => $region->region_code,
                             'region_name' => $region->region_name,
@@ -238,6 +238,7 @@ class RevenueAnalyticsService
                             'am_name' => $region->am_name,
                             'proporsi' => (float) $region->proporsi,
                             'pembagian' => $region->pembagian,
+                            'is_primary' => $index === 0, // First region (highest proporsi) is primary
                         ];
                     })
                     ->toArray();
