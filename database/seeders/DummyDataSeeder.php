@@ -245,4 +245,5 @@ class DummyDataSeeder extends Seeder
         $this->command->info('- Targets: ' . count($targets));
         $this->command->info('- Realisasi: ' . count($liniWaktuTarget));
     }
+    }
 }
