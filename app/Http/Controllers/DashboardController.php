@@ -209,11 +209,13 @@ class DashboardController extends Controller
     private function getRegionalBreakdown(int $year, ?int $month, string $subsegment): array
     {
         $query = \DB::table('revenues')
-            ->join('companies', 'revenues.company_id', '=', 'companies.id')
-            ->leftJoin('regions', 'companies.primary_region_id', '=', 'regions.id')
+            ->join('companies', 'revenues.nip_nas', '=', 'companies.nip_nas')
+            ->join('account_manager_company', 'companies.nip_nas', '=', 'account_manager_company.nip_nas')
+            ->join('account_managers', 'account_manager_company.nik_am', '=', 'account_managers.nik')
+            ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+            ->join('regions', 'witels.region_id', '=', 'regions.id')
             ->where('companies.subsegment', $subsegment)
-            ->where('revenues.tahun', $year)
-            ->whereNotNull('companies.primary_region_id'); // Only include companies with regions
+            ->where('revenues.tahun', $year);
 
         if ($month) {
             $query->where('revenues.bulan', $month);
@@ -223,11 +225,11 @@ class DashboardController extends Controller
             ->select(
                 'regions.id',
                 'regions.code',
-                'regions.name',
-                \DB::raw('COUNT(DISTINCT companies.id) as total_companies'),
-                \DB::raw('SUM(revenues.revenue) as total_revenue')
+                'regions.description as name',
+                \DB::raw('COUNT(DISTINCT companies.nip_nas) as total_companies'),
+                \DB::raw('SUM(revenues.total_revenue) as total_revenue')
             )
-            ->groupBy('regions.id', 'regions.code', 'regions.name')
+            ->groupBy('regions.id', 'regions.code', 'regions.description')
             ->orderBy('total_revenue', 'desc')
             ->get();
 
@@ -251,24 +253,24 @@ class DashboardController extends Controller
     public function getIndividualCompanyDetails(Request $request)
     {
         $request->validate([
-            'company_id' => 'required|integer|exists:companies,id'
+            'company_id' => 'required|string|exists:companies,nip_nas'
         ]);
 
         $companyId = $request->input('company_id');
         
         // Get company basic info
-        $company = \App\Models\Company::findOrFail($companyId);
+        $company = \App\Models\Company::where('nip_nas', $companyId)->firstOrFail();
         
         // Get all revenue history for summary calculations
-        $allMonthlyData = \App\Models\Revenue::where('company_id', $companyId)
-            ->selectRaw('tahun, bulan, revenue')
+        $allMonthlyData = \App\Models\Revenue::where('nip_nas', $companyId)
+            ->selectRaw('tahun, bulan, total_revenue')
             ->orderBy('tahun', 'asc')
             ->orderBy('bulan', 'asc')
             ->get();
         
         // Get last 12 months revenue data for chart
-        $monthlyData = \App\Models\Revenue::where('company_id', $companyId)
-            ->selectRaw('tahun, bulan, revenue')
+        $monthlyData = \App\Models\Revenue::where('nip_nas', $companyId)
+            ->selectRaw('tahun, bulan, total_revenue')
             ->selectRaw('CASE 
                 WHEN bulan = 1 THEN "Januari"
                 WHEN bulan = 2 THEN "Februari" 
@@ -294,15 +296,15 @@ class DashboardController extends Controller
                     'tahun' => $item->tahun,
                     'bulan' => $item->bulan,
                     'bulan_name' => $item->bulan_name,
-                    'revenue' => $item->revenue,
-                    'formatted_revenue' => 'Rp ' . number_format($item->revenue / 1000000000, 2) . 'M',
+                    'revenue' => $item->total_revenue,
+                    'formatted_revenue' => 'Rp ' . number_format($item->total_revenue / 1000000000, 2) . 'M',
                     'period_label' => $item->bulan_name . ' ' . $item->tahun
                 ];
             });
 
         // Get yearly totals
-        $yearlyData = \App\Models\Revenue::where('company_id', $companyId)
-            ->selectRaw('tahun, SUM(revenue) as total_revenue, COUNT(*) as months_count')
+        $yearlyData = \App\Models\Revenue::where('nip_nas', $companyId)
+            ->selectRaw('tahun, SUM(total_revenue) as total_revenue, COUNT(*) as months_count')
             ->groupBy('tahun')
             ->orderBy('tahun', 'asc')
             ->get()
@@ -316,9 +318,9 @@ class DashboardController extends Controller
             });
 
         // Calculate summary using all data
-        $totalRevenue = $allMonthlyData->sum('revenue');
+        $totalRevenue = $allMonthlyData->sum('total_revenue');
         $avgMonthlyRevenue = $allMonthlyData->count() > 0 ? $totalRevenue / $allMonthlyData->count() : 0;
-        $bestMonthRecord = $allMonthlyData->sortByDesc('revenue')->first();
+        $bestMonthRecord = $allMonthlyData->sortByDesc('total_revenue')->first();
         $bestYear = $yearlyData->sortByDesc('total_revenue')->first();
         
         // Get month name for best month
