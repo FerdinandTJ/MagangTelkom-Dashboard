@@ -164,7 +164,7 @@ export default function Dashboard({
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gray-50/30 dark:bg-gray-950/30">
                 
                 {/* Summary Cards */}
-                  {/* <div className="grid auto-rows-min gap-6 md:grid-cols-4">
+                  <div className="grid auto-rows-min gap-6 md:grid-cols-4">
                     <StatCard
                         title="Total Revenue YTD"
                         value={dashboardSummary.formatted_total_revenue}
@@ -214,7 +214,7 @@ export default function Dashboard({
                             </svg>
                         }
                     /> 
-                </div> */}
+                </div>
 
                 {/* Charts Section */}
                 {/* <div className="grid auto-rows-min gap-6 lg:grid-cols-2"> */}
