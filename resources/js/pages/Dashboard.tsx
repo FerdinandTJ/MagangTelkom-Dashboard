@@ -210,7 +210,6 @@ export default function Dashboard({
                                     </select>
                                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
                                 </div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">1 Okt - 31 Des</p>
                             </div>
                             <div className="flex-shrink-0 ml-4">
                                 <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
@@ -292,27 +291,6 @@ export default function Dashboard({
                             />
                         </div>
                     </div>
-
-                    {/* <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-                        <div className="p-6">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                                    <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">Revenue by Subsegment</h3>
-                               </div>
-                            </div>
-                            <SubsegmentPieChart 
-                                data={subsegmentRevenue} 
-                                height={350}
-                                onSegmentClick={handleSubsegmentClick}
-                            />
-                        </div> 
-                    </div> */}
                 </div>
 
                 {/* Subsegment Regional Performance Table */}
