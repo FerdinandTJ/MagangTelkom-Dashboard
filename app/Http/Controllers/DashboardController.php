@@ -479,8 +479,10 @@ class DashboardController extends Controller
 
         $companyId = $request->input('company_id');
         
-        // Get company basic info
-        $company = \App\Models\Company::where('nip_nas', $companyId)->firstOrFail();
+        // Get company basic info with Account Managers
+        $company = \App\Models\Company::where('nip_nas', $companyId)
+            ->with(['accountManagers.witel.region'])
+            ->firstOrFail();
         
         // Get all revenue history for summary calculations
         $allMonthlyData = \App\Models\Revenue::where('nip_nas', $companyId)
@@ -557,10 +559,27 @@ class DashboardController extends Controller
             'formatted_avg_monthly' => 'Rp ' . number_format($avgMonthlyRevenue / 1000000000, 2) . 'M'
         ];
 
+        // Format Account Managers data
+        $accountManagers = $company->accountManagers->map(function ($am) {
+            return [
+                'nik' => $am->nik,
+                'nama' => $am->nama,
+                'posisi' => $am->posisi,
+                'no_gsm' => $am->no_gsm,
+                'proporsi' => $am->pivot->proporsi,
+                'pembagian' => $am->pivot->pembagian,
+                'segment' => $am->pivot->segment,
+                'witel_name' => $am->witel ? $am->witel->nama_witels : null,
+                'region_name' => $am->witel && $am->witel->region ? $am->witel->region->name : null,
+                'region_code' => $am->witel && $am->witel->region ? $am->witel->region->code : null,
+            ];
+        });
+
         return response()->json([
             'success' => true,
             'data' => [
                 'company' => $company,
+                'account_managers' => $accountManagers,
                 'monthly_data' => $monthlyData,
                 'yearly_data' => $yearlyData,
                 'summary' => $summaryData

@@ -7,11 +7,16 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building2, TrendingUp, Calendar, BarChart3, Info } from 'lucide-react';
+import { Loader2, Building2, TrendingUp, Calendar, BarChart3, Info, User } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { CompanyData, MonthlyRevenue, YearlyRevenue } from '@/types/dashboard';
 import axios from '@/lib/axios';
 import { formatCurrency, formatCurrencyShort } from '@/utils/currency';
+
+interface AccountManagerData {
+    nik: string;
+    nama: string;
+}
 
 interface CompanyDetailModalProps {
     isOpen: boolean;
@@ -26,6 +31,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
 }) => {
     const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
     const [yearlyData, setYearlyData] = useState<YearlyRevenue[]>([]);
+    const [accountManagers, setAccountManagers] = useState<AccountManagerData[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [summary, setSummary] = useState<any>(null);
@@ -70,6 +76,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
             if (response.data.success) {
                 setMonthlyData(response.data.data.monthly_data);
                 setYearlyData(response.data.data.yearly_data);
+                setAccountManagers(response.data.data.account_managers || []);
                 setSummary(response.data.data.summary);
             } else {
                 setError('Failed to fetch company details');
@@ -98,7 +105,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
 
                 {/* Company Info Card */}
                 <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30 rounded-lg border border-red-100 dark:border-red-900 p-6 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1">
                                 <Info className="h-4 w-4 text-red-600 dark:text-red-400" />
@@ -134,6 +141,26 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                         >
                                             {region.is_primary && <span className="text-yellow-500">★</span>}
                                             {region.region_code}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-gray-900 dark:text-gray-100">-</span>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <User className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                <span className="text-sm font-medium text-red-700 dark:text-red-300">Account Manager</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {!loading && accountManagers.length > 0 ? (
+                                    accountManagers.map((am, idx) => (
+                                        <span 
+                                            key={am.nik}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800"
+                                        >
+                                            {am.nama}
                                         </span>
                                     ))
                                 ) : (
