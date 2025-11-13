@@ -93,6 +93,9 @@ return new class extends Migration
             // REALISASI LOP: Actual Length of Payment
             $table->decimal('r_lop', 15, 2)->default(0)->comment('Realisasi LOP');
             
+            // REALISASI SUSTAIN: Actual Sustain
+            $table->decimal('r_sustain', 15, 2)->default(0)->comment('Realisasi Sustain');
+            
             // REALISASI CAPABILITY: Actual capability score
             $table->decimal('r_capability', 5, 2)->default(0)->comment('Realisasi Capability');
             
