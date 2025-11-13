@@ -19,21 +19,30 @@ export interface MonthData {
 export interface CompanyRegion {
     region_code: string;
     region_name: string;
-    witel_code: string | null;
     witel_name: string | null;
+    am_name?: string;
+    proporsi?: number;
+    pembagian?: string;
     is_primary: boolean;
+    // Legacy fields
+    witel_code?: string | null;
 }
 
 export interface CompanyData {
-    id: number;
-    nip_nas: string;
+    nip_nas: string; // Primary Key - changed from id
     nama_perusahaan: string;
     subsegment: string;
-    total_revenue: number;
-    formatted_total_revenue: string;
-    status: string;
+    revenue: number; // Changed from total_revenue to match API response
+    formatted_revenue: string; // Changed from formatted_total_revenue
     source_data?: string;
     regions?: CompanyRegion[];
+    payment_count?: number;
+    avg_revenue?: number;
+    formatted_avg_revenue?: string;
+    // Legacy fields for backward compatibility
+    id?: number | string;
+    total_revenue?: number;
+    formatted_total_revenue?: string;
 }
 
 export interface MonthlyRevenue {
