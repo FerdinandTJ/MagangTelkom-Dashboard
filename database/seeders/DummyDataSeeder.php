@@ -16,21 +16,30 @@ class DummyDataSeeder extends Seeder
         // 1. INSERT COMPANIES DATA (if empty)
         if (DB::table('companies')->count() == 0) {
             $companies = [
-            ['nip_nas' => 'NIP001', 'nama_perusahaan' => 'PT Telkom Indonesia', 'subsegment' => 'PTN', 'source_data' => 'TIBS-NP'],
-            ['nip_nas' => 'NIP002', 'nama_perusahaan' => 'RS Cipto Mangunkusumo', 'subsegment' => 'Hospital', 'source_data' => 'SISKA'],
-            ['nip_nas' => 'NIP003', 'nama_perusahaan' => 'Universitas Indonesia', 'subsegment' => 'PTN', 'source_data' => 'NGTMA'],
-            ['nip_nas' => 'NIP004', 'nama_perusahaan' => 'Bandara Soekarno-Hatta', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP'],
-            ['nip_nas' => 'NIP005', 'nama_perusahaan' => 'Universitas Gadjah Mada', 'subsegment' => 'PTN', 'source_data' => 'NGTMA'],
-            ['nip_nas' => 'NIP006', 'nama_perusahaan' => 'RS Sardjito Yogyakarta', 'subsegment' => 'Hospital', 'source_data' => 'SISKA'],
-            ['nip_nas' => 'NIP007', 'nama_perusahaan' => 'Institut Teknologi Bandung', 'subsegment' => 'PTN', 'source_data' => 'NGTMA'],
-            ['nip_nas' => 'NIP008', 'nama_perusahaan' => 'Universitas Airlangga', 'subsegment' => 'PTN', 'source_data' => 'NGTMA'],
-            ['nip_nas' => 'NIP009', 'nama_perusahaan' => 'Bandara Juanda Surabaya', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP'],
-            ['nip_nas' => 'NIP010', 'nama_perusahaan' => 'RS Hasan Sadikin Bandung', 'subsegment' => 'Hospital', 'source_data' => 'SISKA'],
-            ['nip_nas' => 'NIP011', 'nama_perusahaan' => 'Universitas Bina Nusantara', 'subsegment' => 'PTS', 'source_data' => 'NGTMA'],
-            ['nip_nas' => 'NIP012', 'nama_perusahaan' => 'Universitas Trisakti', 'subsegment' => 'PTS', 'source_data' => 'NGTMA'],
-            ['nip_nas' => 'NIP013', 'nama_perusahaan' => 'Media Group Indonesia', 'subsegment' => 'Media', 'source_data' => 'TIBS-NP'],
-            ['nip_nas' => 'NIP014', 'nama_perusahaan' => 'Trans Media Corporation', 'subsegment' => 'Media', 'source_data' => 'TIBS-NP'],
-            ['nip_nas' => 'NIP015', 'nama_perusahaan' => 'Bandara Ngurah Rai Bali', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP'],
+            // TREG1 - Sumatera (Aceh witel)
+            ['nip_nas' => 'NIP001', 'nama_perusahaan' => 'PT Telkom Indonesia', 'subsegment' => 'PTN', 'source_data' => 'TIBS-NP', 'idwitels' => 1001],
+            
+            // TREG2 - Jakarta & Jabar
+            ['nip_nas' => 'NIP002', 'nama_perusahaan' => 'RS Cipto Mangunkusumo', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP003', 'nama_perusahaan' => 'Universitas Indonesia', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 2002], // Jakarta Selatan
+            ['nip_nas' => 'NIP004', 'nama_perusahaan' => 'Bandara Soekarno-Hatta', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 2007], // Tangerang
+            ['nip_nas' => 'NIP007', 'nama_perusahaan' => 'Institut Teknologi Bandung', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 2008], // Bandung
+            ['nip_nas' => 'NIP010', 'nama_perusahaan' => 'RS Hasan Sadikin Bandung', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 2008], // Bandung
+            ['nip_nas' => 'NIP011', 'nama_perusahaan' => 'Universitas Bina Nusantara', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 2003], // Jakarta Barat
+            ['nip_nas' => 'NIP013', 'nama_perusahaan' => 'Media Group Indonesia', 'subsegment' => 'Media', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP014', 'nama_perusahaan' => 'Trans Media Corporation', 'subsegment' => 'Media', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            
+            // TREG3 - Jateng & DIY
+            ['nip_nas' => 'NIP005', 'nama_perusahaan' => 'Universitas Gadjah Mada', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 3005], // Yogyakarta
+            ['nip_nas' => 'NIP006', 'nama_perusahaan' => 'RS Sardjito Yogyakarta', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 3005], // Yogyakarta
+            ['nip_nas' => 'NIP012', 'nama_perusahaan' => 'Universitas Trisakti', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 3001], // Semarang
+            
+            // TREG4 - Jawa Timur
+            ['nip_nas' => 'NIP008', 'nama_perusahaan' => 'Universitas Airlangga', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 4001], // Surabaya
+            ['nip_nas' => 'NIP009', 'nama_perusahaan' => 'Bandara Juanda Surabaya', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 4001], // Surabaya
+            
+            // TREG5 - Bali
+            ['nip_nas' => 'NIP015', 'nama_perusahaan' => 'Bandara Ngurah Rai Bali', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 5001], // Bali
         ];
 
             foreach ($companies as $company) {
@@ -39,7 +48,7 @@ class DummyDataSeeder extends Seeder
                     'updated_at' => now(),
                 ]));
             }
-            $this->command->info('✅ Companies inserted: ' . count($companies) . ' companies');
+            $this->command->info('✅ Companies inserted: ' . count($companies) . ' companies with witel assignments');
         } else {
             $this->command->info('⚠️  Companies already exist, skipped.');
         }
@@ -152,7 +161,9 @@ class DummyDataSeeder extends Seeder
             'Q4' => ['bulan_awal' => '-10-01', 'bulan_akhir' => '-12-31'],
         ];
 
-        $sampleAMs = ['810001', '820001', '820002', '830001', '840001', '850001'];
+        // Get all Account Manager NIKs from database untuk generate lini_waktu
+        // NOTE: Generate untuk semua AM agar semua region punya data
+        $sampleAMs = DB::table('account_managers')->pluck('nik')->toArray();
         $years = [2024, 2025];
 
         foreach ($sampleAMs as $nikAm) {
@@ -199,48 +210,98 @@ class DummyDataSeeder extends Seeder
         $this->command->info('✅ Lini Waktu inserted: ' . count($liniWaktu) . ' quarterly periods');
 
         // 5. INSERT TARGET ACCOUNT M (KPI Targets)
-        // NOTE: Updated dengan tipe data baru (persentase fields)
+        // NOTE: Generate targets untuk setiap AM, tahun, dan quartal
+        // Target revenue akan berbeda untuk setiap kombinasi AM + Year + Quarter
         // t_revenue, t_scalling, t_lop, t_ngtma, t_sustain: decimal(15,2) - nilai absolut
         // t_cyc, t_cr, t_profit, t_maps: decimal(7,3) - persentase (0-100%)
         // t_datin, t_wifi: decimal(7,2) - nilai absolut
         // t_hsi, t_wireline, t_nps, t_capability, t_cc: decimal(5,2) - nilai absolut atau persentase
+        
         $targets = [];
+        $targetIndex = 0;
+        
+        // Generate base targets untuk SEMUA AM
+        // Formula: Base revenue 40M - 100M, varying by region
+        $baseTargets = [];
+        $baseRevenueRange = [40000000000, 50000000000, 60000000000, 70000000000, 80000000000, 90000000000, 100000000000];
+        
         foreach ($sampleAMs as $index => $nikAm) {
-            $targets[] = [
-                't_revenue' => 50000000000.00 + ($index * 10000000000),     // 50-100B (nilai rupiah)
-                't_scalling' => 25000000000.00 + ($index * 5000000000),    // 25-50B (nilai rupiah)
-                't_datin' => 15000.00 + ($index * 5000),                   // 15k-40k (nilai absolut)
-                't_hsi' => 150.00 + ($index * 50),                         // 150-400 (unit)
-                't_wireline' => 80.00 + ($index * 20),                     // 80-180 (unit)
-                't_wifi' => 50000.00 + ($index * 8000),                    // 50k-90k (nilai absolut)
-                't_cyc' => 85.000 + ($index * 2),                          // 85-95% (PERSENTASE)
-                't_cr' => 90.000 + ($index * 1.5),                         // 90-97.5% (PERSENTASE)
-                't_profit' => 75.000 + ($index * 2),                       // 75-85% (PERSENTASE)
-                't_nps' => 75.00,                                          // 75% (nilai absolut)
-                't_maps' => 80.000 + ($index * 1),                         // 80-85% (PERSENTASE)
-                't_lop' => 10000000000.00,                                 // 10B (nilai rupiah)
-                't_capability' => 90.00,                                   // 90% (nilai absolut)
-                't_cc' => 88.00,                                           // 88% (nilai absolut)
-                't_ngtma' => 15000000000.00,                               // 15B (nilai rupiah)
-                't_sustain' => 12000000000.00,                             // 12B (nilai rupiah)
-                'created_at' => now(),
-                'updated_at' => now(),
+            // Distribute revenue evenly across range
+            $baseRevenue = $baseRevenueRange[$index % count($baseRevenueRange)];
+            $baseTargets[$nikAm] = [
+                'revenue' => $baseRevenue,
+                'scaling' => $baseRevenue * 0.5, // Scaling = 50% of revenue
             ];
+        }
+        
+        // Generate targets for each AM, year, and quarter
+        foreach ($sampleAMs as $index => $nikAm) {
+            $baseRevenue = $baseTargets[$nikAm]['revenue'];
+            $baseScaling = $baseTargets[$nikAm]['scaling'];
+            
+            foreach ($years as $year) {
+                // Yearly increase factor (2025 targets are 10-15% higher than 2024)
+                $yearFactor = ($year == 2024) ? 1.0 : 1.12;
+                
+                foreach ($quarters as $quartal => $dates) {
+                    // Quarterly variation (Q1: 90%, Q2: 100%, Q3: 105%, Q4: 110%)
+                    $quarterFactor = match($quartal) {
+                        'Q1' => 0.90,
+                        'Q2' => 1.00,
+                        'Q3' => 1.05,
+                        'Q4' => 1.10,
+                    };
+                    
+                    // Calculate final target with year and quarter factors
+                    $finalRevenue = $baseRevenue * $yearFactor * $quarterFactor;
+                    $finalScaling = $baseScaling * $yearFactor * $quarterFactor;
+                    
+                    $targets[] = [
+                        't_revenue' => round($finalRevenue, 2),
+                        't_scalling' => round($finalScaling, 2),
+                        // NOTE: Adjusted values untuk decimal limits (max untuk 40 AMs dengan quarterFactor 1.10)
+                        't_datin' => round((10000.00 + ($index * 1200)) * $quarterFactor, 2),   // decimal(7,2) - max 99999.99 (56880 at max)
+                        't_hsi' => round((100.00 + ($index * 15)) * $quarterFactor, 2),         // decimal(5,2) - max 999.99 (748 at max)
+                        't_wireline' => round((50.00 + ($index * 10)) * $quarterFactor, 2),     // decimal(5,2) - max 999.99 (484 at max)
+                        't_wifi' => round((15000.00 + ($index * 1500)) * $quarterFactor, 2),    // decimal(7,2) - max 99999.99 (79200 at max)
+                        't_cyc' => 85.000 + ($index * 2),
+                        't_cr' => 90.000 + ($index * 1.5),
+                        't_profit' => 75.000 + ($index * 2),
+                        't_nps' => 75.00,
+                        't_maps' => 80.000 + ($index * 1),
+                        't_lop' => round(10000000000.00 * $quarterFactor, 2),
+                        't_capability' => 90.00,
+                        't_cc' => 88.00,
+                        't_ngtma' => round(15000000000.00 * $quarterFactor, 2),
+                        't_sustain' => round(12000000000.00 * $quarterFactor, 2),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                    $targetIndex++;
+                }
+            }
         }
 
         DB::table('target_account_m')->insert($targets);
-        $this->command->info('✅ Targets inserted: ' . count($targets) . ' target records');
+        $this->command->info('✅ Targets inserted: ' . count($targets) . ' target records (per AM x Year x Quarter)');
 
         // 6. INSERT LINI WAKTU - TARGET PIVOT (with realisasi dan achievement)
-        $liniWaktuIds = DB::table('lini_waktu')->pluck('id')->toArray();
-        $targetIds = DB::table('target_account_m')->pluck('id')->toArray();
+        // NOTE: Sekarang ada 1:1 mapping antara lini_waktu dan target_account_m
+        // Setiap kombinasi AM + Year + Quarter punya target sendiri
+        $liniWaktuRecords = DB::table('lini_waktu')
+            ->orderBy('nik_am')
+            ->orderBy('tahun')
+            ->orderBy('quartal')
+            ->get();
+        
+        $targetRecords = DB::table('target_account_m')
+            ->orderBy('id')
+            ->get();
         
         $liniWaktuTarget = [];
-        foreach ($liniWaktuIds as $index => $liniWaktuId) {
-            $targetId = $targetIds[$index % count($targetIds)];
-            
-            // Get target data
-            $target = DB::table('target_account_m')->where('id', $targetId)->first();
+        foreach ($liniWaktuRecords as $index => $liniWaktu) {
+            // 1:1 mapping berdasarkan urutan insert
+            $target = $targetRecords[$index];
             
             // Calculate realisasi (achievement 70-110%)
             // NOTE: Untuk field nilai absolut, kalikan dengan achievement rate
@@ -248,20 +309,21 @@ class DummyDataSeeder extends Seeder
             $achievementRate = (rand(85, 110) / 100);  // 85-110% achievement
             
             $liniWaktuTarget[] = [
-                'lini_waktu_id' => $liniWaktuId,
-                'target_id' => $targetId,
+                'lini_waktu_id' => $liniWaktu->id,
+                'target_id' => $target->id,
                 
                 // REALISASI - Nilai Absolut (dikalikan dengan achievement rate)
-                'r_revenue' => $target->t_revenue * $achievementRate,
-                'r_scalling' => $target->t_scalling * $achievementRate,
-                'r_datin' => $target->t_datin * $achievementRate,
-                'r_hsi' => $target->t_hsi * $achievementRate,
-                'r_wireline' => $target->t_wireline * $achievementRate,
-                'r_wifi' => $target->t_wifi * $achievementRate,
-                'r_nps' => $target->t_nps * $achievementRate,
-                'r_lop' => $target->t_lop * $achievementRate,
-                'r_capability' => $target->t_capability * $achievementRate,
-                'r_cc' => $target->t_cc * $achievementRate,
+                // NOTE: Perhatikan tipe data - beberapa kolom punya limit kecil
+                'r_revenue' => round($target->t_revenue * $achievementRate, 2),     // decimal(15,2)
+                'r_scalling' => round($target->t_scalling * $achievementRate, 2),   // decimal(15,2)
+                'r_datin' => round($target->t_datin * $achievementRate, 2),         // decimal(7,2) - max 99999.99
+                'r_hsi' => round($target->t_hsi * $achievementRate, 2),             // decimal(5,2) - max 999.99
+                'r_wireline' => round($target->t_wireline * $achievementRate, 2),   // decimal(5,2) - max 999.99
+                'r_wifi' => round($target->t_wifi * $achievementRate, 2),           // decimal(7,2) - max 99999.99
+                'r_nps' => round($target->t_nps * $achievementRate, 2),             // decimal(5,2) - max 999.99
+                'r_lop' => round($target->t_lop * $achievementRate, 2),             // decimal(15,2)
+                'r_capability' => round($target->t_capability * $achievementRate, 2), // decimal(5,2) - max 999.99
+                'r_cc' => round($target->t_cc * $achievementRate, 2),               // decimal(5,2) - max 999.99
                 
                 // REALISASI - Persentase (target + variasi -5 sampai +10)
                 // NOTE: Field ini sekarang decimal(7,3) untuk persentase

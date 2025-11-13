@@ -28,6 +28,11 @@ class WitelSeeder extends Seeder
         $regions = Region::all()->keyBy('code');
 
         $witels = [
+            // HQ TREG2 - Headquarters (Corporate/Enterprise)
+            ['idwitels' => 2101, 'nama_witels' => 'HQ Corporate', 'region_id' => $regions['HQ TREG2']->id],
+            ['idwitels' => 2102, 'nama_witels' => 'HQ Enterprise', 'region_id' => $regions['HQ TREG2']->id],
+            ['idwitels' => 2103, 'nama_witels' => 'HQ Government', 'region_id' => $regions['HQ TREG2']->id],
+
             // TREG1 - Sumatera
             ['idwitels' => 1001, 'nama_witels' => 'Aceh', 'region_id' => $regions['TREG1']->id],
             ['idwitels' => 1002, 'nama_witels' => 'Medan', 'region_id' => $regions['TREG1']->id],

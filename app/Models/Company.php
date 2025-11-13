@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Model Company
@@ -16,8 +17,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string $nama_perusahaan Nama lengkap perusahaan
  * @property string $subsegment Sub-segment perusahaan (PTN, PTS, Hospital, dll)
  * @property string $source_data Sumber data (TIBS-NP, SISKA, NGTMA)
+ * @property int|null $idwitels FK to witels - Witel tempat company berada
  * 
  * Relations:
+ * - witel: BelongsTo (One-to-One dengan Witel)
  * - accountManagers: BelongsToMany (Many-to-Many via pivot account_manager_company)
  * - revenues: HasMany (One-to-Many dengan Revenue)
  * 
@@ -26,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * - Hapus: primary_region_id, primary_witel_id
  * - Hapus: regions(), witels(), companyRegions() relations (tidak digunakan lagi)
  * - Tambah: accountManagers() relation
+ * - Tambah: idwitels FK dan witel() relation (One-to-One)
  */
 class Company extends Model
 {
@@ -58,12 +62,14 @@ class Company extends Model
      * The attributes that are mass assignable.
      * 
      * PERUBAHAN: Hapus 'status', 'primary_region_id', 'primary_witel_id'
+     * TAMBAH: idwitels (FK to witels)
      */
     protected $fillable = [
         'nip_nas',
         'nama_perusahaan',
         'subsegment',
         'source_data',
+        'idwitels',
     ];
 
     /**
@@ -90,6 +96,15 @@ class Company extends Model
     const SOURCE_TIBS_NP = 'TIBS-NP';
     const SOURCE_SISKA = 'SISKA';
     const SOURCE_NGTMA = 'NGTMA';
+
+    /**
+     * RELATION: Company belongs to Witel (One-to-One)
+     * Satu company berada di satu witel tertentu
+     */
+    public function witel(): BelongsTo
+    {
+        return $this->belongsTo(Witel::class, 'idwitels', 'idwitels');
+    }
 
     /**
      * RELATION: Company has many AccountManagers (Many-to-Many)

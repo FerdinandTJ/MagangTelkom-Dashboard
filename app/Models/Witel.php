@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Model Witel
@@ -19,16 +19,16 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * Relations:
  * - region: BelongsTo (Many-to-One dengan Region)
  * - accountManager: HasOne (One-to-One dengan AccountManager)
- * - companies: HasManyThrough (via AccountManager)
+ * - companies: HasMany (One-to-Many dengan Company via idwitels FK)
  * 
  * PERUBAHAN DARI STRUKTUR LAMA:
  * - Primary key berubah dari 'id' ke 'idwitels' (custom INT)
  * - Field 'name' berubah jadi 'nama_witels'
  * - Hapus: code, province, description fields
- * - Hapus: companies() direct relation (akses via AccountManager sekarang)
  * - Hapus: companyRegions() relation (table sudah dihapus)
  * - Hapus: revenues() direct relation (akses via companies)
  * - Tambah: accountManager() One-to-One relation
+ * - Tambah: companies() One-to-Many direct relation via idwitels FK
  */
 class Witel extends Model
 {
@@ -87,19 +87,13 @@ class Witel extends Model
     }
 
     /**
-     * RELATION: Witel has many Companies through AccountManager
-     * Access companies yang dihandle oleh AM di witel ini
+     * RELATION: Witel has many Companies (One-to-Many)
+     * Satu witel bisa memiliki banyak companies yang berlokasi di wilayah tersebut
+     * Direct relation via companies.idwitels FK
      */
-    public function companies(): HasManyThrough
+    public function companies(): HasMany
     {
-        return $this->hasManyThrough(
-            Company::class,
-            AccountManager::class,
-            'idwitels',      // Foreign key on account_managers table
-            'nip_nas',       // Foreign key on companies table (via pivot)
-            'idwitels',      // Local key on witels table
-            'nik'            // Local key on account_managers table
-        );
+        return $this->hasMany(Company::class, 'idwitels', 'idwitels');
     }
 
     /**

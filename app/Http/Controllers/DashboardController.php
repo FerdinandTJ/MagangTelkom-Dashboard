@@ -36,51 +36,272 @@ class DashboardController extends Controller
 
     /**
      * Display Performance AM page
+     * Fungsi ini untuk menampilkan halaman Performance Account Manager dengan data dari database
      */
-    public function performanceAM()
+    public function performanceAM(Request $request)
     {
-        $currentYear = date('Y');
+        // Get current year or from request
+        $currentYear = $request->input('year', date('Y'));
+        
+        // Get current quarter or from request
+        $currentQuartal = $request->input('quartal', $this->getCurrentQuartal());
+        
+        // Get available years and quartals from lini_waktu
+        $availableYears = $this->getAvailableYears();
+        $availableQuartals = $this->getAvailableQuartals($currentYear);
+        
+        // Get current period details (bulan_awal, bulan_akhir)
+        $periodDetails = $this->getPeriodDetails($currentYear, $currentQuartal);
+        
+        $revenueTarget = $this->getTotalRevenueTarget($currentYear, $currentQuartal);
         
         return Inertia::render('PerformanceAm', [
+            // Metrics untuk nav cards
             'amMetrics' => [
-                'total_accounts' => 150,
-                'active_accounts' => 135,
-                'revenue_target' => 50000000000, // 50B
-                'revenue_achieved' => 38000000000, // 38B
-                'achievement_rate' => 76.0,
+                // Fungsi ini untuk mendapatkan total Account Manager yang terdaftar
+                'total_am' => $this->getTotalAM(),
+                
+                // Fungsi ini untuk mendapatkan total revenue target dari semua AM
+                'revenue_target' => $revenueTarget,
+                'formatted_revenue_target' => $this->formatCurrency($revenueTarget, 2),
+                
+                // Year info dengan bulan range
+                'year' => $currentYear,
+                'month_start' => $periodDetails['bulan_awal'] ?? null,
+                'month_end' => $periodDetails['bulan_akhir'] ?? null,
+                
+                // Quartal info
+                'quartal' => $currentQuartal,
             ],
-            'amPerformance' => $this->getAMPerformanceData(),
-            'accountDistribution' => $this->getAccountDistributionData(),
+            
+            // Dropdown options
+            'availableYears' => $availableYears,
+            'availableQuartals' => $availableQuartals,
+            
+            // Chart data - Target Revenue AM Ranking
+            'amRevenueRanking' => $this->getAMRevenueRanking($currentYear, $currentQuartal),
+            
+            // Chart data - Region Distribution
+            'regionDistribution' => $this->getRegionDistribution(),
+            
+            // Table data - List Account Manager
+            'accountManagerList' => $this->getAccountManagerList(),
+            
             'currentYear' => $currentYear,
+            'currentQuartal' => $currentQuartal,
         ]);
     }
 
     /**
-     * Get AM performance placeholder data
+     * Fungsi ini untuk mendapatkan total Account Manager yang terdaftar di database
      */
-    private function getAMPerformanceData()
+    private function getTotalAM(): int
     {
+        return \DB::table('account_managers')->count();
+    }
+
+    /**
+     * Fungsi ini untuk mendapatkan total revenue target dari semua AM berdasarkan tahun dan quartal
+     */
+    private function getTotalRevenueTarget(int $year, string $quartal): float
+    {
+        // Get all lini_waktu_ids for the selected year and quartal
+        $liniWaktuIds = \DB::table('lini_waktu')
+            ->where('tahun', $year)
+            ->where('quartal', $quartal)
+            ->pluck('id');
+        
+        if ($liniWaktuIds->isEmpty()) {
+            return 0;
+        }
+        
+        // Get sum of t_revenue from target_account_m through lini_waktu_target
+        $totalRevenue = \DB::table('lini_waktu_target')
+            ->join('target_account_m', 'lini_waktu_target.target_id', '=', 'target_account_m.id')
+            ->whereIn('lini_waktu_target.lini_waktu_id', $liniWaktuIds)
+            ->sum('target_account_m.t_revenue');
+        
+        return (float) $totalRevenue;
+    }
+
+    /**
+     * Fungsi ini untuk mendapatkan quartal saat ini berdasarkan bulan sekarang
+     */
+    private function getCurrentQuartal(): string
+    {
+        $currentMonth = (int) date('n');
+        
+        if ($currentMonth >= 1 && $currentMonth <= 3) {
+            return 'Q1';
+        } elseif ($currentMonth >= 4 && $currentMonth <= 6) {
+            return 'Q2';
+        } elseif ($currentMonth >= 7 && $currentMonth <= 9) {
+            return 'Q3';
+        } else {
+            return 'Q4';
+        }
+    }
+
+    /**
+     * Fungsi ini untuk mendapatkan list tahun yang tersedia di database
+     */
+    private function getAvailableYears(): array
+    {
+        return \DB::table('lini_waktu')
+            ->select('tahun')
+            ->distinct()
+            ->orderBy('tahun', 'desc')
+            ->pluck('tahun')
+            ->toArray();
+    }
+
+    /**
+     * Fungsi ini untuk mendapatkan list quartal yang tersedia untuk tahun tertentu
+     */
+    private function getAvailableQuartals(int $year): array
+    {
+        return \DB::table('lini_waktu')
+            ->select('quartal')
+            ->where('tahun', $year)
+            ->distinct()
+            ->orderBy('quartal', 'asc')
+            ->pluck('quartal')
+            ->toArray();
+    }
+
+    /**
+     * Fungsi ini untuk mendapatkan detail periode (bulan_awal dan bulan_akhir) berdasarkan tahun dan quartal
+     */
+    private function getPeriodDetails(int $year, string $quartal): array
+    {
+        $period = \DB::table('lini_waktu')
+            ->where('tahun', $year)
+            ->where('quartal', $quartal)
+            ->first(['bulan_awal', 'bulan_akhir']);
+        
+        if (!$period) {
+            return [
+                'bulan_awal' => null,
+                'bulan_akhir' => null
+            ];
+        }
+        
         return [
-            ['name' => 'Ahmad Santoso', 'accounts' => 25, 'revenue' => 8500000000, 'achievement' => 85.0],
-            ['name' => 'Sari Dewi', 'accounts' => 22, 'revenue' => 7800000000, 'achievement' => 78.0],
-            ['name' => 'Budi Pratama', 'accounts' => 28, 'revenue' => 9200000000, 'achievement' => 92.0],
-            ['name' => 'Maya Indira', 'accounts' => 20, 'revenue' => 6800000000, 'achievement' => 68.0],
-            ['name' => 'Rizki Fauzi', 'accounts' => 24, 'revenue' => 8100000000, 'achievement' => 81.0],
+            'bulan_awal' => $period->bulan_awal,
+            'bulan_akhir' => $period->bulan_akhir
         ];
     }
 
     /**
-     * Get account distribution placeholder data
+     * Fungsi ini untuk mendapatkan data ranking revenue target per Account Manager
+     * Target revenue diambil berdasarkan filter tahun dan quartal yang dipilih
+     * Flow: account_managers -> lini_waktu (filter tahun & quartal) -> lini_waktu_target -> target_account_m (t_revenue)
+     * Data diurutkan berdasarkan t_revenue tertinggi
      */
-    private function getAccountDistributionData()
+    private function getAMRevenueRanking(int $year, string $quartal): array
     {
-        return [
-            ['subsegment' => 'Airport', 'count' => 35, 'percentage' => 23.3],
-            ['subsegment' => 'Hospital', 'count' => 42, 'percentage' => 28.0],
-            ['subsegment' => 'PTN', 'count' => 28, 'percentage' => 18.7],
-            ['subsegment' => 'PTS', 'count' => 25, 'percentage' => 16.7],
-            ['subsegment' => 'Media', 'count' => 20, 'percentage' => 13.3],
-        ];
+        // Get all Account Managers with their target revenue filtered by year and quartal
+        // Include region_code untuk filter dropdown
+        $rankingData = \DB::table('account_managers')
+            ->select(
+                'account_managers.nik',
+                'account_managers.nama as am_name',
+                'regions.code as region_code',
+                \DB::raw('COALESCE(SUM(target_account_m.t_revenue), 0) as t_revenue')
+            )
+            ->leftJoin('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+            ->leftJoin('regions', 'witels.region_id', '=', 'regions.id')
+            ->leftJoin('lini_waktu', function($join) use ($year, $quartal) {
+                $join->on('account_managers.nik', '=', 'lini_waktu.nik_am')
+                     ->where('lini_waktu.tahun', '=', $year)
+                     ->where('lini_waktu.quartal', '=', $quartal);
+            })
+            ->leftJoin('lini_waktu_target', 'lini_waktu.id', '=', 'lini_waktu_target.lini_waktu_id')
+            ->leftJoin('target_account_m', 'lini_waktu_target.target_id', '=', 'target_account_m.id')
+            ->groupBy('account_managers.nik', 'account_managers.nama', 'regions.code')
+            ->orderBy('t_revenue', 'desc')
+            ->get();
+        
+        return $rankingData->map(function($item) {
+            return [
+                'am_name' => $item->am_name,
+                'region_code' => $item->region_code,
+                't_revenue' => (float) $item->t_revenue,
+                'formatted_revenue' => $this->formatCurrency($item->t_revenue, 2)
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Fungsi ini untuk mendapatkan distribusi Account Manager per Region
+     * Data diambil dari table regions, dengan perhitungan:
+     * - idwitels di account_managers -> region_id di witels -> code di regions
+     * - Persentase: (jumlah AM di region / total AM) * 100
+     */
+    private function getRegionDistribution(): array
+    {
+        // Get total AM
+        $totalAM = \DB::table('account_managers')->count();
+        
+        if ($totalAM === 0) {
+            return [];
+        }
+        
+        // Get AM count per region menggunakan kolom 'code' dari table regions
+        $distribution = \DB::table('account_managers')
+            ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+            ->join('regions', 'witels.region_id', '=', 'regions.id')
+            ->select(
+                'regions.id as region_id',
+                'regions.code as region_code',
+                'regions.code as region_name',
+                \DB::raw('COUNT(account_managers.nik) as am_count')
+            )
+            ->groupBy('regions.id', 'regions.code')
+            ->orderBy('am_count', 'desc')
+            ->get();
+        
+        return $distribution->map(function($item) use ($totalAM) {
+            $percentage = ($item->am_count / $totalAM) * 100;
+            
+            return [
+                'region_id' => $item->region_id,
+                'region_code' => $item->region_code,
+                'region_name' => $item->region_name,
+                'am_count' => $item->am_count,
+                'percentage' => round($percentage, 2)
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Fungsi ini untuk mendapatkan list semua Account Manager dengan detail lengkap
+     * Termasuk: nama, NIK, posisi, no_gsm, dan lokasi (nama witel)
+     */
+    private function getAccountManagerList(): array
+    {
+        $amList = \DB::table('account_managers')
+            ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+            ->select(
+                'account_managers.nik',
+                'account_managers.nama',
+                'account_managers.posisi',
+                'account_managers.no_gsm',
+                'witels.nama_witels as lokasi_am'
+            )
+            ->orderBy('account_managers.nama', 'asc')
+            ->get();
+        
+        return $amList->map(function($am, $index) {
+            return [
+                'no' => $index + 1,
+                'nik' => $am->nik,
+                'nama' => $am->nama,
+                'posisi' => $am->posisi,
+                'no_gsm' => $am->no_gsm,
+                'lokasi_am' => $am->lokasi_am
+            ];
+        })->toArray();
     }
 
     /**
