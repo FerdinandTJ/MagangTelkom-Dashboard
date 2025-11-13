@@ -479,9 +479,9 @@ class DashboardController extends Controller
 
         $companyId = $request->input('company_id');
         
-        // Get company basic info with Account Managers
+        // Get company basic info with Account Managers and Witel->Region
         $company = \App\Models\Company::where('nip_nas', $companyId)
-            ->with(['accountManagers.witel.region'])
+            ->with(['accountManagers.witel.region', 'witel.region'])
             ->firstOrFail();
         
         // Get all revenue history for summary calculations
@@ -575,11 +575,23 @@ class DashboardController extends Controller
             ];
         });
 
+        // Format Region data dari company->witel->region
+        $regions = [];
+        if ($company->witel && $company->witel->region) {
+            $regions[] = [
+                'region_code' => $company->witel->region->code,
+                'region_name' => $company->witel->region->name,
+                'witel_name' => $company->witel->nama_witels,
+                'is_primary' => true, // Company hanya punya 1 witel, jadi selalu primary
+            ];
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
                 'company' => $company,
                 'account_managers' => $accountManagers,
+                'regions' => $regions,
                 'monthly_data' => $monthlyData,
                 'yearly_data' => $yearlyData,
                 'summary' => $summaryData

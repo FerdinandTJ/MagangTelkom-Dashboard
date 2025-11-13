@@ -18,6 +18,13 @@ interface AccountManagerData {
     nama: string;
 }
 
+interface RegionData {
+    region_code: string;
+    region_name: string;
+    witel_name?: string;
+    is_primary: boolean;
+}
+
 interface CompanyDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -32,6 +39,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
     const [yearlyData, setYearlyData] = useState<YearlyRevenue[]>([]);
     const [accountManagers, setAccountManagers] = useState<AccountManagerData[]>([]);
+    const [regions, setRegions] = useState<RegionData[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [summary, setSummary] = useState<any>(null);
@@ -77,6 +85,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                 setMonthlyData(response.data.data.monthly_data);
                 setYearlyData(response.data.data.yearly_data);
                 setAccountManagers(response.data.data.account_managers || []);
+                setRegions(response.data.data.regions || []);
                 setSummary(response.data.data.summary);
             } else {
                 setError('Failed to fetch company details');
@@ -128,8 +137,8 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                 <span className="text-sm font-medium text-red-700 dark:text-red-300">Region</span>
                             </div>
                             <div className="flex flex-wrap gap-1 mt-1">
-                                {company.regions && company.regions.length > 0 ? (
-                                    company.regions.map((region, idx) => (
+                                {!loading && regions.length > 0 ? (
+                                    regions.map((region, idx) => (
                                         <span 
                                             key={idx}
                                             title={`${region.region_name}${region.witel_name ? ` - ${region.witel_name}` : ''}`}
