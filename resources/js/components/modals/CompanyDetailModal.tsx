@@ -63,7 +63,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
         try {
             const response = await axios.get(`/api/dashboard/individual-company-details`, {
                 params: {
-                    company_id: company.id
+                    company_id: company.nip_nas || company.id
                 }
             });
             

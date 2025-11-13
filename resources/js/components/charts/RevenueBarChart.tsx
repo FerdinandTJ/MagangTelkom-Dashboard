@@ -72,19 +72,40 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
                         stroke={textColor}
                     />
                     <Tooltip
-                        formatter={(value: number, name: string) => [
-                            formatCurrency(value, 2),
-                            name === 'total_revenue' ? 'Actual Revenue' : 'Target Revenue'
-                        ]}
-                        labelFormatter={(label) => `Bulan: ${label}`}
-                        contentStyle={{
-                            backgroundColor: tooltipBg,
-                            border: `1px solid ${tooltipBorder}`,
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                            color: textColor
+                        content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                                return (
+                                    <div
+                                        style={{
+                                            backgroundColor: tooltipBg,
+                                            border: `1px solid ${tooltipBorder}`,
+                                            borderRadius: '8px',
+                                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                            padding: '12px',
+                                            color: textColor
+                                        }}
+                                    >
+                                        <p style={{ fontWeight: 600, marginBottom: '8px', color: textColor }}>
+                                            Bulan: {label}
+                                        </p>
+                                        {payload.map((entry: any, index: number) => (
+                                            <p key={index} style={{ margin: '4px 0', color: textColor }}>
+                                                <span style={{ 
+                                                    display: 'inline-block',
+                                                    width: '12px',
+                                                    height: '12px',
+                                                    backgroundColor: entry.color,
+                                                    marginRight: '8px',
+                                                    borderRadius: '2px'
+                                                }}></span>
+                                                {entry.dataKey === 'total_revenue' ? 'Actual Revenue' : 'Target Revenue'}: {formatCurrency(entry.value, 2)}
+                                            </p>
+                                        ))}
+                                    </div>
+                                );
+                            }
+                            return null;
                         }}
-                        labelStyle={{ color: textColor }}
                     />
                     <Legend 
                         wrapperStyle={{ color: textColor }}
