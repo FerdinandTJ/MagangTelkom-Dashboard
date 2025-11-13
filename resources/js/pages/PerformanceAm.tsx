@@ -106,7 +106,7 @@ export default function PerformanceAM({
                 { title: 'Performance AM', href: '/performance-am' }
             ]}
         >
-            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-6">
                 {/* Metrics Cards - Fungsi ini untuk menampilkan metrik utama Performance AM */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                     {/* Card 1: Total AM - Total Account Manager yang terdaftar */}

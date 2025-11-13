@@ -183,17 +183,6 @@ export default function Dashboard({
                     />
                     
                     <StatCard
-                        title="Active Companies"
-                        value={dashboardSummary.total_companies}
-                        subtitle={`${dashboardSummary.active_subsegments} Subsegments`}
-                        icon={
-                            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                        }
-                    />
-                    
-                    <StatCard
                         title="Current Month"
                         value={dashboardSummary.formatted_current_month_revenue}
                         subtitle={`${currentMonthName} ${currentYear}`}
@@ -204,16 +193,64 @@ export default function Dashboard({
                         }
                     />
                     
-                    <StatCard
-                        title="Avg per Company"
-                        value={`Rp ${(dashboardSummary.avg_revenue_per_company / 1000000000).toFixed(1)}M`}
-                        subtitle="Annual Average"
-                        icon={
-                            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                        }
-                    /> 
+                    {/* Filter Card */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
+                        <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Tahun</p>
+                                <div className="relative mt-2">
+                                    <select
+                                        value={selectedYear}
+                                        onChange={(e) => handleYearChange(Number(e.target.value))}
+                                        className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-1.5 pr-8 text-sm font-medium text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                    >
+                                        {availableYears.map(year => (
+                                            <option key={year} value={year}>{year}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">1 Okt - 31 Des</p>
+                            </div>
+                            <div className="flex-shrink-0 ml-4">
+                                <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                                    <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Data Actions Card */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
+                        <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Data Actions</p>
+                                <div className="space-y-2 mt-2">
+                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium text-sm">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Export
+                                    </button>
+                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium text-sm">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                        Import
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex-shrink-0 ml-4">
+                                <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                                    <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Charts Section */}
@@ -234,34 +271,18 @@ export default function Dashboard({
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Click bars to view subsegment details</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {/* Year Filter */}
-                                    <div className="relative">
-                                        <select
-                                            value={selectedYear}
-                                            onChange={(e) => handleYearChange(Number(e.target.value))}
-                                            className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                        >
-                                            {availableYears.map(year => (
-                                                <option key={year} value={year}>{year}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
-                                    </div>
-                                    
-                                    {/* Sort Order Filter */}
-                                    <div className="relative">
-                                        <select
-                                            value={monthlySortOrder}
-                                            onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
-                                            className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                        >
-                                            <option value="chronological">Original</option>
-                                            <option value="desc">Revenue: High to Low</option>
-                                            <option value="asc">Revenue: Low to High</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
-                                    </div>
+                                {/* Sort Order Filter */}
+                                <div className="relative">
+                                    <select
+                                        value={monthlySortOrder}
+                                        onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
+                                        className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                    >
+                                        <option value="chronological">Original</option>
+                                        <option value="desc">Revenue: High to Low</option>
+                                        <option value="asc">Revenue: Low to High</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
                                 </div>
                             </div>
                             <RevenueBarChart 
