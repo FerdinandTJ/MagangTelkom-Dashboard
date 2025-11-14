@@ -214,34 +214,27 @@ class RevenueAnalyticsService
             ->orderByDesc('total_revenue')
             ->get()
             ->map(function ($item) {
-                // Get regions for this company through account managers
-                $regions = DB::table('account_manager_company')
-                    ->join('account_managers', 'account_manager_company.nik_am', '=', 'account_managers.nik')
-                    ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                // Get region from company's witel (through foreign key idwitels)
+                $regionData = DB::table('companies')
+                    ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
                     ->join('regions', 'witels.region_id', '=', 'regions.id')
-                    ->where('account_manager_company.nip_nas', $item->nip_nas)
+                    ->where('companies.nip_nas', $item->nip_nas)
                     ->select(
                         'regions.code as region_code',
-                        'regions.description as region_name',
-                        'witels.nama_witels as witel_name',
-                        'account_managers.nama as am_name',
-                        'account_manager_company.proporsi',
-                        'account_manager_company.pembagian'
+                        'regions.name as region_name',
+                        'witels.nama_witels as witel_name'
                     )
-                    ->orderByDesc('account_manager_company.proporsi')
-                    ->get()
-                    ->map(function ($region, $index) {
-                        return [
-                            'region_code' => $region->region_code,
-                            'region_name' => $region->region_name,
-                            'witel_name' => $region->witel_name,
-                            'am_name' => $region->am_name,
-                            'proporsi' => (float) $region->proporsi,
-                            'pembagian' => $region->pembagian,
-                            'is_primary' => $index === 0, // First region (highest proporsi) is primary
-                        ];
-                    })
-                    ->toArray();
+                    ->first();
+
+                $regions = [];
+                if ($regionData) {
+                    $regions[] = [
+                        'region_code' => $regionData->region_code,
+                        'region_name' => $regionData->region_name,
+                        'witel_name' => $regionData->witel_name,
+                        'is_primary' => true, // Company hanya punya 1 witel, jadi selalu primary
+                    ];
+                }
 
                 return [
                     'nip_nas' => $item->nip_nas,
@@ -389,11 +382,9 @@ class RevenueAnalyticsService
             $regions = \DB::table('regions')->whereNotNull('code')->orderBy('code')->get();
 
             foreach ($regions as $region) {
-                // Get region revenue for this subsegment through account managers
+                // Get region revenue for this subsegment through company's witel
                 $regionRevenue = Revenue::join('companies', 'revenues.nip_nas', '=', 'companies.nip_nas')
-                    ->join('account_manager_company', 'companies.nip_nas', '=', 'account_manager_company.nip_nas')
-                    ->join('account_managers', 'account_manager_company.nik_am', '=', 'account_managers.nik')
-                    ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                    ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
                     ->where('witels.region_id', $region->id)
                     ->where('companies.subsegment', $subsegment)
                     ->where('revenues.tahun', $year)
@@ -407,9 +398,7 @@ class RevenueAnalyticsService
                             \DB::raw('SUM(revenues.total_revenue) as total_revenue')
                         )
                         ->join('companies', 'revenues.nip_nas', '=', 'companies.nip_nas')
-                        ->join('account_manager_company', 'companies.nip_nas', '=', 'account_manager_company.nip_nas')
-                        ->join('account_managers', 'account_manager_company.nik_am', '=', 'account_managers.nik')
-                        ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                        ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
                         ->where('witels.region_id', $region->id)
                         ->where('companies.subsegment', $subsegment)
                         ->where('revenues.tahun', $year)
@@ -429,9 +418,7 @@ class RevenueAnalyticsService
                         ->toArray();
 
                     $regionCompanyCount = Revenue::join('companies', 'revenues.nip_nas', '=', 'companies.nip_nas')
-                        ->join('account_manager_company', 'companies.nip_nas', '=', 'account_manager_company.nip_nas')
-                        ->join('account_managers', 'account_manager_company.nik_am', '=', 'account_managers.nik')
-                        ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                        ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
                         ->where('witels.region_id', $region->id)
                         ->where('companies.subsegment', $subsegment)
                         ->where('revenues.tahun', $year)
