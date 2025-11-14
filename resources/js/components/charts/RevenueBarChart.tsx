@@ -123,7 +123,7 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
                     <Bar 
                         dataKey="total_revenue" 
                         fill="#dc2626" 
-                        name="Actual Revenue"
+                        name="Revenue Realisasi"
                         radius={[4, 4, 0, 0]}
                         onClick={handleBarClick}
                         className="cursor-pointer hover:opacity-80 transition-opacity"
