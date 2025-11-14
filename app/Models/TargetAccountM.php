@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * Represents KPI targets for Account Managers
  * 
  * @property int $id Primary Key
+ * @property int|null $account_manager_company_id FK to account_manager_company.id
  * @property float $t_revenue Target Revenue
  * @property float $t_scalling Target Scalling
  * @property float $t_datin Target Data Internet
@@ -29,6 +31,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property float $t_sustain Target Sustain
  * 
  * Relations:
+ * - accountManagerCompany: BelongsTo (One-to-One with account_manager_company)
  * - liniWaktu: BelongsToMany (Many-to-Many via pivot lini_waktu_target)
  */
 class TargetAccountM extends Model
@@ -42,6 +45,7 @@ class TargetAccountM extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'account_manager_company_id',
         't_revenue',
         't_scalling',
         't_datin',
@@ -107,6 +111,15 @@ class TargetAccountM extends Model
             't_ngtma' => 'NGTMA',
             't_sustain' => 'Sustain',
         ];
+    }
+
+    /**
+     * RELATION: TargetAccountM belongs to AccountManagerCompany (One-to-One)
+     * Each target is linked to a specific AM-Company assignment
+     */
+    public function accountManagerCompany(): BelongsTo
+    {
+        return $this->belongsTo(AccountManagerCompany::class, 'account_manager_company_id', 'id');
     }
 
     /**

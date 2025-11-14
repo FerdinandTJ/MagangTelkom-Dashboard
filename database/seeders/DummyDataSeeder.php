@@ -210,40 +210,38 @@ class DummyDataSeeder extends Seeder
         $this->command->info('✅ Lini Waktu inserted: ' . count($liniWaktu) . ' quarterly periods');
 
         // 5. INSERT TARGET ACCOUNT M (KPI Targets)
-        // NOTE: Generate targets untuk setiap AM, tahun, dan quartal
-        // Target revenue akan berbeda untuk setiap kombinasi AM + Year + Quarter
+        // NOTE: PERUBAHAN PENTING - Targets sekarang dikaitkan dengan account_manager_company_id
+        // Setiap assignment AM-Company akan punya target per year dan quarter
+        // Struktur: account_manager_company_id → target (One-to-One per period)
         // t_revenue, t_scalling, t_lop, t_ngtma, t_sustain: decimal(15,2) - nilai absolut
         // t_cyc, t_cr, t_profit, t_maps: decimal(7,3) - persentase (0-100%)
         // t_datin, t_wifi: decimal(7,2) - nilai absolut
         // t_hsi, t_wireline, t_nps, t_capability, t_cc: decimal(5,2) - nilai absolut atau persentase
         
         $targets = [];
-        $targetIndex = 0;
         
-        // Generate base targets untuk SEMUA AM
-        // Formula: Base revenue 40M - 100M, varying by region
-        $baseTargets = [];
+        // Get all AM-Company assignments dengan ID-nya
+        $amCompanyAssignments = DB::table('account_manager_company')
+            ->select('id', 'nik_am', 'nip_nas')
+            ->orderBy('id')
+            ->get();
+        
+        // Generate base targets untuk setiap assignment
         $baseRevenueRange = [40000000000, 50000000000, 60000000000, 70000000000, 80000000000, 90000000000, 100000000000];
+        $years = [2024, 2025];
+        $quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
         
-        foreach ($sampleAMs as $index => $nikAm) {
-            // Distribute revenue evenly across range
+        foreach ($amCompanyAssignments as $index => $assignment) {
+            // Base revenue varies by assignment index
             $baseRevenue = $baseRevenueRange[$index % count($baseRevenueRange)];
-            $baseTargets[$nikAm] = [
-                'revenue' => $baseRevenue,
-                'scaling' => $baseRevenue * 0.5, // Scaling = 50% of revenue
-            ];
-        }
-        
-        // Generate targets for each AM, year, and quarter
-        foreach ($sampleAMs as $index => $nikAm) {
-            $baseRevenue = $baseTargets[$nikAm]['revenue'];
-            $baseScaling = $baseTargets[$nikAm]['scaling'];
+            $baseScaling = $baseRevenue * 0.5; // Scaling = 50% of revenue
             
+            // Generate targets for each year and quarter for this AM-Company assignment
             foreach ($years as $year) {
-                // Yearly increase factor (2025 targets are 10-15% higher than 2024)
+                // Yearly increase factor (2025 targets are 12% higher than 2024)
                 $yearFactor = ($year == 2024) ? 1.0 : 1.12;
                 
-                foreach ($quarters as $quartal => $dates) {
+                foreach ($quarters as $quartal) {
                     // Quarterly variation (Q1: 90%, Q2: 100%, Q3: 105%, Q4: 110%)
                     $quarterFactor = match($quartal) {
                         'Q1' => 0.90,
@@ -257,13 +255,14 @@ class DummyDataSeeder extends Seeder
                     $finalScaling = $baseScaling * $yearFactor * $quarterFactor;
                     
                     $targets[] = [
+                        'account_manager_company_id' => $assignment->id, // NEW: FK to account_manager_company
                         't_revenue' => round($finalRevenue, 2),
                         't_scalling' => round($finalScaling, 2),
-                        // NOTE: Adjusted values untuk decimal limits (max untuk 40 AMs dengan quarterFactor 1.10)
-                        't_datin' => round((10000.00 + ($index * 1200)) * $quarterFactor, 2),   // decimal(7,2) - max 99999.99 (56880 at max)
-                        't_hsi' => round((100.00 + ($index * 15)) * $quarterFactor, 2),         // decimal(5,2) - max 999.99 (748 at max)
-                        't_wireline' => round((50.00 + ($index * 10)) * $quarterFactor, 2),     // decimal(5,2) - max 999.99 (484 at max)
-                        't_wifi' => round((15000.00 + ($index * 1500)) * $quarterFactor, 2),    // decimal(7,2) - max 99999.99 (79200 at max)
+                        // NOTE: Adjusted values untuk decimal limits
+                        't_datin' => round((10000.00 + ($index * 1200)) * $quarterFactor, 2),   // decimal(7,2) - max 99999.99
+                        't_hsi' => round((100.00 + ($index * 15)) * $quarterFactor, 2),         // decimal(5,2) - max 999.99
+                        't_wireline' => round((50.00 + ($index * 10)) * $quarterFactor, 2),     // decimal(5,2) - max 999.99
+                        't_wifi' => round((15000.00 + ($index * 1500)) * $quarterFactor, 2),    // decimal(7,2) - max 99999.99
                         't_cyc' => 85.000 + ($index * 2),
                         't_cr' => 90.000 + ($index * 1.5),
                         't_profit' => 75.000 + ($index * 2),
@@ -277,88 +276,148 @@ class DummyDataSeeder extends Seeder
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
-                    $targetIndex++;
                 }
             }
         }
 
         DB::table('target_account_m')->insert($targets);
-        $this->command->info('✅ Targets inserted: ' . count($targets) . ' target records (per AM x Year x Quarter)');
+        $this->command->info('✅ Targets inserted: ' . count($targets) . ' target records (per AM-Company x Year x Quarter)');
 
         // 6. INSERT LINI WAKTU - TARGET PIVOT (with realisasi dan achievement)
-        // NOTE: Sekarang ada 1:1 mapping antara lini_waktu dan target_account_m
-        // Setiap kombinasi AM + Year + Quarter punya target sendiri
+        // NOTE: PERUBAHAN LOGIKA - Sekarang mapping berdasarkan AM-Company + Year + Quarter
+        // Struktur: 
+        // - lini_waktu: berdasarkan nik_am + year + quarter (43 AMs × 2 years × 4 quarters = 344)
+        // - target: berdasarkan account_manager_company_id (16 assignments × 2 years × 4 quarters = 128)
+        // - Satu lini_waktu bisa punya multiple targets (karena 1 AM bisa handle multiple companies)
+        
+        $liniWaktuTarget = [];
+        
+        // Get all lini_waktu records ordered by AM, year, quarter
         $liniWaktuRecords = DB::table('lini_waktu')
             ->orderBy('nik_am')
             ->orderBy('tahun')
             ->orderBy('quartal')
             ->get();
         
-        $targetRecords = DB::table('target_account_m')
-            ->orderBy('id')
+        // Get all targets with their AM-Company info, ordered by assignment then period
+        $targetRecords = DB::table('target_account_m as t')
+            ->join('account_manager_company as amc', 't.account_manager_company_id', '=', 'amc.id')
+            ->select('t.*', 'amc.nik_am', 'amc.nip_nas', 'amc.id as am_company_id')
+            ->orderBy('amc.id')  // Order by AM-Company assignment
+            ->orderBy('t.id')     // Then by target ID (which follows year-quarter sequence)
             ->get();
         
-        $liniWaktuTarget = [];
-        foreach ($liniWaktuRecords as $index => $liniWaktu) {
-            // 1:1 mapping berdasarkan urutan insert
-            $target = $targetRecords[$index];
+        // Create mapping: Group targets by AM NIK, Year, and Quarter
+        // Structure: $targetsByAm[nik_am][year][quarter] = [target1, target2, ...]
+        $targetsByAm = [];
+        $years = [2024, 2025];
+        $quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+        
+        // Group targets by AM-Company assignment
+        $targetsByAssignment = [];
+        foreach ($targetRecords as $target) {
+            $assignmentId = $target->am_company_id;
+            if (!isset($targetsByAssignment[$assignmentId])) {
+                $targetsByAssignment[$assignmentId] = [];
+            }
+            $targetsByAssignment[$assignmentId][] = $target;
+        }
+        
+        // Now map each assignment's targets to year-quarter periods
+        foreach ($targetsByAssignment as $assignmentId => $assignmentTargets) {
+            $targetIndex = 0;
             
-            // Calculate realisasi (achievement 70-110%)
-            // NOTE: Untuk field nilai absolut, kalikan dengan achievement rate
-            // Untuk field persentase (t_cyc, t_cr, t_profit, t_maps), gunakan nilai langsung dengan variasi
-            $achievementRate = (rand(85, 110) / 100);  // 85-110% achievement
+            // Each assignment has 8 targets (2 years × 4 quarters)
+            foreach ($years as $year) {
+                foreach ($quarters as $quarter) {
+                    if ($targetIndex < count($assignmentTargets)) {
+                        $target = $assignmentTargets[$targetIndex];
+                        $amNik = $target->nik_am;
+                        
+                        // Initialize nested arrays if not exists
+                        if (!isset($targetsByAm[$amNik])) {
+                            $targetsByAm[$amNik] = [];
+                        }
+                        if (!isset($targetsByAm[$amNik][$year])) {
+                            $targetsByAm[$amNik][$year] = [];
+                        }
+                        if (!isset($targetsByAm[$amNik][$year][$quarter])) {
+                            $targetsByAm[$amNik][$year][$quarter] = [];
+                        }
+                        
+                        // Add target to this AM's period
+                        $targetsByAm[$amNik][$year][$quarter][] = $target;
+                        $targetIndex++;
+                    }
+                }
+            }
+        }
+        
+        // Now match lini_waktu with targets
+        foreach ($liniWaktuRecords as $liniWaktu) {
+            $amNik = $liniWaktu->nik_am;
+            $year = $liniWaktu->tahun;
+            $quarter = $liniWaktu->quartal;
             
-            $liniWaktuTarget[] = [
-                'lini_waktu_id' => $liniWaktu->id,
-                'target_id' => $target->id,
+            // Get all targets for this AM in this period
+            if (isset($targetsByAm[$amNik][$year][$quarter])) {
+                $targets = $targetsByAm[$amNik][$year][$quarter];
                 
-                // REALISASI - Nilai Absolut (dikalikan dengan achievement rate)
-                // NOTE: Perhatikan tipe data - beberapa kolom punya limit kecil
-                'r_revenue' => round($target->t_revenue * $achievementRate, 2),     // decimal(15,2)
-                'r_scalling' => round($target->t_scalling * $achievementRate, 2),   // decimal(15,2)
-                'r_datin' => round($target->t_datin * $achievementRate, 2),         // decimal(7,2) - max 99999.99
-                'r_hsi' => round($target->t_hsi * $achievementRate, 2),             // decimal(5,2) - max 999.99
-                'r_wireline' => round($target->t_wireline * $achievementRate, 2),   // decimal(5,2) - max 999.99
-                'r_wifi' => round($target->t_wifi * $achievementRate, 2),           // decimal(7,2) - max 99999.99
-                'r_nps' => round($target->t_nps * $achievementRate, 2),             // decimal(5,2) - max 999.99
-                'r_lop' => round($target->t_lop * $achievementRate, 2),             // decimal(15,2)
-                'r_capability' => round($target->t_capability * $achievementRate, 2), // decimal(5,2) - max 999.99
-                'r_cc' => round($target->t_cc * $achievementRate, 2),               // decimal(5,2) - max 999.99
-                
-                // REALISASI - Persentase (target + variasi -5 sampai +10)
-                // NOTE: Field ini sekarang decimal(7,3) untuk persentase
-                'r_cyc' => min(100, max(0, $target->t_cyc + rand(-5, 10))),      // Variasi ±5-10%
-                'r_cr' => min(100, max(0, $target->t_cr + rand(-5, 10))),        // Variasi ±5-10%
-                'r_profit' => min(100, max(0, $target->t_profit + rand(-5, 10))), // Variasi ±5-10%
-                'r_maps' => min(100, max(0, $target->t_maps + rand(-5, 10))),    // Variasi ±5-10%
-                
-                // ACHIEVEMENT PERCENTAGE - Persentase pencapaian per KPI
-                // NOTE: Calculated as (realisasi / target) * 100
-                'ach_revenue_plan' => round(($achievementRate * 100), 3),     // Achievement revenue (%)
-                'ach_scaling' => round(($achievementRate * 100), 3),          // Achievement scaling (%)
-                'ach_sales_datin' => round(($achievementRate * 100), 3),      // Achievement datin (%)
-                'ach_hsi' => round(($achievementRate * 100), 3),              // Achievement HSI (%)
-                'ach_wireline' => round(($achievementRate * 100), 3),         // Achievement wireline (%)
-                'ach_wifi' => round(($achievementRate * 100), 3),             // Achievement WiFi (%)
-                'ach_cyc' => round(rand(85, 110), 3),                         // Achievement CYC (%)
-                'ach_cr' => round(rand(85, 110), 3),                          // Achievement CR (%)
-                'ach_profit' => round(rand(85, 110), 3),                      // Achievement profit (%)
-                'ach_nps' => round(($achievementRate * 100), 3),              // Achievement NPS (%)
-                'ach_maps' => round(rand(85, 110), 3),                        // Achievement MAPS (%)
-                'ach_lop' => round(($achievementRate * 100), 3),              // Achievement LOP (%)
-                'ach_capability' => round(($achievementRate * 100), 3),       // Achievement capability (%)
-                'ach_cc' => round(($achievementRate * 100), 3),               // Achievement CC (%)
-                
-                // OVERALL ACHIEVEMENT
-                'ach_result' => round(rand(85, 110), 3),                      // Achievement result overall (%)
-                'ach_proses' => round(rand(85, 110), 3),                      // Achievement process overall (%)
-                
-                // NKI ADJUSTMENT
-                'nki_adjustment' => round(rand(0, 10), 3),                    // NKI adjustment factor (0-10%)
-                
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+                // Create realisasi for each target (AM might have multiple companies)
+                foreach ($targets as $target) {
+                    // Calculate realisasi (achievement 85-110%)
+                    $achievementRate = (rand(85, 110) / 100);
+                    
+                    $liniWaktuTarget[] = [
+                        'lini_waktu_id' => $liniWaktu->id,
+                        'target_id' => $target->id,
+                        
+                        // REALISASI - Nilai Absolut (dikalikan dengan achievement rate)
+                        'r_revenue' => round($target->t_revenue * $achievementRate, 2),
+                        'r_scalling' => round($target->t_scalling * $achievementRate, 2),
+                        'r_datin' => round($target->t_datin * $achievementRate, 2),
+                        'r_hsi' => round($target->t_hsi * $achievementRate, 2),
+                        'r_wireline' => round($target->t_wireline * $achievementRate, 2),
+                        'r_wifi' => round($target->t_wifi * $achievementRate, 2),
+                        'r_nps' => round($target->t_nps * $achievementRate, 2),
+                        'r_lop' => round($target->t_lop * $achievementRate, 2),
+                        'r_capability' => round($target->t_capability * $achievementRate, 2),
+                        'r_cc' => round($target->t_cc * $achievementRate, 2),
+                        
+                        // REALISASI - Persentase (target + variasi)
+                        'r_cyc' => min(100, max(0, $target->t_cyc + rand(-5, 10))),
+                        'r_cr' => min(100, max(0, $target->t_cr + rand(-5, 10))),
+                        'r_profit' => min(100, max(0, $target->t_profit + rand(-5, 10))),
+                        'r_maps' => min(100, max(0, $target->t_maps + rand(-5, 10))),
+                        
+                        // ACHIEVEMENT PERCENTAGE
+                        'ach_revenue_plan' => round(($achievementRate * 100), 3),
+                        'ach_scaling' => round(($achievementRate * 100), 3),
+                        'ach_sales_datin' => round(($achievementRate * 100), 3),
+                        'ach_hsi' => round(($achievementRate * 100), 3),
+                        'ach_wireline' => round(($achievementRate * 100), 3),
+                        'ach_wifi' => round(($achievementRate * 100), 3),
+                        'ach_cyc' => round(rand(85, 110), 3),
+                        'ach_cr' => round(rand(85, 110), 3),
+                        'ach_profit' => round(rand(85, 110), 3),
+                        'ach_nps' => round(($achievementRate * 100), 3),
+                        'ach_maps' => round(rand(85, 110), 3),
+                        'ach_lop' => round(($achievementRate * 100), 3),
+                        'ach_capability' => round(($achievementRate * 100), 3),
+                        'ach_cc' => round(($achievementRate * 100), 3),
+                        
+                        // OVERALL ACHIEVEMENT
+                        'ach_result' => round(rand(85, 110), 3),
+                        'ach_proses' => round(rand(85, 110), 3),
+                        
+                        // NKI ADJUSTMENT
+                        'nki_adjustment' => round(rand(0, 10), 3),
+                        
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
         }
 
         DB::table('lini_waktu_target')->insert($liniWaktuTarget);
