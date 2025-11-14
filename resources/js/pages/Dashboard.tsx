@@ -17,7 +17,7 @@ import { formatCurrencyFull } from '@/utils/currency';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Revenue Dashboard',
         href: dashboard().url,
     },
 ];

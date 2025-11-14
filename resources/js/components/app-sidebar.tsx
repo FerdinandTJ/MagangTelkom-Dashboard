@@ -18,7 +18,7 @@ import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Revenue Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
     },
