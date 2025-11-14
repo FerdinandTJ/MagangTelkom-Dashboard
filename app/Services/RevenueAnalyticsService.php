@@ -55,9 +55,11 @@ class RevenueAnalyticsService
      */
     public function getMonthlyRevenue(int $year): array
     {
+        // Get monthly revenue and target from database (SUM of all company targets)
         $monthlyData = Revenue::select(
                 'bulan',
                 DB::raw('SUM(total_revenue) as total_revenue'),
+                DB::raw('SUM(target) as target_revenue'),
                 DB::raw('COUNT(DISTINCT nip_nas) as total_companies')
             )
             ->where('tahun', $year)
@@ -65,22 +67,6 @@ class RevenueAnalyticsService
             ->orderBy('bulan')
             ->get()
             ->keyBy('bulan');
-
-        // Monthly targets (in billions) - you can adjust these values
-        $monthlyTargets = [
-            1 => 150000000000,   // Jan: 15B
-            2 => 155000000000,   // Feb: 15.5B
-            3 => 160000000000,   // Mar: 16B
-            4 => 165000000000,   // Apr: 16.5B
-            5 => 170000000000,   // May: 17B
-            6 => 175000000000,   // Jun: 17.5B
-            7 => 180000000000,   // Jul: 18B
-            8 => 185000000000,   // Aug: 18.5B
-            9 => 190000000000,   // Sep: 19B
-            10 => 195000000000,  // Oct: 19.5B
-            11 => 200000000000,  // Nov: 20B
-            12 => 205000000000,  // Dec: 20.5B
-        ];
 
         // Determine last month to display
         $currentMonth = (int) date('n'); // Current month number (1-12)
@@ -102,7 +88,7 @@ class RevenueAnalyticsService
         for ($month = 1; $month <= $lastMonth; $month++) {
             $data = $monthlyData->get($month);
             $actualRevenue = $data ? (float) $data->total_revenue : 0;
-            $targetRevenue = $monthlyTargets[$month];
+            $targetRevenue = $data ? (float) $data->target_revenue : 0;
             
             $result[] = [
                 'bulan' => $month,
