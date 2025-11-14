@@ -224,6 +224,7 @@ class DashboardController extends Controller
         
         return $rankingData->map(function($item) {
             return [
+                'nik' => $item->nik,
                 'am_name' => $item->am_name,
                 'region_code' => $item->region_code,
                 't_revenue' => (float) $item->t_revenue,
@@ -654,6 +655,137 @@ class DashboardController extends Controller
                 'top_companies' => $this->analyticsService->getTopCompanies($year, 10),
                 'subsegment_breakdown' => $this->analyticsService->getSubsegmentRevenue($year),
                 'year' => $year
+            ]
+        ]);
+    }
+
+    /**
+     * Get AM Revenue Details
+     * Fungsi untuk mendapatkan detail target revenue AM beserta company breakdown
+     */
+    public function getAMRevenueDetails(Request $request)
+    {
+        $request->validate([
+            'am_nik' => 'required|string',
+            'year' => 'required|integer',
+            'quartal' => 'required|string|in:Q1,Q2,Q3,Q4'
+        ]);
+
+        $amNik = $request->input('am_nik');
+        $year = $request->input('year');
+        $quartal = $request->input('quartal');
+
+        // Get AM basic info with witel and region
+        $accountManager = \DB::table('account_managers')
+            ->leftJoin('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+            ->leftJoin('regions', 'witels.region_id', '=', 'regions.id')
+            ->where('account_managers.nik', $amNik)
+            ->select(
+                'account_managers.nik',
+                'account_managers.nama',
+                'account_managers.posisi',
+                'account_managers.no_gsm',
+                'witels.nama_witels',
+                'regions.code as region_code'
+            )
+            ->first();
+
+        if (!$accountManager) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account Manager not found'
+            ], 404);
+        }
+
+        // Get lini_waktu for this AM, year, and quarter
+        $liniWaktu = \DB::table('lini_waktu')
+            ->where('nik_am', $amNik)
+            ->where('tahun', $year)
+            ->where('quartal', $quartal)
+            ->first();
+
+        if (!$liniWaktu) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'am_name' => $accountManager->nama,
+                    'am_nik' => $accountManager->nik,
+                    'am_posisi' => $accountManager->posisi,
+                    'am_no_gsm' => $accountManager->no_gsm,
+                    'am_witel' => $accountManager->nama_witels,
+                    'am_region' => $accountManager->region_code,
+                    'total_target_revenue' => 0,
+                    'formatted_total_revenue' => 'Rp 0.00M',
+                    'total_companies' => 0,
+                    'year' => $year,
+                    'quartal' => $quartal,
+                    'period_display' => "{$year} - {$quartal}",
+                    'witel_distribution' => [],
+                    'companies' => []
+                ]
+            ]);
+        }
+
+        // Get all targets for this AM in this period via lini_waktu_target
+        $targets = \DB::table('lini_waktu_target as lwt')
+            ->join('target_account_m as t', 'lwt.target_id', '=', 't.id')
+            ->join('account_manager_company as amc', 't.account_manager_company_id', '=', 'amc.id')
+            ->join('companies as c', 'amc.nip_nas', '=', 'c.nip_nas')
+            ->leftJoin('witels as w', 'c.idwitels', '=', 'w.idwitels')
+            ->where('lwt.lini_waktu_id', $liniWaktu->id)
+            ->where('amc.nik_am', $amNik)
+            ->select(
+                'c.nip_nas',
+                'c.nama_perusahaan',
+                'c.subsegment',
+                'w.nama_witels',
+                't.t_revenue',
+                'w.idwitels'
+            )
+            ->get();
+
+        // Calculate total target revenue
+        $totalTargetRevenue = $targets->sum('t_revenue');
+
+        // Group by witel for distribution
+        $witelGroups = $targets->groupBy('nama_witels')->map(function ($companies, $witelName) use ($targets) {
+            $count = $companies->count();
+            return [
+                'witel_name' => $witelName ?: 'Unassigned',
+                'company_count' => $count,
+                'percentage' => $targets->count() > 0 ? ($count / $targets->count()) * 100 : 0
+            ];
+        })->values();
+
+        // Format companies data
+        $companiesData = $targets->map(function ($company) {
+            return [
+                'nip_nas' => $company->nip_nas,
+                'nama_perusahaan' => $company->nama_perusahaan,
+                'subsegment' => $company->subsegment ?: '-',
+                'nama_witels' => $company->nama_witels ?: 'Unassigned',
+                't_revenue' => (float) $company->t_revenue,
+                'formatted_revenue' => $this->formatCurrency($company->t_revenue, 2)
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'am_name' => $accountManager->nama,
+                'am_nik' => $accountManager->nik,
+                'am_posisi' => $accountManager->posisi,
+                'am_no_gsm' => $accountManager->no_gsm,
+                'am_witel' => $accountManager->nama_witels,
+                'am_region' => $accountManager->region_code,
+                'total_target_revenue' => (float) $totalTargetRevenue,
+                'formatted_total_revenue' => $this->formatCurrency($totalTargetRevenue, 2),
+                'total_companies' => $targets->count(),
+                'year' => $year,
+                'quartal' => $quartal,
+                'period_display' => "{$year} - {$quartal}",
+                'witel_distribution' => $witelGroups,
+                'companies' => $companiesData
             ]
         ]);
     }

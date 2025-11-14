@@ -23,6 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('subsegment-trend', [DashboardController::class, 'getSubsegmentTrend'])->name('api.dashboard.subsegment-trend');
         Route::get('yearly-comparison', [DashboardController::class, 'getYearlyComparison'])->name('api.dashboard.yearly-comparison');
         Route::get('analytics-summary', [DashboardController::class, 'getAnalyticsSummary'])->name('api.dashboard.analytics-summary');
+        Route::get('am-revenue-details', [DashboardController::class, 'getAMRevenueDetails'])->name('api.dashboard.am-revenue-details');
     });
 });
 

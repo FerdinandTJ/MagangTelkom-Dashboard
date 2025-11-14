@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Users, Target, Calendar, FileSpreadsheet, Download, Upload, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import AMRevenueDetailModal from '@/components/modals/AMRevenueDetailModal';
 
 interface PerformanceAMProps {
     amMetrics: {
@@ -20,6 +21,7 @@ interface PerformanceAMProps {
     availableYears: number[];
     availableQuartals: string[];
     amRevenueRanking: Array<{
+        nik: string;
         am_name: string;
         region_code: string;
         t_revenue: number;
@@ -61,6 +63,8 @@ export default function PerformanceAM({
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [selectedQuartal, setSelectedQuartal] = useState(currentQuartal);
     const [selectedRegion, setSelectedRegion] = useState<string>('ALL');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedAMNik, setSelectedAMNik] = useState<string | null>(null);
 
     // Get unique regions dari amRevenueRanking
     const availableRegions = ['ALL', ...Array.from(new Set(amRevenueRanking.map(am => am.region_code)))].filter(Boolean);
@@ -69,6 +73,16 @@ export default function PerformanceAM({
     const filteredAmRevenueRanking = selectedRegion === 'ALL' 
         ? amRevenueRanking 
         : amRevenueRanking.filter(am => am.region_code === selectedRegion);
+
+    // Create mapping NIK to region_code from amRevenueRanking
+    const nikToRegionMap = new Map(
+        amRevenueRanking.map(am => [am.nik, am.region_code])
+    );
+
+    // Filter accountManagerList berdasarkan region yang dipilih
+    const filteredAccountManagerList = selectedRegion === 'ALL'
+        ? accountManagerList
+        : accountManagerList.filter(am => nikToRegionMap.get(am.nik) === selectedRegion);
 
     // Fungsi untuk handle perubahan filter tahun
     const handleYearChange = (year: string) => {
@@ -98,6 +112,14 @@ export default function PerformanceAM({
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
         
         return `${startDate.getDate()} ${months[startDate.getMonth()]} - ${endDate.getDate()} ${months[endDate.getMonth()]}`;
+    };
+
+    // Handler untuk klik bar chart
+    const handleBarClick = (data: any) => {
+        if (data && data.nik) {
+            setSelectedAMNik(data.nik);
+            setIsModalOpen(true);
+        }
     };
 
     return (
@@ -281,7 +303,6 @@ export default function PerformanceAM({
                                 <div style={{ width: `${Math.max(filteredAmRevenueRanking.length * 60, 800)}px`, minHeight: '300px' }}>
                                     <ResponsiveContainer width="100%" height={300}>
                                         <BarChart data={filteredAmRevenueRanking}>
-                                            <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis 
                                                 dataKey="am_name" 
                                                 tick={{ fontSize: 12 }}
@@ -305,7 +326,13 @@ export default function PerformanceAM({
                                                     'Target Revenue'
                                                 ]}
                                             />
-                                            <Bar dataKey="t_revenue" fill="#dc2626" radius={[4, 4, 0, 0]} />
+                                            <Bar 
+                                                dataKey="t_revenue" 
+                                                fill="#dc2626" 
+                                                radius={[4, 4, 0, 0]} 
+                                                onClick={handleBarClick}
+                                                cursor="pointer"
+                                            />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -389,8 +416,15 @@ export default function PerformanceAM({
                         <CardTitle className="flex items-center gap-2">
                             <Users className="h-5 w-5 text-red-600" />
                             List Account Manager
+                            {selectedRegion !== 'ALL' && (
+                                <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                                    - Region: {selectedRegion}
+                                </span>
+                            )}
                         </CardTitle>
-                        <CardDescription>Daftar lengkap Account Manager dengan detail informasi</CardDescription>
+                        <CardDescription>
+                            Daftar Account Manager {selectedRegion === 'ALL' ? 'lengkap' : `di region ${selectedRegion}`} dengan detail informasi
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
@@ -406,36 +440,53 @@ export default function PerformanceAM({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {accountManagerList.map((am) => (
-                                        <tr key={am.nik} className="border-b border-gray-100 hover:bg-gray-50">
-                                            <td className="py-3 px-4">
-                                                <div className="text-gray-700">{am.no}</div>
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <div className="font-medium text-gray-900">{am.nama}</div>
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <div className="text-gray-700 font-mono text-sm">{am.nik}</div>
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <div className="text-gray-700">{am.posisi}</div>
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <div className="text-gray-700 font-mono text-sm">{am.no_gsm}</div>
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <div className="flex items-center gap-2">
-                                                    <MapPin className="h-4 w-4 text-gray-500" />
-                                                    <span className="text-gray-700">{am.lokasi_am}</span>
-                                                </div>
+                                    {filteredAccountManagerList.length > 0 ? (
+                                        filteredAccountManagerList.map((am, index) => (
+                                            <tr key={am.nik} className="border-b border-gray-100 hover:bg-gray-50">
+                                                <td className="py-3 px-4">
+                                                    <div className="text-gray-700">{index + 1}</div>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <div className="font-medium text-gray-900">{am.nama}</div>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <div className="text-gray-700 font-mono text-sm">{am.nik}</div>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <div className="text-gray-700">{am.posisi}</div>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <div className="text-gray-700 font-mono text-sm">{am.no_gsm}</div>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin className="h-4 w-4 text-gray-500" />
+                                                        <span className="text-gray-700">{am.lokasi_am}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={6} className="py-8 px-4 text-center text-gray-500">
+                                                Tidak ada Account Manager di region {selectedRegion}
                                             </td>
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
                             </table>
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* AM Revenue Detail Modal */}
+                <AMRevenueDetailModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    amNik={selectedAMNik}
+                    year={selectedYear}
+                    quartal={selectedQuartal}
+                />
             </div>
         </AppSidebarLayout>
     );
