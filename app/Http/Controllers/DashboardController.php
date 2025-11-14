@@ -660,7 +660,6 @@ class DashboardController extends Controller
     }
 
     /**
-<<<<<<< HEAD
      * Get AM Revenue Details
      * Fungsi untuk mendapatkan detail target revenue AM beserta company breakdown
      */
@@ -769,7 +768,29 @@ class DashboardController extends Controller
                 'formatted_revenue' => $this->formatCurrency($company->t_revenue, 2)
             ];
         });
-=======
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'am_name' => $accountManager->nama,
+                'am_nik' => $accountManager->nik,
+                'am_posisi' => $accountManager->posisi,
+                'am_no_gsm' => $accountManager->no_gsm,
+                'am_witel' => $accountManager->nama_witels,
+                'am_region' => $accountManager->region_code,
+                'total_target_revenue' => (float) $totalTargetRevenue,
+                'formatted_total_revenue' => $this->formatCurrency($totalTargetRevenue, 2),
+                'total_companies' => $targets->count(),
+                'year' => $year,
+                'quartal' => $quartal,
+                'period_display' => "{$year} - {$quartal}",
+                'witel_distribution' => $witelGroups,
+                'companies' => $companiesData
+            ]
+        ]);
+    }
+
+    /**
      * Get available years and months from revenue data
      */
     public function getAvailablePeriods()
@@ -794,38 +815,17 @@ class DashboardController extends Controller
                 ->values()
                 ->toArray();
         }
->>>>>>> fitur/update/filter-ytd
 
         return response()->json([
             'success' => true,
             'data' => [
-<<<<<<< HEAD
-                'am_name' => $accountManager->nama,
-                'am_nik' => $accountManager->nik,
-                'am_posisi' => $accountManager->posisi,
-                'am_no_gsm' => $accountManager->no_gsm,
-                'am_witel' => $accountManager->nama_witels,
-                'am_region' => $accountManager->region_code,
-                'total_target_revenue' => (float) $totalTargetRevenue,
-                'formatted_total_revenue' => $this->formatCurrency($totalTargetRevenue, 2),
-                'total_companies' => $targets->count(),
-                'year' => $year,
-                'quartal' => $quartal,
-                'period_display' => "{$year} - {$quartal}",
-                'witel_distribution' => $witelGroups,
-                'companies' => $companiesData
-=======
                 'years' => $years,
                 'months_by_year' => $monthsByYear,
->>>>>>> fitur/update/filter-ytd
             ]
         ]);
     }
 
-    /**
-<<<<<<< HEAD
-=======
-     * Get custom YTD comparison between any two periods
+    /** Get custom YTD comparison between any two periods
      */
     public function getCustomYtdComparison(Request $request)
     {
@@ -852,10 +852,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
->>>>>>> fitur/update/filter-ytd
-     * Format currency helper
-     */
     private function formatCurrency(float $value, int $decimals = 1): string
     {
         if ($value >= 1000000000000) {
