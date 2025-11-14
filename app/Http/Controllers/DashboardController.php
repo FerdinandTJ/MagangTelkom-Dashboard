@@ -660,6 +660,7 @@ class DashboardController extends Controller
     }
 
     /**
+<<<<<<< HEAD
      * Get AM Revenue Details
      * Fungsi untuk mendapatkan detail target revenue AM beserta company breakdown
      */
@@ -768,10 +769,37 @@ class DashboardController extends Controller
                 'formatted_revenue' => $this->formatCurrency($company->t_revenue, 2)
             ];
         });
+=======
+     * Get available years and months from revenue data
+     */
+    public function getAvailablePeriods()
+    {
+        $periods = \DB::table('revenues')
+            ->select('tahun', 'bulan')
+            ->distinct()
+            ->orderBy('tahun', 'desc')
+            ->orderBy('bulan', 'desc')
+            ->get();
+
+        $years = $periods->pluck('tahun')->unique()->values()->toArray();
+        
+        // Group months by year
+        $monthsByYear = [];
+        foreach ($years as $year) {
+            $monthsByYear[$year] = $periods
+                ->where('tahun', $year)
+                ->pluck('bulan')
+                ->unique()
+                ->sort()
+                ->values()
+                ->toArray();
+        }
+>>>>>>> fitur/update/filter-ytd
 
         return response()->json([
             'success' => true,
             'data' => [
+<<<<<<< HEAD
                 'am_name' => $accountManager->nama,
                 'am_nik' => $accountManager->nik,
                 'am_posisi' => $accountManager->posisi,
@@ -786,11 +814,46 @@ class DashboardController extends Controller
                 'period_display' => "{$year} - {$quartal}",
                 'witel_distribution' => $witelGroups,
                 'companies' => $companiesData
+=======
+                'years' => $years,
+                'months_by_year' => $monthsByYear,
+>>>>>>> fitur/update/filter-ytd
             ]
         ]);
     }
 
     /**
+<<<<<<< HEAD
+=======
+     * Get custom YTD comparison between any two periods
+     */
+    public function getCustomYtdComparison(Request $request)
+    {
+        $request->validate([
+            'current_year' => 'required|integer|min:2020|max:2030',
+            'current_month' => 'required|integer|min:1|max:12',
+            'previous_year' => 'required|integer|min:2020|max:2030',
+            'previous_month' => 'required|integer|min:1|max:12',
+        ]);
+
+        $currentYear = $request->input('current_year');
+        $currentMonth = $request->input('current_month');
+        $previousYear = $request->input('previous_year');
+        $previousMonth = $request->input('previous_month');
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->analyticsService->getCustomYtdComparison(
+                $currentYear,
+                $currentMonth,
+                $previousYear,
+                $previousMonth
+            )
+        ]);
+    }
+
+    /**
+>>>>>>> fitur/update/filter-ytd
      * Format currency helper
      */
     private function formatCurrency(float $value, int $decimals = 1): string

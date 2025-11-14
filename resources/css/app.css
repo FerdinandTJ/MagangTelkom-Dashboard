@@ -253,4 +253,11 @@
         max-width: 98vw !important;
         margin: 1vh auto !important;
     }
+
+    .medium-modal {
+        width: 65vw !important;
+        max-width: 98vw !important;
+        margin: 1vh auto !important;
+    }
 }
+
