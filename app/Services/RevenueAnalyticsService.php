@@ -138,6 +138,41 @@ class RevenueAnalyticsService
     }
 
     /**
+     * Get custom Year-to-Date comparison between any two periods
+     */
+    public function getCustomYtdComparison(int $currentYear, int $currentMonth, int $previousYear, int $previousMonth): array
+    {
+        // Get current period YTD
+        $currentYtd = Revenue::where('tahun', $currentYear)
+            ->where('bulan', '<=', $currentMonth)
+            ->sum('total_revenue');
+
+        // Get previous period YTD
+        $previousYtd = Revenue::where('tahun', $previousYear)
+            ->where('bulan', '<=', $previousMonth)
+            ->sum('total_revenue');
+
+        $growth = $previousYtd > 0 ? (($currentYtd - $previousYtd) / $previousYtd) * 100 : 0;
+
+        return [
+            'current_year' => $currentYear,
+            'current_month' => $currentMonth,
+            'current_month_name' => $this->getMonthName($currentMonth),
+            'current_ytd' => (float) $currentYtd,
+            'previous_year' => $previousYear,
+            'previous_month' => $previousMonth,
+            'previous_month_name' => $this->getMonthName($previousMonth),
+            'previous_ytd' => (float) $previousYtd,
+            'growth_percentage' => round($growth, 2),
+            'growth_amount' => (float) ($currentYtd - $previousYtd),
+            'formatted_current_ytd' => 'Rp ' . number_format($currentYtd, 0, ',', '.'),
+            'formatted_previous_ytd' => 'Rp ' . number_format($previousYtd, 0, ',', '.'),
+            'formatted_growth_amount' => 'Rp ' . number_format(abs($currentYtd - $previousYtd), 0, ',', '.'),
+            'is_positive_growth' => $growth >= 0
+        ];
+    }
+
+    /**
      * Get revenue breakdown by subsegment
      */
     public function getSubsegmentRevenue(int $year, ?int $month = null): array
