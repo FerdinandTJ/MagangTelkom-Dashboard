@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Users, Target, Calendar, FileSpreadsheet, Download, Upload, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -84,6 +84,26 @@ export default function PerformanceAM({
         ? accountManagerList
         : accountManagerList.filter(am => nikToRegionMap.get(am.nik) === selectedRegion);
 
+    // Hitung Total AM berdasarkan filter region
+    const filteredTotalAM = filteredAmRevenueRanking.length;
+
+    // Hitung Total Revenue Target berdasarkan filter region
+    const filteredRevenueTarget = filteredAmRevenueRanking.reduce((sum, am) => sum + am.t_revenue, 0);
+    
+    // Format revenue target yang sudah difilter
+    const formatRevenue = (value: number): string => {
+        if (value >= 1000000000000) {
+            return `Rp ${(value / 1000000000000).toFixed(2)}T`;
+        } else if (value >= 1000000000) {
+            return `Rp ${(value / 1000000000).toFixed(2)}M`;
+        } else if (value >= 1000000) {
+            return `Rp ${(value / 1000000).toFixed(2)}Jt`;
+        }
+        return `Rp ${value.toLocaleString('id-ID')}`;
+    };
+
+    const formattedFilteredRevenueTarget = formatRevenue(filteredRevenueTarget);
+
     // Fungsi untuk handle perubahan filter tahun
     const handleYearChange = (year: string) => {
         setSelectedYear(parseInt(year));
@@ -137,8 +157,10 @@ export default function PerformanceAM({
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total AM</p>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{amMetrics.total_am}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Account Managers</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{filteredTotalAM}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {selectedRegion === 'ALL' ? 'Account Managers' : `Region ${selectedRegion}`}
+                                    </p>
                                 </div>
                                 <div className="flex-shrink-0 ml-4">
                                     <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
@@ -156,9 +178,11 @@ export default function PerformanceAM({
                                 <div className="flex-1">
                                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Revenue Target</p>
                                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                                        {amMetrics.formatted_revenue_target}
+                                        {formattedFilteredRevenueTarget}
                                     </p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Target periode ini</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {selectedRegion === 'ALL' ? 'Target periode ini' : `Region ${selectedRegion}`}
+                                    </p>
                                 </div>
                                 <div className="flex-shrink-0 ml-4">
                                     <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
@@ -356,46 +380,40 @@ export default function PerformanceAM({
                                         data={regionDistribution}
                                         cx="50%"
                                         cy="50%"
-                                        labelLine={true}
-                                        label={({ region_code, percentage, x, y, cx, cy, midAngle, innerRadius, outerRadius }: any) => {
+                                        labelLine={false}
+                                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+                                            if (percent < 0.05) return null;
+                                            
                                             const RADIAN = Math.PI / 180;
                                             const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                                            const x_inner = cx + radius * Math.cos(-midAngle * RADIAN);
-                                            const y_inner = cy + radius * Math.sin(-midAngle * RADIAN);
+                                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
                                             return (
-                                                <>
-                                                    {/* Label di luar (region code) */}
-                                                    <text 
-                                                        x={x} 
-                                                        y={y} 
-                                                        fill="black" 
-                                                        textAnchor={x > cx ? 'start' : 'end'} 
-                                                        dominantBaseline="central"
-                                                        className="text-sm font-medium"
-                                                    >
-                                                        {region_code}
-                                                    </text>
-                                                    {/* Label di dalam (percentage) */}
-                                                    <text 
-                                                        x={x_inner} 
-                                                        y={y_inner} 
-                                                        fill="white" 
-                                                        textAnchor="middle" 
-                                                        dominantBaseline="central"
-                                                        className="text-xs font-bold"
-                                                    >
-                                                        {percentage.toFixed(1)}%
-                                                    </text>
-                                                </>
+                                                <text 
+                                                    x={x} 
+                                                    y={y} 
+                                                    fill="white" 
+                                                    textAnchor={x > cx ? 'start' : 'end'} 
+                                                    dominantBaseline="central"
+                                                    fontSize={12}
+                                                    fontWeight="bold"
+                                                >
+                                                    {`${(percent * 100).toFixed(0)}%`}
+                                                </text>
                                             );
                                         }}
                                         outerRadius={80}
                                         fill="#8884d8"
                                         dataKey="am_count"
+                                        className="cursor-pointer"
                                     >
                                         {regionDistribution.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            <Cell 
+                                                key={`cell-${index}`} 
+                                                fill={COLORS[index % COLORS.length]}
+                                                className="hover:opacity-80 transition-opacity"
+                                            />
                                         ))}
                                     </Pie>
                                     <Tooltip 
@@ -403,6 +421,19 @@ export default function PerformanceAM({
                                             `${value} Account Manager`,
                                             props.payload.region_code
                                         ]}
+                                        labelFormatter={() => ''}
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                                        }}
+                                    />
+                                    <Legend 
+                                        verticalAlign="bottom"
+                                        height={36}
+                                        formatter={(value, entry: any) => entry.payload.region_code}
+                                        wrapperStyle={{ fontSize: '12px' }}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>

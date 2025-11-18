@@ -720,7 +720,7 @@ class DashboardController extends Controller
                     'year' => $year,
                     'quartal' => $quartal,
                     'period_display' => "{$year} - {$quartal}",
-                    'witel_distribution' => [],
+                    'region_distribution' => [],
                     'companies' => []
                 ]
             ]);
@@ -732,6 +732,7 @@ class DashboardController extends Controller
             ->join('account_manager_company as amc', 't.account_manager_company_id', '=', 'amc.id')
             ->join('companies as c', 'amc.nip_nas', '=', 'c.nip_nas')
             ->leftJoin('witels as w', 'c.idwitels', '=', 'w.idwitels')
+            ->leftJoin('regions as r', 'w.region_id', '=', 'r.id')
             ->where('lwt.lini_waktu_id', $liniWaktu->id)
             ->where('amc.nik_am', $amNik)
             ->select(
@@ -740,18 +741,24 @@ class DashboardController extends Controller
                 'c.subsegment',
                 'w.nama_witels',
                 't.t_revenue',
-                'w.idwitels'
+                'w.idwitels',
+                'r.code as region_code',
+                'amc.pembagian',
+                'amc.proporsi',
+                't.t_sustain',
+                't.t_scalling',
+                't.t_ngtma'
             )
             ->get();
 
         // Calculate total target revenue
         $totalTargetRevenue = $targets->sum('t_revenue');
 
-        // Group by witel for distribution
-        $witelGroups = $targets->groupBy('nama_witels')->map(function ($companies, $witelName) use ($targets) {
+        // Group by region for distribution
+        $regionGroups = $targets->groupBy('region_code')->map(function ($companies, $regionCode) use ($targets) {
             $count = $companies->count();
             return [
-                'witel_name' => $witelName ?: 'Unassigned',
+                'region_code' => $regionCode ?: 'Unassigned',
                 'company_count' => $count,
                 'percentage' => $targets->count() > 0 ? ($count / $targets->count()) * 100 : 0
             ];
@@ -764,8 +771,17 @@ class DashboardController extends Controller
                 'nama_perusahaan' => $company->nama_perusahaan,
                 'subsegment' => $company->subsegment ?: '-',
                 'nama_witels' => $company->nama_witels ?: 'Unassigned',
+                'region_code' => $company->region_code ?: 'Unassigned',
                 't_revenue' => (float) $company->t_revenue,
-                'formatted_revenue' => $this->formatCurrency($company->t_revenue, 2)
+                'formatted_revenue' => $this->formatCurrency($company->t_revenue, 2),
+                'pembagian' => $company->pembagian,
+                'proporsi' => (float) $company->proporsi,
+                't_sustain' => (float) $company->t_sustain,
+                't_scalling' => (float) $company->t_scalling,
+                't_ngtma' => (float) $company->t_ngtma,
+                'formatted_sustain' => $this->formatCurrency($company->t_sustain, 2),
+                'formatted_scalling' => $this->formatCurrency($company->t_scalling, 2),
+                'formatted_ngtma' => $this->formatCurrency($company->t_ngtma, 2)
             ];
         });
 
@@ -784,7 +800,7 @@ class DashboardController extends Controller
                 'year' => $year,
                 'quartal' => $quartal,
                 'period_display' => "{$year} - {$quartal}",
-                'witel_distribution' => $witelGroups,
+                'region_distribution' => $regionGroups,
                 'companies' => $companiesData
             ]
         ]);

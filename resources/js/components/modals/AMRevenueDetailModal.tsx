@@ -7,8 +7,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, Target, Calendar, Building2, MapPin, Phone, Briefcase } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { Loader2, User, Target, Calendar, Building2, MapPin, Phone, Briefcase, ChevronDown, ChevronUp } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import axios from '@/lib/axios';
 import { formatCurrency } from '@/utils/currency';
 
@@ -17,12 +17,21 @@ interface CompanyDetail {
     nama_perusahaan: string;
     subsegment: string;
     nama_witels: string;
+    region_code: string;
     t_revenue: number;
     formatted_revenue: string;
+    pembagian: string;
+    proporsi: number;
+    t_sustain: number;
+    t_scalling: number;
+    t_ngtma: number;
+    formatted_sustain: string;
+    formatted_scalling: string;
+    formatted_ngtma: string;
 }
 
-interface WitelDistribution {
-    witel_name: string;
+interface RegionDistribution {
+    region_code: string;
     company_count: number;
     percentage: number;
     [key: string]: string | number; // Add index signature for Recharts compatibility
@@ -41,7 +50,7 @@ interface AMRevenueDetailData {
     year: number;
     quartal: string;
     period_display: string;
-    witel_distribution: WitelDistribution[];
+    region_distribution: RegionDistribution[];
     companies: CompanyDetail[];
 }
 
@@ -66,6 +75,8 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+    const [activeChartTab, setActiveChartTab] = useState<'witel' | 'breakdown'>('witel');
 
     useEffect(() => {
         const checkDarkMode = () => {
@@ -117,6 +128,16 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
         }
     };
 
+    const toggleCompany = (nipNas: string) => {
+        const newExpanded = new Set(expandedCompanies);
+        if (newExpanded.has(nipNas)) {
+            newExpanded.delete(nipNas);
+        } else {
+            newExpanded.add(nipNas);
+        }
+        setExpandedCompanies(newExpanded);
+    };
+
     if (!amNik) return null;
 
     return (
@@ -136,44 +157,63 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
 
                 {/* AM Info Card */}
                 {!loading && !error && data && (
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900 p-6 mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-red-600 dark:border-red-500 shadow-sm p-6 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">NIK</span>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="p-1.5 bg-red-50 dark:bg-red-950 rounded">
+                                        <User className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                                    </div>
+                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">NIK</span>
                                 </div>
-                                <p className="font-mono text-gray-900 dark:text-gray-100">{data.am_nik || 'N/A'}</p>
+                                <p className="font-mono text-sm text-gray-900 dark:text-gray-100">{data.am_nik || 'N/A'}</p>
                             </div>
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Posisi</span>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="p-1.5 bg-red-50 dark:bg-red-950 rounded">
+                                        <Briefcase className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                                    </div>
+                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">Posisi</span>
                                 </div>
-                                <p className="font-semibold text-gray-900 dark:text-gray-100">{data.am_posisi || '-'}</p>
+                                <p className="text-sm text-gray-900 dark:text-gray-100">{data.am_posisi || '-'}</p>
                             </div>
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Phone className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">No. GSM</span>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="p-1.5 bg-red-50 dark:bg-red-950 rounded">
+                                        <User className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                                    </div>
+                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">EAM</span>
                                 </div>
-                                <p className="font-mono text-gray-900 dark:text-gray-100">{data.am_no_gsm || '-'}</p>
+                                <p className="text-sm text-gray-900 dark:text-gray-100">{data.am_name || '-'}</p>
                             </div>
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Witel</span>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="p-1.5 bg-red-50 dark:bg-red-950 rounded">
+                                        <Phone className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                                    </div>
+                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">No. GSM</span>
                                 </div>
-                                <p className="text-gray-900 dark:text-gray-100">{data.am_witel || '-'}</p>
+                                <p className="font-mono text-sm text-gray-900 dark:text-gray-100">{data.am_no_gsm || '-'}</p>
                             </div>
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                                    </svg>
-                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Region</span>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="p-1.5 bg-red-50 dark:bg-red-950 rounded">
+                                        <MapPin className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                                    </div>
+                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">Witel</span>
                                 </div>
-                                <p className="text-gray-900 dark:text-gray-100">{data.am_region || '-'}</p>
+                                <p className="text-sm text-gray-900 dark:text-gray-100">{data.am_witel || '-'}</p>
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="p-1.5 bg-red-50 dark:bg-red-950 rounded">
+                                        <svg className="w-3.5 h-3.5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                        </svg>
+                                    </div>
+                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">Region</span>
+                                </div>
+                                <p className="text-sm text-gray-900 dark:text-gray-100">{data.am_region || '-'}</p>
                             </div>
                         </div>
                     </div>
@@ -267,130 +307,308 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
 
                         {/* Content: Pie Chart and Table */}
                         <div className="grid grid-cols-1 lg:grid-cols-20 gap-6">
-                            {/* Left: Pie Chart - Witel Distribution (35%) */}
-                            <div className="lg:col-span-7 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                    <MapPin className="h-5 w-5 text-red-600 dark:text-red-400" />
-                                    Company Distribution by Witel
-                                </h3>
+                            {/* Left: Charts - Region Distribution & Target Breakdown (45%) */}
+                            <div className="lg:col-span-9 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                                {/* Tab Navigation */}
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <MapPin className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                        {activeChartTab === 'witel' ? 'Company Distribution By Region' : 'Target Revenue Details'}
+                                    </h3>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setActiveChartTab('witel')}
+                                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                activeChartTab === 'witel'
+                                                    ? 'bg-red-600 text-white'
+                                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                            }`}
+                                        >
+                                            By Region
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveChartTab('breakdown')}
+                                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                                activeChartTab === 'breakdown'
+                                                    ? 'bg-red-600 text-white'
+                                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                            }`}
+                                        >
+                                            Breakdown
+                                        </button>
+                                    </div>
+                                </div>
                                 
-                                {data.witel_distribution && data.witel_distribution.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={320}>
+                                {/* Chart Content */}
+                                {activeChartTab === 'witel' ? (
+                                    // Region Distribution Pie Chart
+                                    data.region_distribution && data.region_distribution.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height={300}>
                                         <PieChart>
                                             <Pie
-                                                data={data.witel_distribution}
+                                                data={data.region_distribution}
                                                 cx="50%"
                                                 cy="50%"
                                                 labelLine={false}
-                                                label={(props: any) => `${props.witel_name}: ${props.percentage.toFixed(1)}%`}
-                                                outerRadius={100}
+                                                label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+                                                    if (percent < 0.05) return null;
+                                                    
+                                                    const RADIAN = Math.PI / 180;
+                                                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                                                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                                                    return (
+                                                        <text 
+                                                            x={x} 
+                                                            y={y} 
+                                                            fill="white" 
+                                                            textAnchor={x > cx ? 'start' : 'end'} 
+                                                            dominantBaseline="central"
+                                                            fontSize={12}
+                                                            fontWeight="bold"
+                                                        >
+                                                            {`${(percent * 100).toFixed(0)}%`}
+                                                        </text>
+                                                    );
+                                                }}
+                                                outerRadius={120}
                                                 fill="#8884d8"
                                                 dataKey="company_count"
+                                                className="cursor-pointer"
                                             >
-                                                {data.witel_distribution.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                {data.region_distribution.map((entry: RegionDistribution, index: number) => (
+                                                    <Cell 
+                                                        key={`cell-${index}`} 
+                                                        fill={COLORS[index % COLORS.length]}
+                                                        className="hover:opacity-80 transition-opacity"
+                                                    />
                                                 ))}
                                             </Pie>
                                             <Tooltip 
                                                 formatter={(value: number, name: string, props: any) => [
                                                     `${value} ${value === 1 ? 'Company' : 'Companies'}`,
-                                                    props.payload.witel_name
+                                                    props.payload.region_code
                                                 ]}
+                                                labelFormatter={() => ''}
                                                 contentStyle={{
                                                     backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
                                                     border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
                                                     borderRadius: '8px',
-                                                    color: isDarkMode ? '#e5e7eb' : '#111827'
+                                                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                                    color: isDarkMode ? '#e5e7eb' : '#374151'
+                                                }}
+                                                itemStyle={{
+                                                    color: isDarkMode ? '#e5e7eb' : '#374151'
+                                                }}
+                                                labelStyle={{ 
+                                                    color: isDarkMode ? '#e5e7eb' : '#374151'
                                                 }}
                                             />
                                             <Legend 
-                                                verticalAlign="bottom" 
+                                                verticalAlign="bottom"
                                                 height={36}
                                                 formatter={(value, entry: any) => (
                                                     <span style={{ color: isDarkMode ? '#e5e7eb' : '#374151' }}>
-                                                        {entry.payload.witel_name}
+                                                        {entry.payload.region_code}
                                                     </span>
                                                 )}
+                                                wrapperStyle={{ color: isDarkMode ? '#e5e7eb' : '#374151' }}
                                             />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="flex items-center justify-center h-[320px] text-gray-500 dark:text-gray-400">
+                                    <div className="flex items-center justify-center h-[400px] text-gray-500 dark:text-gray-400">
                                         No distribution data available
                                     </div>
-                                )}
+                                )
+                            ) : (
+                                // Target Breakdown Bar Chart
+                                data.companies && data.companies.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <div style={{ width: `${Math.max(data.companies.length * 40, 500)}px`, minHeight: '320px' }}>
+                                            <ResponsiveContainer width="100%" height={320}>
+                                                <BarChart data={data.companies}>
+                                                    <XAxis 
+                                                        dataKey="nama_perusahaan" 
+                                                        tick={{ fontSize: 14, fill: isDarkMode ? '#9ca3af' : '#6b7280' }}
+                                                        angle={0}
+                                                        textAnchor="middle"
+                                                        height={30}
+                                                        interval={0}
+                                                    />
+                                                    <YAxis 
+                                                        tick={{ fontSize: 11, fill: isDarkMode ? '#9ca3af' : '#6b7280' }}
+                                                        tickFormatter={(value) => {
+                                                            if (value >= 1000000000) {
+                                                                return `${(value / 1000000000).toFixed(0)}M`;
+                                                            }
+                                                            return `${(value / 1000000).toFixed(0)}Jt`;
+                                                        }}
+                                                    />
+                                                    <Tooltip 
+                                                        formatter={(value: any) => formatCurrency(value, 2)}
+                                                        contentStyle={{
+                                                            backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                                            border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                                                            borderRadius: '8px',
+                                                            color: isDarkMode ? '#e5e7eb' : '#111827'
+                                                        }}
+                                                    />
+                                                    <Legend 
+                                                        verticalAlign="bottom" 
+                                                        align="left" 
+                                                        height={20} 
+                                                        iconType="rect" 
+                                                        layout="horizontal" 
+                                                        wrapperStyle={{
+                                                            paddingLeft: '60px',
+                                                        }}
+                                                    />
+                                                    <Bar dataKey="t_sustain" fill="#3b82f6" name="Sustain" radius={[4, 4, 0, 0]} />
+                                                    <Bar dataKey="t_scalling" fill="#22c55e" name="Scaling" radius={[4, 4, 0, 0]} />
+                                                    <Bar dataKey="t_ngtma" fill="#a855f7" name="NGTMA" radius={[4, 4, 0, 0]} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center h-[320px] text-gray-500 dark:text-gray-400">
+                                        No company data available
+                                    </div>
+                                )
+                            )}
                             </div>
 
-                            {/* Right: Table - Company List (65%) */}
-                            <div className="lg:col-span-13 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                            {/* Right: Table - Company List (55%) */}
+                            <div className="lg:col-span-11 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                     <Building2 className="h-5 w-5 text-red-600 dark:text-red-400" />
                                     Company Details
                                 </h3>
                                 
-                                <div className="overflow-x-auto max-h-[320px] overflow-y-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
-                                            <tr>
-                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    Company
-                                                </th>
-                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    NIP NAS
-                                                </th>
-                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    Witel
-                                                </th>
-                                                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    Target Revenue
-                                                </th>
-                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    Subsegment
-                                                </th>
-                                                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    Action
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                            {data.companies && data.companies.length > 0 ? (
-                                                data.companies.map((company, idx) => (
-                                                    <tr key={company.nip_nas} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                                                        <td className="px-3 py-3 text-gray-900 dark:text-gray-100">
-                                                            {company.nama_perusahaan}
-                                                        </td>
-                                                        <td className="px-3 py-3 font-mono text-gray-700 dark:text-gray-300 text-xs">
-                                                            {company.nip_nas}
-                                                        </td>
-                                                        <td className="px-3 py-3 text-gray-700 dark:text-gray-300">
-                                                            {company.nama_witels}
-                                                        </td>
-                                                        <td className="px-3 py-3 text-right font-semibold text-gray-900 dark:text-gray-100">
-                                                            {company.formatted_revenue}
-                                                        </td>
-                                                        <td className="px-3 py-3 text-gray-700 dark:text-gray-300">
-                                                            {company.subsegment}
-                                                        </td>
-                                                        <td className="px-3 py-3 text-center">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="text-xs"
-                                                            >
-                                                                Detail
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            ) : (
-                                                <tr>
-                                                    <td colSpan={6} className="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
-                                                        No companies assigned to this Account Manager
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
+                                <div className="space-y-2 max-h-[320px] overflow-y-auto">
+                                    {data.companies && data.companies.length > 0 ? (
+                                        data.companies.map((company) => {
+                                            const isExpanded = expandedCompanies.has(company.nip_nas);
+                                            
+                                            return (
+                                                <div key={company.nip_nas} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                                    {/* Company Header - Clickable */}
+                                                    <div 
+                                                        className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-850 p-3 cursor-pointer hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-750 dark:hover:to-gray-800 transition-all"
+                                                        onClick={() => toggleCompany(company.nip_nas)}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3 flex-1">
+                                                                {/* Company Info */}
+                                                                <div className="min-w-[200px]">
+                                                                    <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{company.nama_perusahaan}</h4>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{company.nip_nas}</p>
+                                                                </div>
+
+                                                                {/* Stats Grid */}
+                                                                <div className="grid grid-cols-5 gap-3 flex-1">
+                                                                    <div className="text-center">
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Witel</p>
+                                                                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs">{company.nama_witels}</p>
+                                                                    </div>
+                                                                    <div className="text-center">
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Revenue</p>
+                                                                        <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{company.formatted_revenue}</p>
+                                                                    </div>
+                                                                    <div className="text-center">
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Subsegment</p>
+                                                                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs">{company.subsegment}</p>
+                                                                    </div>
+                                                                    <div className="text-center">
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pembagian</p>
+                                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                                            company.pembagian === 'SINGLE' 
+                                                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                                        }`}>
+                                                                            {company.pembagian}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="text-center">
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Proporsi</p>
+                                                                        <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{company.proporsi}%</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Chevron Icon */}
+                                                            <div className="ml-4">
+                                                                {isExpanded ? (
+                                                                    <ChevronUp className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                                                                ) : (
+                                                                    <ChevronDown className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Expanded Content - Target Breakdown Table */}
+                                                    {isExpanded && (
+                                                        <div className="bg-white dark:bg-gray-950">
+                                                            <table className="w-full">
+                                                                <thead className="bg-gray-100 dark:bg-gray-800">
+                                                                    <tr>
+                                                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                            Category
+                                                                        </th>
+                                                                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                            Target Amount
+                                                                        </th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                                                                    <tr className="hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors">
+                                                                        <td className="px-4 py-3">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                                                                                <span className="font-medium text-gray-900 dark:text-gray-100">Sustain</span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-right font-bold text-blue-900 dark:text-blue-100">
+                                                                            {company.formatted_sustain}
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr className="hover:bg-green-50 dark:hover:bg-green-950/20 transition-colors">
+                                                                        <td className="px-4 py-3">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                                                                                <span className="font-medium text-gray-900 dark:text-gray-100">Scaling</span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-right font-bold text-green-900 dark:text-green-100">
+                                                                            {company.formatted_scalling}
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr className="hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-colors">
+                                                                        <td className="px-4 py-3">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                                                                                <span className="font-medium text-gray-900 dark:text-gray-100">NGTMA</span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-right font-bold text-purple-900 dark:text-purple-100">
+                                                                            {company.formatted_ngtma}
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                                            No companies assigned to this Account Manager
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
