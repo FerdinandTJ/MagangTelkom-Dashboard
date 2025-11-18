@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\RevenueBreakdownDummyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -26,6 +27,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('available-periods', [DashboardController::class, 'getAvailablePeriods'])->name('api.dashboard.available-periods');
         Route::get('ytd-comparison-custom', [DashboardController::class, 'getCustomYtdComparison'])->name('api.dashboard.ytd-comparison-custom');
         Route::get('am-revenue-details', [DashboardController::class, 'getAMRevenueDetails'])->name('api.dashboard.am-revenue-details');
+        
+        // DUMMY ENDPOINT - For testing Revenue Breakdown Tree component
+        Route::get('revenue-breakdown-dummy', [RevenueBreakdownDummyController::class, 'getDummyRevenueBreakdown'])->name('api.dashboard.revenue-breakdown-dummy');
     });
 });
 
