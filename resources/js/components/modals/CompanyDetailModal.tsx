@@ -8,10 +8,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Building2, TrendingUp, Calendar, BarChart3, Info, User } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { CompanyData, MonthlyRevenue, YearlyRevenue } from '@/types/dashboard';
 import axios from '@/lib/axios';
 import { formatCurrency, formatCurrencyShort } from '@/utils/currency';
+import RevenueBreakdownTree from '@/components/RevenueBreakdownTree';
 
 interface AccountManagerData {
     nik: string;
@@ -38,6 +38,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
 }) => {
     const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
     const [yearlyData, setYearlyData] = useState<YearlyRevenue[]>([]);
+    const [revenueBreakdown, setRevenueBreakdown] = useState<any[]>([]);
     const [accountManagers, setAccountManagers] = useState<AccountManagerData[]>([]);
     const [regions, setRegions] = useState<RegionData[]>([]);
     const [loading, setLoading] = useState(false);
@@ -89,6 +90,17 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                 setSummary(response.data.data.summary);
             } else {
                 setError('Failed to fetch company details');
+            }
+
+            // Fetch revenue breakdown data (dummy endpoint for now)
+            const breakdownResponse = await axios.get(`/api/dashboard/revenue-breakdown-dummy`, {
+                params: {
+                    company_id: company.nip_nas || company.id
+                }
+            });
+            
+            if (breakdownResponse.data.success) {
+                setRevenueBreakdown(breakdownResponse.data.data.revenue_breakdown || []);
             }
         } catch (err) {
             setError('Error loading company data');
@@ -250,100 +262,19 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                             </div>
                         )}
 
-                        {/* Charts Section */}
-                        {(monthlyData.length > 0 || yearlyData.length > 0) && (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Monthly Revenue Trend */}
-                                {monthlyData.length > 0 && (
-                                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Monthly Revenue Trend (Last 12 Months)</h3>
-                                        <ResponsiveContainer width="100%" height={320}>
-                                            <LineChart data={monthlyData}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#f0f0f0'} />
-                                                <XAxis 
-                                                    dataKey="bulan_name" 
-                                                    tick={{ fontSize: 11, fill: isDarkMode ? '#e5e7eb' : '#666' }}
-                                                    stroke={isDarkMode ? '#6b7280' : '#666'}
-                                                    angle={-45}
-                                                    textAnchor="end"
-                                                    height={60}
-                                                />
-                                                <YAxis 
-                                                    tick={{ fontSize: 12, fill: isDarkMode ? '#e5e7eb' : '#666' }}
-                                                    stroke={isDarkMode ? '#6b7280' : '#666'}
-                                                    tickFormatter={formatCurrencyShort}
-                                                />
-                                                <Tooltip 
-                                                    formatter={(value: number) => [formatCurrency(value, 2), 'Revenue']}
-                                                    labelFormatter={(label, payload) => {
-                                                        if (payload && payload.length > 0) {
-                                                            const data = payload[0].payload;
-                                                            return `${data.bulan_name} ${data.tahun}`;
-                                                        }
-                                                        return label;
-                                                    }}
-                                                    contentStyle={{
-                                                        backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                                                        border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
-                                                        borderRadius: '8px',
-                                                        color: isDarkMode ? '#e5e7eb' : '#111827'
-                                                    }}
-                                                />
-                                                <Line 
-                                                    type="monotone" 
-                                                    dataKey="revenue" 
-                                                    stroke={isDarkMode ? '#f87171' : '#dc2626'}
-                                                    strokeWidth={3}
-                                                    dot={{ fill: isDarkMode ? '#f87171' : '#dc2626', strokeWidth: 2, r: 4 }}
-                                                    activeDot={{ r: 6, stroke: isDarkMode ? '#f87171' : '#dc2626', strokeWidth: 2 }}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                )}
-
-                                {/* Yearly Revenue Comparison */}
-                                {yearlyData.length > 0 && (
-                                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Yearly Revenue Comparison</h3>
-                                        <ResponsiveContainer width="100%" height={320}>
-                                            <BarChart data={yearlyData}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#f0f0f0'} />
-                                                <XAxis 
-                                                    dataKey="tahun" 
-                                                    tick={{ fontSize: 12, fill: isDarkMode ? '#e5e7eb' : '#666' }}
-                                                    stroke={isDarkMode ? '#6b7280' : '#666'}
-                                                />
-                                                <YAxis 
-                                                    tick={{ fontSize: 12, fill: isDarkMode ? '#e5e7eb' : '#666' }}
-                                                    stroke={isDarkMode ? '#6b7280' : '#666'}
-                                                    tickFormatter={formatCurrencyShort}
-                                                />
-                                                <Tooltip 
-                                                    formatter={(value: number) => [formatCurrency(value, 2), 'Revenue']}
-                                                    labelFormatter={(label) => `Year: ${label}`}
-                                                    contentStyle={{
-                                                        backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                                                        border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
-                                                        borderRadius: '8px',
-                                                        color: isDarkMode ? '#e5e7eb' : '#111827'
-                                                    }}
-                                                />
-                                                <Bar 
-                                                    dataKey="total_revenue" 
-                                                    fill={isDarkMode ? '#f87171' : '#dc2626'}
-                                                    radius={[4, 4, 0, 0]}
-                                                />
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                )}
+                        {/* Revenue Breakdown Section */}
+                        {revenueBreakdown.length > 0 && (
+                            <div className="mt-6">
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Source Breakdown</h3>
+                                    <RevenueBreakdownTree data={revenueBreakdown} />
+                                </div>
                             </div>
                         )}
                     </>
                 )}
 
-                {!loading && !error && monthlyData.length === 0 && yearlyData.length === 0 && (
+                {!loading && !error && revenueBreakdown.length === 0 && (
                     <div className="text-center py-8">
                         <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500 dark:text-gray-400">No revenue data available for this company</p>
