@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -147,7 +147,8 @@ export default function PerformanceAM({
             breadcrumbs={[
                 { title: 'Performance AM', href: '/performance-am' }
             ]}
-        >
+        >   
+            <Head title="Performance AM" />
             <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-6">
                 {/* Metrics Cards - Fungsi ini untuk menampilkan metrik utama Performance AM */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">

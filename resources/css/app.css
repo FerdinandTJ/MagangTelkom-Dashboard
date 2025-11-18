@@ -255,7 +255,7 @@
     }
 
     .medium-modal {
-        width: 65vw !important;
+        width:50vw !important;
         max-width: 98vw !important;
         margin: 1vh auto !important;
     }
