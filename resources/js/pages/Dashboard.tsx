@@ -240,13 +240,15 @@ export default function Dashboard({
                             <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Data Actions</p>
                                 <div className="space-y-2 mt-2">
-                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium text-sm">
+                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium text-sm"
+                                    onClick={() => alert('Export feature coming soon')}>
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
                                         Export
                                     </button>
-                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium text-sm">
+                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium text-sm"
+                                    onClick={() => alert('Import feature coming soon')}>
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                         </svg>

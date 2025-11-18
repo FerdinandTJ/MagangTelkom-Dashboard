@@ -123,7 +123,7 @@ class DummyDataSeeder extends Seeder
                 // Generate monthly data with slight variations
                 for ($month = 1; $month <= 12; $month++) {
                     // Only generate up to current month for 2025
-                    if ($year == 2025 && $month > 11) break;
+                    if ($year == 2025 && $month > 12) break;
                     
                     // Add 5-15% variation per month
                     $variation = rand(95, 115) / 100;
