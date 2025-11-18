@@ -13,6 +13,8 @@ interface PerformanceAMProps {
         total_am: number;
         revenue_target: number;
         formatted_revenue_target: string;
+        revenue_actual: number;
+        formatted_revenue_actual: string;
         year: number;
         month_start: string | null;
         month_end: string | null;
@@ -194,54 +196,59 @@ export default function PerformanceAM({
                         </CardHeader>
                     </Card>
 
-                    {/* Card 3: Year - Tahun dengan dropdown dan rentang bulan */}
+                    {/* Card 3: Revenue Actual - Total actual revenue dari semua AM */}
                     <Card className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Tahun</p>
-                                    <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
-                                        <SelectTrigger className="w-full bg-white mt-2">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {availableYears.map(year => (
-                                                <SelectItem key={year} value={year.toString()}>
-                                                    {year}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{formatMonthRange()}</p>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Revenue Actual</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                                        {amMetrics.formatted_revenue_actual}
+                                    </p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Realisasi periode ini</p>
                                 </div>
                                 <div className="flex-shrink-0 ml-4">
-                                    <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                                        <Calendar className="h-6 w-6 text-red-600 dark:text-red-400" />
+                                    <div className="p-2 bg-green-50 dark:bg-green-950 rounded-lg">
+                                        <Target className="h-6 w-6 text-green-600 dark:text-green-400" />
                                     </div>
                                 </div>
                             </div>
                         </CardHeader>
                     </Card>
 
-                    {/* Card 4: Quartal - Quartal dengan dropdown */}
+                    {/* Card 4: Period (Year & Quartal) - Tahun dan Quartal dengan dropdown */}
                     <Card className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Quartal</p>
-                                    <Select value={selectedQuartal} onValueChange={handleQuartalChange}>
-                                        <SelectTrigger className="w-full bg-white mt-2">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {availableQuartals.map(quartal => (
-                                                <SelectItem key={quartal} value={quartal}>
-                                                    {quartal}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Periode saat ini</p>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Period</p>
+                                    <div className="flex gap-2 mt-2">
+                                        <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
+                                            <SelectTrigger className="w-full bg-white">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableYears.map(year => (
+                                                    <SelectItem key={year} value={year.toString()}>
+                                                        {year}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Select value={selectedQuartal} onValueChange={handleQuartalChange}>
+                                            <SelectTrigger className="w-full bg-white">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableQuartals.map(quartal => (
+                                                    <SelectItem key={quartal} value={quartal}>
+                                                        {quartal}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{formatMonthRange()}</p>
                                 </div>
                                 <div className="flex-shrink-0 ml-4">
                                     <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">

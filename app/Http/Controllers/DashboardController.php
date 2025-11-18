@@ -54,6 +54,7 @@ class DashboardController extends Controller
         $periodDetails = $this->getPeriodDetails($currentYear, $currentQuartal);
         
         $revenueTarget = $this->getTotalRevenueTarget($currentYear, $currentQuartal);
+        $revenueActual = $this->getTotalRevenueActual($currentYear, $currentQuartal);
         
         return Inertia::render('PerformanceAm', [
             // Metrics untuk nav cards
@@ -64,6 +65,10 @@ class DashboardController extends Controller
                 // Fungsi ini untuk mendapatkan total revenue target dari semua AM
                 'revenue_target' => $revenueTarget,
                 'formatted_revenue_target' => $this->formatCurrency($revenueTarget, 2),
+                
+                // Fungsi ini untuk mendapatkan total revenue actual dari semua AM
+                'revenue_actual' => $revenueActual,
+                'formatted_revenue_actual' => $this->formatCurrency($revenueActual, 2),
                 
                 // Year info dengan bulan range
                 'year' => $currentYear,
@@ -122,6 +127,38 @@ class DashboardController extends Controller
             ->sum('target_account_m.t_revenue');
         
         return (float) $totalRevenue;
+    }
+
+    /**
+     * Fungsi ini untuk mendapatkan total revenue actual dari semua AM berdasarkan tahun, quartal, dan region
+     */
+    private function getTotalRevenueActual(int $year, string $quartal, ?string $region = null): float
+    {
+        // Get all lini_waktu_ids for the selected year and quartal
+        $liniWaktuQuery = \DB::table('lini_waktu')
+            ->where('tahun', $year)
+            ->where('quartal', $quartal);
+        
+        // Filter by region if specified
+        if ($region && $region !== 'ALL') {
+            $liniWaktuQuery->join('account_managers', 'lini_waktu.nik_am', '=', 'account_managers.nik')
+                ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                ->join('regions', 'witels.region_id', '=', 'regions.id')
+                ->where('regions.code', $region);
+        }
+        
+        $liniWaktuIds = $liniWaktuQuery->pluck('lini_waktu.id');
+        
+        if ($liniWaktuIds->isEmpty()) {
+            return 0;
+        }
+        
+        // Get sum of r_revenue from lini_waktu_target (not from target_account_m)
+        $totalActual = \DB::table('lini_waktu_target')
+            ->whereIn('lini_waktu_id', $liniWaktuIds)
+            ->sum('r_revenue');
+        
+        return (float) $totalActual;
     }
 
     /**
