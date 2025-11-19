@@ -441,6 +441,8 @@ export default function Dashboard({
                     company={selectedCompany}
                     currentMonth={currentMonthName}
                     currentYear={currentYear}
+                    year={selectedYear}
+                    month={selectedMonth?.bulan}
                 />
 
                 <YtdComparisonModal

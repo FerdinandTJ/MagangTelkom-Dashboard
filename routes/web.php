@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RevenueBreakdownDummyController;
+use App\Http\Controllers\RevenueBreakdownController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -30,6 +31,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         // DUMMY ENDPOINT - For testing Revenue Breakdown Tree component
         Route::get('revenue-breakdown-dummy', [RevenueBreakdownDummyController::class, 'getDummyRevenueBreakdown'])->name('api.dashboard.revenue-breakdown-dummy');
+        
+        // PRODUCTION ENDPOINT - Revenue Breakdown from database
+        Route::get('revenue-breakdown/{companyId}', [RevenueBreakdownController::class, 'getBreakdown'])->name('api.dashboard.revenue-breakdown');
     });
 });
 

@@ -31,6 +31,8 @@ interface CompanyDetailModalProps {
     company: CompanyData | null;
     currentMonth?: string;
     currentYear?: number;
+    year?: number;  // Filter year
+    month?: number; // Filter month
 }
 
 const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
@@ -38,7 +40,9 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     onClose,
     company,
     currentMonth,
-    currentYear
+    currentYear,
+    year,
+    month
 }) => {
     const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
     const [yearlyData, setYearlyData] = useState<YearlyRevenue[]>([]);
@@ -71,7 +75,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
         if (isOpen && company) {
             fetchCompanyDetails();
         }
-    }, [isOpen, company]);
+    }, [isOpen, company, year, month]);
 
     const fetchCompanyDetails = async () => {
         if (!company) return;
@@ -80,10 +84,20 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
         setError(null);
         
         try {
+            const params: any = {
+                company_id: company.nip_nas || company.id
+            };
+            
+            // Add filters if provided
+            if (year) {
+                params.year = year;
+            }
+            if (month) {
+                params.month = month;
+            }
+            
             const response = await axios.get(`/api/dashboard/individual-company-details`, {
-                params: {
-                    company_id: company.nip_nas || company.id
-                }
+                params
             });
             
             if (response.data.success) {
@@ -96,15 +110,24 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                 setError('Failed to fetch company details');
             }
 
-            // Fetch revenue breakdown data (dummy endpoint for now)
-            const breakdownResponse = await axios.get(`/api/dashboard/revenue-breakdown-dummy`, {
-                params: {
-                    company_id: company.nip_nas || company.id
-                }
+            // Fetch revenue breakdown data from database (production endpoint)
+            const companyIdentifier = company.nip_nas || company.id;
+            const breakdownParams: any = {};
+            
+            // Apply same filters as company details
+            if (year) {
+                breakdownParams.tahun = year;
+            }
+            if (month) {
+                breakdownParams.bulan = month;
+            }
+            
+            const breakdownResponse = await axios.get(`/api/dashboard/revenue-breakdown/${companyIdentifier}`, {
+                params: breakdownParams
             });
             
             if (breakdownResponse.data.success) {
-                setRevenueBreakdown(breakdownResponse.data.data.revenue_breakdown || []);
+                setRevenueBreakdown(breakdownResponse.data.data || []);
             }
         } catch (err) {
             setError('Error loading company data');
@@ -247,10 +270,10 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                 <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 p-4 rounded-lg border border-purple-100 dark:border-purple-900">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Current Period</span>
+                                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Period</span>
                                     </div>
                                     <p className="text-xl font-bold text-purple-900 dark:text-purple-100">
-                                        {currentMonth && currentYear ? `${currentMonth} ${currentYear}` : 'N/A'}
+                                        {summary.period || 'All Time'}
                                     </p>
                                 </div>
                                 

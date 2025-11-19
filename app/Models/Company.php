@@ -70,6 +70,7 @@ class Company extends Model
         'subsegment',
         'source_data',
         'idwitels',
+        'target',
     ];
 
     /**
@@ -131,7 +132,24 @@ class Company extends Model
      */
     public function revenues(): HasMany
     {
-        return $this->hasMany(Revenue::class, 'nip_nas', 'nip_nas');
+        // The old `revenues` table has been removed. Keep a placeholder relation
+        // in case other parts reference it in the future. If the model/class
+        // doesn't exist this will be null-safe.
+        try {
+            return $this->hasMany(\App\Models\Revenue::class, 'nip_nas', 'nip_nas');
+        } catch (\Throwable $e) {
+            // If Revenue model/table no longer exists, return an empty relation-like object
+            return $this->hasMany(\App\Models\Group4::class, 'group3_id', 'nip_nas');
+        }
+    }
+
+    /**
+     * RELATION: Company has many Group1 (One-to-Many)
+     * Satu company punya multiple group1 revenue breakdown
+     */
+    public function group1s(): HasMany
+    {
+        return $this->hasMany(Group1::class, 'company_id', 'nip_nas');
     }
 
     /**
@@ -141,9 +159,14 @@ class Company extends Model
      */
     public function getRevenueByYear(int $year): float
     {
-        return $this->revenues()
-            ->where('tahun', $year)
-            ->sum('total_revenue');
+        // Sum realisasi from group4 filtered by year
+        return (float) \DB::table('group4')
+            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+            ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+            ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+            ->where('group1.company_id', $this->nip_nas)
+            ->where('group4.tahun', $year)
+            ->sum('group4.revenue_realisasi');
     }
 
     /**
@@ -153,10 +176,14 @@ class Company extends Model
      */
     public function getRevenueByMonth(int $year, int $month): float
     {
-        return $this->revenues()
-            ->where('tahun', $year)
-            ->where('bulan', $month)
-            ->sum('total_revenue');
+        return (float) \DB::table('group4')
+            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+            ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+            ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+            ->where('group1.company_id', $this->nip_nas)
+            ->where('group4.tahun', $year)
+            ->where('group4.bulan', $month)
+            ->sum('group4.revenue_realisasi');
     }
 
     /**
@@ -164,7 +191,12 @@ class Company extends Model
      */
     public function getTotalRevenueAttribute(): float
     {
-        return $this->revenues()->sum('total_revenue');
+        return (float) \DB::table('group4')
+            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+            ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+            ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+            ->where('group1.company_id', $this->nip_nas)
+            ->sum('group4.revenue_realisasi');
     }
 
     /**
