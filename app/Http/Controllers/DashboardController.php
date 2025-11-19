@@ -49,6 +49,9 @@ class DashboardController extends Controller
         // Get YTD flag from request
         $isYearToDate = $request->input('ytd', '0') === '1';
         
+        // Get region filter from request
+        $currentRegion = $request->input('region', 'ALL');
+        
         // Get available years and quartals from lini_waktu
         $availableYears = $this->getAvailableYears();
         $availableQuartals = $this->getAvailableQuartals($currentYear);
@@ -59,14 +62,14 @@ class DashboardController extends Controller
         // Get quartals to include based on YTD
         $quartalsToInclude = $this->getQuartalsForYTD($currentQuartal, $isYearToDate);
         
-        $revenueTarget = $this->getTotalRevenueTarget($currentYear, $quartalsToInclude);
-        $revenueActual = $this->getTotalRevenueActual($currentYear, $quartalsToInclude);
+        $revenueTarget = $this->getTotalRevenueTarget($currentYear, $quartalsToInclude, $currentRegion);
+        $revenueActual = $this->getTotalRevenueActual($currentYear, $quartalsToInclude, $currentRegion);
         
         return Inertia::render('PerformanceAm', [
             // Metrics untuk nav cards
             'amMetrics' => [
                 // Fungsi ini untuk mendapatkan total Account Manager yang terdaftar
-                'total_am' => $this->getTotalAM(),
+                'total_am' => $this->getTotalAM($currentRegion),
                 
                 // Fungsi ini untuk mendapatkan total revenue target dari semua AM
                 'revenue_target' => $revenueTarget,
@@ -95,20 +98,35 @@ class DashboardController extends Controller
             // Chart data - Region Distribution
             'regionDistribution' => $this->getRegionDistribution(),
             
+            // Table data - Regional Performance with Top 3 AM
+            'regionalPerformance' => $this->getRegionalPerformance($currentYear, $quartalsToInclude),
+            
             // Table data - List Account Manager
             'accountManagerList' => $this->getAccountManagerList(),
             
             'currentYear' => $currentYear,
             'currentQuartal' => $currentQuartal,
+            'currentRegion' => $currentRegion,
+            'currentYtd' => $isYearToDate,
         ]);
     }
 
     /**
      * Fungsi ini untuk mendapatkan total Account Manager yang terdaftar di database
+     * Bisa difilter berdasarkan region
      */
-    private function getTotalAM(): int
+    private function getTotalAM(?string $region = null): int
     {
-        return \DB::table('account_managers')->count();
+        $query = \DB::table('account_managers');
+        
+        // Filter by region if specified
+        if ($region && $region !== 'ALL') {
+            $query->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                ->join('regions', 'witels.region_id', '=', 'regions.id')
+                ->where('regions.code', $region);
+        }
+        
+        return $query->count();
     }
 
     /**
@@ -134,15 +152,24 @@ class DashboardController extends Controller
     }
 
     /**
-     * Fungsi ini untuk mendapatkan total revenue target dari semua AM berdasarkan tahun dan quartals (support YTD)
+     * Fungsi ini untuk mendapatkan total revenue target dari semua AM berdasarkan tahun, quartals (support YTD), dan region
      */
-    private function getTotalRevenueTarget(int $year, array $quartals): float
+    private function getTotalRevenueTarget(int $year, array $quartals, ?string $region = null): float
     {
         // Get all lini_waktu_ids for the selected year and quartals
-        $liniWaktuIds = \DB::table('lini_waktu')
+        $liniWaktuQuery = \DB::table('lini_waktu')
             ->where('tahun', $year)
-            ->whereIn('quartal', $quartals)
-            ->pluck('id');
+            ->whereIn('quartal', $quartals);
+        
+        // Filter by region if specified
+        if ($region && $region !== 'ALL') {
+            $liniWaktuQuery->join('account_managers', 'lini_waktu.nik_am', '=', 'account_managers.nik')
+                ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                ->join('regions', 'witels.region_id', '=', 'regions.id')
+                ->where('regions.code', $region);
+        }
+        
+        $liniWaktuIds = $liniWaktuQuery->pluck('lini_waktu.id');
         
         if ($liniWaktuIds->isEmpty()) {
             return 0;
@@ -946,6 +973,215 @@ class DashboardController extends Controller
                 $previousMonth
             )
         ]);
+    }
+
+    /**
+     * Fungsi untuk mendapatkan data regional performance dengan top 3 AM
+     * Growth untuk YTD dihitung dengan menjumlahkan growth dari setiap quartal
+     */
+    private function getRegionalPerformance(int $year, array $quartals): array
+    {
+        // Get all regions
+        $regions = \DB::table('regions')
+            ->select('id', 'code')
+            ->orderBy('code')
+            ->get();
+
+        $regionalData = [];
+
+        foreach ($regions as $region) {
+            // Get lini_waktu_ids for this period and region
+            $liniWaktuIds = \DB::table('lini_waktu')
+                ->join('account_managers', 'lini_waktu.nik_am', '=', 'account_managers.nik')
+                ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                ->where('lini_waktu.tahun', $year)
+                ->whereIn('lini_waktu.quartal', $quartals)
+                ->where('witels.region_id', $region->id)
+                ->pluck('lini_waktu.id');
+
+            if ($liniWaktuIds->isEmpty()) {
+                continue;
+            }
+
+            // Get total r_revenue for current period
+            $currentRevenue = \DB::table('lini_waktu_target')
+                ->whereIn('lini_waktu_id', $liniWaktuIds)
+                ->sum('r_revenue');
+
+            // Calculate growth - if YTD (multiple quartals), sum individual growth for each quartal
+            $growth = 0;
+            if (count($quartals) > 1) {
+                // YTD: Sum growth from each quartal
+                foreach ($quartals as $quartal) {
+                    $quarterGrowth = $this->calculateQuarterGrowth($year, $quartal, $region->id);
+                    $growth += $quarterGrowth;
+                }
+            } else {
+                // Single quartal: Calculate growth normally
+                $growth = $this->calculateQuarterGrowth($year, $quartals[0], $region->id);
+            }
+
+            // Get unique company count for this region in current period
+            $companyCount = \DB::table('lini_waktu_target')
+                ->join('target_account_m', 'lini_waktu_target.target_id', '=', 'target_account_m.id')
+                ->join('account_manager_company', 'target_account_m.account_manager_company_id', '=', 'account_manager_company.id')
+                ->whereIn('lini_waktu_target.lini_waktu_id', $liniWaktuIds)
+                ->distinct('account_manager_company.nip_nas')
+                ->count('account_manager_company.nip_nas');
+
+            // Get top 3 AM by r_revenue for this region
+            $topAMs = \DB::table('account_managers')
+                ->select(
+                    'account_managers.nik',
+                    'account_managers.nama as am_name',
+                    \DB::raw('COALESCE(SUM(lini_waktu_target.r_revenue), 0) as total_revenue')
+                )
+                ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                ->join('lini_waktu', 'account_managers.nik', '=', 'lini_waktu.nik_am')
+                ->join('lini_waktu_target', 'lini_waktu.id', '=', 'lini_waktu_target.lini_waktu_id')
+                ->where('witels.region_id', $region->id)
+                ->where('lini_waktu.tahun', $year)
+                ->whereIn('lini_waktu.quartal', $quartals)
+                ->groupBy('account_managers.nik', 'account_managers.nama')
+                ->orderBy('total_revenue', 'desc')
+                ->limit(3)
+                ->get();
+
+            // Get achievement (ach) for each top AM
+            $topAMsWithAch = $topAMs->map(function ($am) use ($year, $quartals) {
+                // Get lini_waktu_ids for this AM
+                $amLiniWaktuIds = \DB::table('lini_waktu')
+                    ->where('nik_am', $am->nik)
+                    ->where('tahun', $year)
+                    ->whereIn('quartal', $quartals)
+                    ->pluck('id');
+
+                // Get total t_revenue (target) and r_revenue (actual)
+                $revenueData = \DB::table('lini_waktu_target')
+                    ->join('target_account_m', 'lini_waktu_target.target_id', '=', 'target_account_m.id')
+                    ->whereIn('lini_waktu_target.lini_waktu_id', $amLiniWaktuIds)
+                    ->select(
+                        \DB::raw('SUM(target_account_m.t_revenue) as total_target'),
+                        \DB::raw('SUM(lini_waktu_target.r_revenue) as total_actual')
+                    )
+                    ->first();
+
+                $achievement = 0;
+                if ($revenueData && $revenueData->total_target > 0) {
+                    $achievement = ($revenueData->total_actual / $revenueData->total_target) * 100;
+                }
+
+                return [
+                    'nik' => $am->nik,
+                    'am_name' => $am->am_name,
+                    'revenue' => (float) $am->total_revenue,
+                    'formatted_revenue' => $this->formatCurrency($am->total_revenue, 2),
+                    'achievement' => round($achievement, 2),
+                    'formatted_achievement' => number_format($achievement, 2) . '%'
+                ];
+            });
+
+            $regionalData[] = [
+                'region_code' => $region->code,
+                'revenue' => (float) $currentRevenue,
+                'formatted_revenue' => $this->formatCurrency($currentRevenue, 2),
+                'growth' => round($growth, 2),
+                'formatted_growth' => number_format($growth, 2) . '%',
+                'company_count' => $companyCount,
+                'top_ams' => $topAMsWithAch->toArray()
+            ];
+        }
+
+        return $regionalData;
+    }
+
+    /**
+     * Helper function to get previous quartals for growth calculation
+     */
+    private function getPreviousQuartals(int $year, array $quartals): array
+    {
+        // Get the earliest quartal from the array
+        $firstQuartal = $quartals[0];
+        
+        $quartalMap = [
+            'Q1' => 'Q4',
+            'Q2' => 'Q1',
+            'Q3' => 'Q2',
+            'Q4' => 'Q3'
+        ];
+        
+        $previousQuartal = $quartalMap[$firstQuartal] ?? 'Q4';
+        $previousYear = $firstQuartal === 'Q1' ? $year - 1 : $year;
+        
+        // If current is YTD (multiple quartals), previous should be same range in previous year
+        if (count($quartals) > 1) {
+            return [
+                'year' => $year - 1,
+                'quartals' => $quartals
+            ];
+        }
+        
+        return [
+            'year' => $previousYear,
+            'quartals' => [$previousQuartal]
+        ];
+    }
+
+    /**
+     * Helper function to calculate growth for a single quarter
+     */
+    private function calculateQuarterGrowth(int $year, string $quartal, int $regionId): float
+    {
+        // Get current quarter revenue
+        $currentLiniWaktuIds = \DB::table('lini_waktu')
+            ->join('account_managers', 'lini_waktu.nik_am', '=', 'account_managers.nik')
+            ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+            ->where('lini_waktu.tahun', $year)
+            ->where('lini_waktu.quartal', $quartal)
+            ->where('witels.region_id', $regionId)
+            ->pluck('lini_waktu.id');
+
+        $currentRevenue = 0;
+        if ($currentLiniWaktuIds->isNotEmpty()) {
+            $currentRevenue = \DB::table('lini_waktu_target')
+                ->whereIn('lini_waktu_id', $currentLiniWaktuIds)
+                ->sum('r_revenue');
+        }
+
+        // Get previous quarter info
+        $quartalMap = [
+            'Q1' => ['quartal' => 'Q4', 'year_offset' => -1],
+            'Q2' => ['quartal' => 'Q1', 'year_offset' => 0],
+            'Q3' => ['quartal' => 'Q2', 'year_offset' => 0],
+            'Q4' => ['quartal' => 'Q3', 'year_offset' => 0]
+        ];
+
+        $previousInfo = $quartalMap[$quartal] ?? ['quartal' => 'Q4', 'year_offset' => -1];
+        $previousYear = $year + $previousInfo['year_offset'];
+        $previousQuartal = $previousInfo['quartal'];
+
+        // Get previous quarter revenue
+        $previousLiniWaktuIds = \DB::table('lini_waktu')
+            ->join('account_managers', 'lini_waktu.nik_am', '=', 'account_managers.nik')
+            ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+            ->where('lini_waktu.tahun', $previousYear)
+            ->where('lini_waktu.quartal', $previousQuartal)
+            ->where('witels.region_id', $regionId)
+            ->pluck('lini_waktu.id');
+
+        $previousRevenue = 0;
+        if ($previousLiniWaktuIds->isNotEmpty()) {
+            $previousRevenue = \DB::table('lini_waktu_target')
+                ->whereIn('lini_waktu_id', $previousLiniWaktuIds)
+                ->sum('r_revenue');
+        }
+
+        // Calculate growth percentage
+        if ($previousRevenue > 0) {
+            return (($currentRevenue - $previousRevenue) / $previousRevenue) * 100;
+        }
+
+        return 0;
     }
 
     private function formatCurrency(float $value, int $decimals = 1): string
