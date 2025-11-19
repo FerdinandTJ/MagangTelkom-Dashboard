@@ -439,6 +439,8 @@ export default function Dashboard({
                     isOpen={companyModalOpen}
                     onClose={() => setCompanyModalOpen(false)}
                     company={selectedCompany}
+                    currentMonth={currentMonthName}
+                    currentYear={currentYear}
                 />
 
                 <YtdComparisonModal
