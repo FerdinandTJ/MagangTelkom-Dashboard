@@ -29,12 +29,16 @@ interface CompanyDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     company: CompanyData | null;
+    currentMonth?: string;
+    currentYear?: number;
 }
 
 const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     isOpen,
     onClose,
-    company
+    company,
+    currentMonth,
+    currentYear
 }) => {
     const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
     const [yearlyData, setYearlyData] = useState<YearlyRevenue[]>([]);
@@ -243,9 +247,11 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                 <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 p-4 rounded-lg border border-purple-100 dark:border-purple-900">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Best Month</span>
+                                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Current Period</span>
                                     </div>
-                                    <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{summary.best_month || 'N/A'}</p>
+                                    <p className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                                        {currentMonth && currentYear ? `${currentMonth} ${currentYear}` : 'N/A'}
+                                    </p>
                                 </div>
                                 
                                 <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 p-4 rounded-lg border border-orange-100 dark:border-orange-900">
