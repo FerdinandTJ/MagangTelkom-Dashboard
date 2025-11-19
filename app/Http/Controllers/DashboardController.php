@@ -46,6 +46,9 @@ class DashboardController extends Controller
         // Get current quarter or from request
         $currentQuartal = $request->input('quartal', $this->getCurrentQuartal());
         
+        // Get YTD flag from request
+        $isYearToDate = $request->input('ytd', '0') === '1';
+        
         // Get available years and quartals from lini_waktu
         $availableYears = $this->getAvailableYears();
         $availableQuartals = $this->getAvailableQuartals($currentYear);
@@ -53,8 +56,11 @@ class DashboardController extends Controller
         // Get current period details (bulan_awal, bulan_akhir)
         $periodDetails = $this->getPeriodDetails($currentYear, $currentQuartal);
         
-        $revenueTarget = $this->getTotalRevenueTarget($currentYear, $currentQuartal);
-        $revenueActual = $this->getTotalRevenueActual($currentYear, $currentQuartal);
+        // Get quartals to include based on YTD
+        $quartalsToInclude = $this->getQuartalsForYTD($currentQuartal, $isYearToDate);
+        
+        $revenueTarget = $this->getTotalRevenueTarget($currentYear, $quartalsToInclude);
+        $revenueActual = $this->getTotalRevenueActual($currentYear, $quartalsToInclude);
         
         return Inertia::render('PerformanceAm', [
             // Metrics untuk nav cards
@@ -84,7 +90,7 @@ class DashboardController extends Controller
             'availableQuartals' => $availableQuartals,
             
             // Chart data - Target Revenue AM Ranking
-            'amRevenueRanking' => $this->getAMRevenueRanking($currentYear, $currentQuartal),
+            'amRevenueRanking' => $this->getAMRevenueRanking($currentYear, $quartalsToInclude),
             
             // Chart data - Region Distribution
             'regionDistribution' => $this->getRegionDistribution(),
@@ -106,14 +112,36 @@ class DashboardController extends Controller
     }
 
     /**
-     * Fungsi ini untuk mendapatkan total revenue target dari semua AM berdasarkan tahun dan quartal
+     * Fungsi ini untuk mendapatkan list quartals berdasarkan YTD
+     * Jika YTD true, return Q1 sampai quartal yang dipilih
+     * Jika YTD false, return hanya quartal yang dipilih
      */
-    private function getTotalRevenueTarget(int $year, string $quartal): float
+    private function getQuartalsForYTD(string $currentQuartal, bool $isYearToDate): array
     {
-        // Get all lini_waktu_ids for the selected year and quartal
+        if (!$isYearToDate) {
+            return [$currentQuartal];
+        }
+        
+        // Map quartals untuk YTD
+        $quartalMap = [
+            'Q1' => ['Q1'],
+            'Q2' => ['Q1', 'Q2'],
+            'Q3' => ['Q1', 'Q2', 'Q3'],
+            'Q4' => ['Q1', 'Q2', 'Q3', 'Q4'],
+        ];
+        
+        return $quartalMap[$currentQuartal] ?? [$currentQuartal];
+    }
+
+    /**
+     * Fungsi ini untuk mendapatkan total revenue target dari semua AM berdasarkan tahun dan quartals (support YTD)
+     */
+    private function getTotalRevenueTarget(int $year, array $quartals): float
+    {
+        // Get all lini_waktu_ids for the selected year and quartals
         $liniWaktuIds = \DB::table('lini_waktu')
             ->where('tahun', $year)
-            ->where('quartal', $quartal)
+            ->whereIn('quartal', $quartals)
             ->pluck('id');
         
         if ($liniWaktuIds->isEmpty()) {
@@ -130,14 +158,14 @@ class DashboardController extends Controller
     }
 
     /**
-     * Fungsi ini untuk mendapatkan total revenue actual dari semua AM berdasarkan tahun, quartal, dan region
+     * Fungsi ini untuk mendapatkan total revenue actual dari semua AM berdasarkan tahun, quartals (support YTD), dan region
      */
-    private function getTotalRevenueActual(int $year, string $quartal, ?string $region = null): float
+    private function getTotalRevenueActual(int $year, array $quartals, ?string $region = null): float
     {
-        // Get all lini_waktu_ids for the selected year and quartal
+        // Get all lini_waktu_ids for the selected year and quartals
         $liniWaktuQuery = \DB::table('lini_waktu')
             ->where('tahun', $year)
-            ->where('quartal', $quartal);
+            ->whereIn('quartal', $quartals);
         
         // Filter by region if specified
         if ($region && $region !== 'ALL') {
@@ -231,13 +259,13 @@ class DashboardController extends Controller
 
     /**
      * Fungsi ini untuk mendapatkan data ranking revenue target per Account Manager
-     * Target revenue diambil berdasarkan filter tahun dan quartal yang dipilih
-     * Flow: account_managers -> lini_waktu (filter tahun & quartal) -> lini_waktu_target -> target_account_m (t_revenue)
+     * Target revenue diambil berdasarkan filter tahun dan quartals (support YTD) yang dipilih
+     * Flow: account_managers -> lini_waktu (filter tahun & quartals) -> lini_waktu_target -> target_account_m (t_revenue)
      * Data diurutkan berdasarkan t_revenue tertinggi
      */
-    private function getAMRevenueRanking(int $year, string $quartal): array
+    private function getAMRevenueRanking(int $year, array $quartals): array
     {
-        // Get all Account Managers with their target revenue filtered by year and quartal
+        // Get all Account Managers with their target revenue filtered by year and quartals
         // Include region_code untuk filter dropdown
         $rankingData = \DB::table('account_managers')
             ->select(
@@ -248,10 +276,10 @@ class DashboardController extends Controller
             )
             ->leftJoin('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
             ->leftJoin('regions', 'witels.region_id', '=', 'regions.id')
-            ->leftJoin('lini_waktu', function($join) use ($year, $quartal) {
+            ->leftJoin('lini_waktu', function($join) use ($year, $quartals) {
                 $join->on('account_managers.nik', '=', 'lini_waktu.nik_am')
                      ->where('lini_waktu.tahun', '=', $year)
-                     ->where('lini_waktu.quartal', '=', $quartal);
+                     ->whereIn('lini_waktu.quartal', $quartals);
             })
             ->leftJoin('lini_waktu_target', 'lini_waktu.id', '=', 'lini_waktu_target.lini_waktu_id')
             ->leftJoin('target_account_m', 'lini_waktu_target.target_id', '=', 'target_account_m.id')
@@ -711,6 +739,10 @@ class DashboardController extends Controller
         $amNik = $request->input('am_nik');
         $year = $request->input('year');
         $quartal = $request->input('quartal');
+        $isYearToDate = $request->input('ytd', '0') === '1';
+
+        // Get quartals to include based on YTD setting
+        $quartalsToInclude = $this->getQuartalsForYTD($quartal, $isYearToDate);
 
         // Get AM basic info with witel and region
         $accountManager = \DB::table('account_managers')
@@ -734,14 +766,19 @@ class DashboardController extends Controller
             ], 404);
         }
 
-        // Get lini_waktu for this AM, year, and quarter
-        $liniWaktu = \DB::table('lini_waktu')
+        // Get lini_waktu for this AM, year, and quartals (support YTD)
+        $liniWaktuIds = \DB::table('lini_waktu')
             ->where('nik_am', $amNik)
             ->where('tahun', $year)
-            ->where('quartal', $quartal)
-            ->first();
+            ->whereIn('quartal', $quartalsToInclude)
+            ->pluck('id');
 
-        if (!$liniWaktu) {
+        if ($liniWaktuIds->isEmpty()) {
+            // Build period display
+            $periodDisplay = $isYearToDate && $quartal !== 'Q1' 
+                ? "{$year} - Q1 - {$quartal} (YTD)" 
+                : "{$year} - {$quartal}";
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -756,36 +793,37 @@ class DashboardController extends Controller
                     'total_companies' => 0,
                     'year' => $year,
                     'quartal' => $quartal,
-                    'period_display' => "{$year} - {$quartal}",
+                    'period_display' => $periodDisplay,
                     'region_distribution' => [],
                     'companies' => []
                 ]
             ]);
         }
 
-        // Get all targets for this AM in this period via lini_waktu_target
+        // Get all targets for this AM in these periods via lini_waktu_target
         $targets = \DB::table('lini_waktu_target as lwt')
             ->join('target_account_m as t', 'lwt.target_id', '=', 't.id')
             ->join('account_manager_company as amc', 't.account_manager_company_id', '=', 'amc.id')
             ->join('companies as c', 'amc.nip_nas', '=', 'c.nip_nas')
             ->leftJoin('witels as w', 'c.idwitels', '=', 'w.idwitels')
             ->leftJoin('regions as r', 'w.region_id', '=', 'r.id')
-            ->where('lwt.lini_waktu_id', $liniWaktu->id)
+            ->whereIn('lwt.lini_waktu_id', $liniWaktuIds)
             ->where('amc.nik_am', $amNik)
             ->select(
                 'c.nip_nas',
                 'c.nama_perusahaan',
                 'c.subsegment',
                 'w.nama_witels',
-                't.t_revenue',
+                \DB::raw('SUM(t.t_revenue) as t_revenue'),
                 'w.idwitels',
                 'r.code as region_code',
                 'amc.pembagian',
                 'amc.proporsi',
-                't.t_sustain',
-                't.t_scalling',
-                't.t_ngtma'
+                \DB::raw('SUM(t.t_sustain) as t_sustain'),
+                \DB::raw('SUM(t.t_scalling) as t_scalling'),
+                \DB::raw('SUM(t.t_ngtma) as t_ngtma')
             )
+            ->groupBy('c.nip_nas', 'c.nama_perusahaan', 'c.subsegment', 'w.nama_witels', 'w.idwitels', 'r.code', 'amc.pembagian', 'amc.proporsi')
             ->get();
 
         // Calculate total target revenue
@@ -822,6 +860,11 @@ class DashboardController extends Controller
             ];
         });
 
+        // Build period display
+        $periodDisplay = $isYearToDate && $quartal !== 'Q1' 
+            ? "{$year} - Q1 - {$quartal} (YTD)" 
+            : "{$year} - {$quartal}";
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -836,7 +879,7 @@ class DashboardController extends Controller
                 'total_companies' => $targets->count(),
                 'year' => $year,
                 'quartal' => $quartal,
-                'period_display' => "{$year} - {$quartal}",
+                'period_display' => $periodDisplay,
                 'region_distribution' => $regionGroups,
                 'companies' => $companiesData
             ]

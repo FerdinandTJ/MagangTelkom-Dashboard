@@ -67,6 +67,7 @@ export default function PerformanceAM({
     const [selectedRegion, setSelectedRegion] = useState<string>('ALL');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAMNik, setSelectedAMNik] = useState<string | null>(null);
+    const [isYearToDate, setIsYearToDate] = useState(false);
 
     // Get unique regions dari amRevenueRanking
     const availableRegions = ['ALL', ...Array.from(new Set(amRevenueRanking.map(am => am.region_code)))].filter(Boolean);
@@ -109,7 +110,7 @@ export default function PerformanceAM({
     // Fungsi untuk handle perubahan filter tahun
     const handleYearChange = (year: string) => {
         setSelectedYear(parseInt(year));
-        router.get('/performance-am', { year: year, quartal: selectedQuartal }, {
+        router.get('/performance-am', { year: year, quartal: selectedQuartal, ytd: isYearToDate ? '1' : '0' }, {
             preserveState: true,
             preserveScroll: true
         });
@@ -118,7 +119,16 @@ export default function PerformanceAM({
     // Fungsi untuk handle perubahan filter quartal
     const handleQuartalChange = (quartal: string) => {
         setSelectedQuartal(quartal);
-        router.get('/performance-am', { year: selectedYear, quartal: quartal }, {
+        router.get('/performance-am', { year: selectedYear, quartal: quartal, ytd: isYearToDate ? '1' : '0' }, {
+            preserveState: true,
+            preserveScroll: true
+        });
+    };
+
+    // Fungsi untuk handle perubahan YTD checkbox
+    const handleYTDChange = (checked: boolean) => {
+        setIsYearToDate(checked);
+        router.get('/performance-am', { year: selectedYear, quartal: selectedQuartal, ytd: checked ? '1' : '0' }, {
             preserveState: true,
             preserveScroll: true
         });
@@ -224,7 +234,7 @@ export default function PerformanceAM({
                                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Period</p>
                                     <div className="flex gap-2 mt-2">
                                         <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
-                                            <SelectTrigger className="w-full bg-white">
+                                            <SelectTrigger className="w-full bg-white dark:bg-gray-800">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -236,7 +246,7 @@ export default function PerformanceAM({
                                             </SelectContent>
                                         </Select>
                                         <Select value={selectedQuartal} onValueChange={handleQuartalChange}>
-                                            <SelectTrigger className="w-full bg-white">
+                                            <SelectTrigger className="w-full bg-white dark:bg-gray-800">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -248,7 +258,24 @@ export default function PerformanceAM({
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{formatMonthRange()}</p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <input
+                                            type="checkbox"
+                                            id="ytd-checkbox"
+                                            checked={isYearToDate}
+                                            onChange={(e) => handleYTDChange(e.target.checked)}
+                                            className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                                        />
+                                        <label htmlFor="ytd-checkbox" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                                            Year to Date
+                                        </label>
+                                    </div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        {isYearToDate && selectedQuartal !== 'Q1' 
+                                            ? `Q1 - ${selectedQuartal} (YTD)` 
+                                            : formatMonthRange()
+                                        }
+                                    </p>
                                 </div>
                                 <div className="flex-shrink-0 ml-4">
                                     <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
@@ -411,7 +438,7 @@ export default function PerformanceAM({
                                                 </text>
                                             );
                                         }}
-                                        outerRadius={80}
+                                        outerRadius={100}
                                         fill="#8884d8"
                                         dataKey="am_count"
                                         className="cursor-pointer"
@@ -525,6 +552,7 @@ export default function PerformanceAM({
                     amNik={selectedAMNik}
                     year={selectedYear}
                     quartal={selectedQuartal}
+                    isYearToDate={isYearToDate}
                 />
             </div>
         </AppSidebarLayout>

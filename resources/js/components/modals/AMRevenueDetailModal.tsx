@@ -60,6 +60,7 @@ interface AMRevenueDetailModalProps {
     amNik: string | null;
     year: number;
     quartal: string;
+    isYearToDate?: boolean;
 }
 
 const COLORS = ['#8b5cf6', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#ec4899', '#6366f1'];
@@ -69,7 +70,8 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
     onClose,
     amNik,
     year,
-    quartal
+    quartal,
+    isYearToDate = false
 }) => {
     const [data, setData] = useState<AMRevenueDetailData | null>(null);
     const [loading, setLoading] = useState(false);
@@ -98,7 +100,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
         if (isOpen && amNik) {
             fetchAMDetails();
         }
-    }, [isOpen, amNik, year, quartal]);
+    }, [isOpen, amNik, year, quartal, isYearToDate]);
 
     const fetchAMDetails = async () => {
         if (!amNik) return;
@@ -111,7 +113,8 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                 params: {
                     am_nik: amNik,
                     year: year,
-                    quartal: quartal
+                    quartal: quartal,
+                    ytd: isYearToDate ? '1' : '0'
                 }
             });
             
@@ -249,7 +252,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                 <div className="p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Target Revenue</p>
+                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Target Revenue AM</p>
                                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                                                 {data.formatted_total_revenue}
                                             </p>
@@ -269,7 +272,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                 <div className="p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total Companies</p>
+                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total Companies Handled</p>
                                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                                                 {data.total_companies}
                                             </p>
@@ -290,9 +293,20 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Period</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                                                {data.period_display}
-                                            </p>
+                                            {isYearToDate && quartal !== 'Q1' ? (
+                                                <div className="mb-1">
+                                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+                                                        {year}
+                                                    </p>
+                                                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                                                        Q1 - {quartal} (YTD)
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                                                    {data.period_display}
+                                                </p>
+                                            )}
                                             <p className="text-sm text-gray-500 dark:text-gray-400">Periode aktif</p>
                                         </div>
                                         <div className="flex-shrink-0 ml-4">
@@ -514,7 +528,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                                         <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs">{company.nama_witels}</p>
                                                                     </div>
                                                                     <div className="text-center">
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Revenue</p>
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target AM</p>
                                                                         <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{company.formatted_revenue}</p>
                                                                     </div>
                                                                     <div className="text-center">
