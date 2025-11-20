@@ -63,6 +63,7 @@ class Company extends Model
      * 
      * PERUBAHAN: Hapus 'status', 'primary_region_id', 'primary_witel_id'
      * TAMBAH: idwitels (FK to witels)
+     * UPDATE: Hapus 'target' (pindah ke group4.revenue_target)
      */
     protected $fillable = [
         'nip_nas',
@@ -70,7 +71,6 @@ class Company extends Model
         'subsegment',
         'source_data',
         'idwitels',
-        'target',
     ];
 
     /**

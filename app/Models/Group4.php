@@ -13,6 +13,7 @@ class Group4 extends Model
     protected $fillable = [
         'nama_group4',
         'revenue_realisasi',
+        'revenue_target',
         'tahun',
         'bulan',
         'group3_id',
@@ -20,6 +21,7 @@ class Group4 extends Model
 
     protected $casts = [
         'revenue_realisasi' => 'decimal:2',
+        'revenue_target' => 'decimal:2',
         'tahun' => 'integer',
         'bulan' => 'integer',
     ];

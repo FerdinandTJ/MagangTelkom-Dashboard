@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\RevenueAnalyticsService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -407,13 +408,35 @@ class DashboardController extends Controller
             10 => 'Oktober', 11 => 'November', 12 => 'Desember'
         ];
 
+        // Get monthly summary (revenue, target, companies)
+        $monthlySummary = DB::table('group4')
+            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+            ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+            ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+            ->where('group4.tahun', $year)
+            ->where('group4.bulan', $month)
+            ->selectRaw('
+                SUM(group4.revenue_realisasi) as total_revenue,
+                SUM(group4.revenue_target) as total_target,
+                COUNT(DISTINCT group1.company_id) as total_companies
+            ')
+            ->first();
+
         return response()->json([
             'success' => true,
             'data' => [
                 'subsegments' => $this->analyticsService->getSubsegmentRevenue($year, $month),
                 'month_name' => $monthNames[$month],
                 'month' => $month,
-                'year' => $year
+                'year' => $year,
+                'total_revenue' => (float) $monthlySummary->total_revenue,
+                'total_target' => (float) $monthlySummary->total_target,
+                'total_companies' => (int) $monthlySummary->total_companies,
+                'formatted_total_revenue' => 'Rp ' . number_format($monthlySummary->total_revenue, 0, ',', '.'),
+                'formatted_total_target' => 'Rp ' . number_format($monthlySummary->total_target, 0, ',', '.'),
+                'achievement_percentage' => $monthlySummary->total_target > 0 
+                    ? round(($monthlySummary->total_revenue / $monthlySummary->total_target) * 100, 1) 
+                    : 0
             ]
         ]);
     }
@@ -940,7 +963,7 @@ class DashboardController extends Controller
      */
     public function getAvailablePeriods()
     {
-        $periods = \DB::table('revenues')
+        $periods = DB::table('group4')
             ->select('tahun', 'bulan')
             ->distinct()
             ->orderBy('tahun', 'desc')

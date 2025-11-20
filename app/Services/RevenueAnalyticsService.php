@@ -59,18 +59,14 @@ class RevenueAnalyticsService
      */
     public function getMonthlyRevenue(int $year): array
     {
-        // Get monthly revenue from group4 (actual revenue) and target from companies table
+        // Get monthly revenue and target from group4
         $monthlyData = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
-            ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
-            ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
             ->where('group4.tahun', $year)
             ->select(
                 'group4.bulan',
                 DB::raw('SUM(group4.revenue_realisasi) as total_revenue'),
-                DB::raw('SUM(companies.target) as target_revenue'),
-                DB::raw('COUNT(DISTINCT group1.company_id) as total_companies')
+                DB::raw('SUM(group4.revenue_target) as target_revenue'),
+                DB::raw('COUNT(DISTINCT group4.group3_id) as total_entries')
             )
             ->groupBy('group4.bulan')
             ->orderBy('group4.bulan')
@@ -104,7 +100,7 @@ class RevenueAnalyticsService
                 'bulan_name' => $this->getMonthName($month),
                 'total_revenue' => $actualRevenue,
                 'target_revenue' => $targetRevenue,
-                'total_companies' => $data ? $data->total_companies : 0,
+                'total_companies' => $data ? $data->total_entries : 0,
                 'formatted_revenue' => $data ? 'Rp ' . number_format($data->total_revenue, 0, ',', '.') : 'Rp 0',
                 'formatted_target' => 'Rp ' . number_format($targetRevenue, 0, ',', '.'),
                 'achievement_percentage' => $targetRevenue > 0 ? round(($actualRevenue / $targetRevenue) * 100, 1) : 0
@@ -405,22 +401,33 @@ class RevenueAnalyticsService
         $totalCompanies = Company::count();
         $activeSubsegments = Company::distinct('subsegment')->count('subsegment');
         
+        // Current month always uses actual current date (not affected by year filter)
         $currentMonth = date('n');
+        $currentYear = date('Y');
+        
         $currentMonthRevenue = DB::table('group4')
             ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->where('group4.tahun', $year)
+            ->where('group4.tahun', $currentYear)
             ->where('group4.bulan', $currentMonth)
             ->sum('group4.revenue_realisasi');
+
+        $currentMonthTarget = DB::table('group4')
+            ->where('group4.tahun', $currentYear)
+            ->where('group4.bulan', $currentMonth)
+            ->sum('group4.revenue_target');
 
         return [
             'total_revenue' => (float) $totalRevenue,
             'total_companies' => $totalCompanies,
             'active_subsegments' => $activeSubsegments,
             'current_month_revenue' => (float) $currentMonthRevenue,
+            'current_month_target' => (float) $currentMonthTarget,
             'formatted_total_revenue' => $this->formatCurrency($totalRevenue),
             'formatted_current_month_revenue' => $this->formatCurrency($currentMonthRevenue),
+            'formatted_current_month_target' => $this->formatCurrency($currentMonthTarget),
+            'current_month_achievement' => $currentMonthTarget > 0 ? round(($currentMonthRevenue / $currentMonthTarget) * 100, 1) : 0,
             'avg_revenue_per_company' => $totalCompanies > 0 ? (float) ($totalRevenue / $totalCompanies) : 0
         ];
     }

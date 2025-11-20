@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import SubsegmentPieChart from '@/components/charts/SubsegmentPieChart';
-import { Loader2, Calendar, TrendingUp, Building2 } from 'lucide-react';
+import { Loader2, Calendar, TrendingUp, Building2, Target } from 'lucide-react';
 import { SubsegmentData, MonthData } from '@/types/dashboard';
 import axios from '@/lib/axios';
 
@@ -20,6 +20,19 @@ interface MonthDetailModalProps {
     onSubsegmentClick?: (subsegment: string) => void;
 }
 
+interface MonthDetailsResponse {
+    subsegments: SubsegmentData[];
+    month_name: string;
+    month: number;
+    year: number;
+    total_revenue: number;
+    total_target: number;
+    total_companies: number;
+    formatted_total_revenue: string;
+    formatted_total_target: string;
+    achievement_percentage: number;
+}
+
 const MonthDetailModal: React.FC<MonthDetailModalProps> = ({
     isOpen,
     onClose,
@@ -28,6 +41,7 @@ const MonthDetailModal: React.FC<MonthDetailModalProps> = ({
     onSubsegmentClick
 }) => {
     const [subsegments, setSubsegments] = useState<SubsegmentData[]>([]);
+    const [monthDetails, setMonthDetails] = useState<MonthDetailsResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +67,7 @@ const MonthDetailModal: React.FC<MonthDetailModalProps> = ({
             
             if (response.data.success) {
                 setSubsegments(response.data.data.subsegments);
+                setMonthDetails(response.data.data);
             } else {
                 setError('Failed to fetch subsegment details');
             }
@@ -92,27 +107,33 @@ const MonthDetailModal: React.FC<MonthDetailModalProps> = ({
                             <TrendingUp className="h-5 w-5 text-red-600 dark:text-red-400" />
                             <span className="text-sm font-medium text-red-700 dark:text-red-300">Total Revenue</span>
                         </div>
-                        <p className="text-2xl font-bold text-red-900 dark:text-red-100">{monthData.formatted_revenue}</p>
+                        <p className="text-2xl font-bold text-red-900 dark:text-red-100">
+                            {monthDetails?.formatted_total_revenue || monthData.formatted_revenue}
+                        </p>
                     </div>
                     
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
                         <div className="flex items-center gap-2 mb-2">
-                            <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Active Companies</span>
+                            <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Target</span>
                         </div>
-                        <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{monthData.total_companies}</p>
+                        <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                            {monthDetails?.formatted_total_target || 'Loading...'}
+                        </p>
+                        {monthDetails?.achievement_percentage !== undefined && (
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                {monthDetails.achievement_percentage}% achieved
+                            </p>
+                        )}
                     </div>
                     
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-100 dark:border-green-900">
                         <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                            <span className="text-sm font-medium text-green-700 dark:text-green-300">Avg per Company</span>
+                            <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            <span className="text-sm font-medium text-green-700 dark:text-green-300">Total Companies</span>
                         </div>
                         <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                            {monthData.total_companies > 0 
-                                ? `Rp ${(monthData.total_revenue / monthData.total_companies / 1000000000).toFixed(1)}M`
-                                : 'Rp 0'
-                            }
+                            {monthDetails?.total_companies || monthData.total_companies}
                         </p>
                     </div>
                 </div>

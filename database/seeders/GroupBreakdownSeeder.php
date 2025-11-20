@@ -27,8 +27,8 @@ class GroupBreakdownSeeder extends Seeder
 
         $this->command->info('🔄 Creating revenue breakdown hierarchy for ' . $companies->count() . ' companies...');
 
-        // Helper to create hierarchy
-        $makeLeaf = function ($company, $g1Name, $g2Name, $g3Name, $g4Name, $rev, $tahun, $bulan) {
+        // Helper to create hierarchy with target
+        $makeLeaf = function ($company, $g1Name, $g2Name, $g3Name, $g4Name, $rev, $target, $tahun, $bulan) {
             $g1 = Group1::firstOrCreate([
                 'company_id' => $company->nip_nas,
                 'nama_group1' => $g1Name
@@ -48,10 +48,20 @@ class GroupBreakdownSeeder extends Seeder
                 'group3_id' => $g3->idGroup3,
                 'nama_group4' => $g4Name,
                 'revenue_realisasi' => $rev,
+                'revenue_target' => $target,
                 'tahun' => $tahun,
                 'bulan' => $bulan,
             ]);
         };
+
+        // Define company yearly targets based on subsegment
+        $subsegmentTargets = [
+            'PTN' => 1500000000,      // Rp 1.5 Miliar
+            'PTS' => 500000000,       // Rp 500 Juta
+            'Hospital' => 700000000,  // Rp 700 Juta
+            'Airport' => 2000000000,  // Rp 2 Miliar
+            'Media' => 2500000000,    // Rp 2.5 Miliar
+        ];
 
         // Define revenue breakdown structure (base values will be scaled per company)
         $revenueStructure = [
@@ -72,17 +82,14 @@ class GroupBreakdownSeeder extends Seeder
 
         // Loop through each company and create revenue breakdown
         foreach ($companies as $company) {
-            // Use company's target to calculate reasonable breakdown values
-            $yearlyTarget = $company->target ?? 1000000000;
+            // Get target based on company subsegment
+            $yearlyTarget = $subsegmentTargets[$company->subsegment] ?? 1000000000;
             
-            // Calculate monthly target (distribute target across 12 months)
-            // We want yearly total to be around 80-95% of target (realistic achievement)
-            $achievementRate = 0.85 + (rand(0, 10) / 100); // 85-95% achievement
-            $monthlyTarget = ($yearlyTarget * $achievementRate) / 12;
+            // Calculate monthly base target (without seasonal adjustment)
+            $monthlyBaseTarget = $yearlyTarget / 12;
             
             // Calculate base value for breakdown items
             $totalBaseValue = array_sum(array_column($revenueStructure, 4));
-            $scaleFactor = $monthlyTarget / $totalBaseValue;
             
             // Generate data for 2023 (full year), 2024 (full year), 2025 (Jan - Nov)
             $periods = [
@@ -111,11 +118,15 @@ class GroupBreakdownSeeder extends Seeder
                         $seasonalFactor = 1.05 + (rand(0, 20) / 100); // Q4: 105-125%
                     }
                     
+                    // Calculate monthly target with seasonal adjustment
+                    $monthlyTargetWithSeason = $monthlyBaseTarget * $seasonalFactor;
+                    $targetScaleFactor = $monthlyTargetWithSeason / $totalBaseValue;
+                    
+                    // Calculate monthly revenue (actual achievement)
+                    $revenueScaleFactor = $monthlyTargetWithSeason * $yearAchievement / $totalBaseValue;
+                    
                     // Add small random noise (±5%) for realism
                     $randomNoise = 1 + (rand(-5, 5) / 100);
-                    
-                    // Calculate final monthly factor
-                    $monthlyFactor = $yearAchievement * $seasonalFactor * $randomNoise;
                     
                     foreach ($revenueStructure as $item) {
                         [$g1Name, $g2Name, $g3Name, $g4Name, $baseValue] = $item;
@@ -123,8 +134,11 @@ class GroupBreakdownSeeder extends Seeder
                         // Add variation per product line (some products perform better than others)
                         $productVariation = 1 + (rand(-15, 15) / 100);
                         
-                        $revenue = $baseValue * $scaleFactor * $monthlyFactor * $productVariation;
-                        $makeLeaf($company, $g1Name, $g2Name, $g3Name, $g4Name, $revenue, $tahun, $bulan);
+                        // Calculate target and revenue for this product line
+                        $target = $baseValue * $targetScaleFactor * (1 + (rand(-5, 5) / 100));
+                        $revenue = $baseValue * $revenueScaleFactor * $productVariation * $randomNoise;
+                        
+                        $makeLeaf($company, $g1Name, $g2Name, $g3Name, $g4Name, $revenue, $target, $tahun, $bulan);
                     }
                 }
             }
