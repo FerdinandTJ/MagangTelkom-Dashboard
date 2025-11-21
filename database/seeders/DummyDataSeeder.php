@@ -96,61 +96,11 @@ class DummyDataSeeder extends Seeder
             $this->command->info('⚠️  AM-Company assignments already exist, skipped.');
         }
 
-        // 3. INSERT REVENUES DATA (2024 & 2025) - if empty
-        // NOTE: Revenue stored in full Rupiah (decimal 16,2)
-        if (DB::table('revenues')->count() == 0) {
-            $revenues = [];
-            $companyRevenues = [
-            'NIP001' => [2024 => 5000000000, 2025 => 5500000000],  // 5-5.5 Billion Rp
-            'NIP002' => [2024 => 3500000000, 2025 => 4000000000],  // 3.5-4 Billion Rp
-            'NIP003' => [2024 => 8000000000, 2025 => 9000000000],  // 8-9 Billion Rp
-            'NIP004' => [2024 => 12000000000, 2025 => 13000000000], // 12-13 Billion Rp
-            'NIP005' => [2024 => 7000000000, 2025 => 7500000000],  // 7-7.5 Billion Rp
-            'NIP006' => [2024 => 4000000000, 2025 => 4500000000],  // 4-4.5 Billion Rp
-            'NIP007' => [2024 => 9000000000, 2025 => 9500000000],  // 9-9.5 Billion Rp
-            'NIP008' => [2024 => 6500000000, 2025 => 7000000000],  // 6.5-7 Billion Rp
-            'NIP009' => [2024 => 10000000000, 2025 => 11000000000], // 10-11 Billion Rp
-            'NIP010' => [2024 => 3800000000, 2025 => 4200000000],  // 3.8-4.2 Billion Rp
-            'NIP011' => [2024 => 2500000000, 2025 => 2800000000],  // 2.5-2.8 Billion Rp
-            'NIP012' => [2024 => 2200000000, 2025 => 2500000000],  // 2.2-2.5 Billion Rp
-            'NIP013' => [2024 => 15000000000, 2025 => 16000000000], // 15-16 Billion Rp
-            'NIP014' => [2024 => 14000000000, 2025 => 15000000000], // 14-15 Billion Rp
-            'NIP015' => [2024 => 11000000000, 2025 => 12000000000], // 11-12 Billion Rp
-        ];
-
-        foreach ($companyRevenues as $nipNas => $yearData) {
-            foreach ($yearData as $year => $baseRevenue) {
-                // Generate monthly data with slight variations
-                for ($month = 1; $month <= 12; $month++) {
-                    // Only generate up to current month for 2025
-                    if ($year == 2025 && $month > 12) break;
-                    
-                    // Add 5-15% variation per month
-                    $variation = rand(95, 115) / 100;
-                    $monthlyRevenue = ($baseRevenue / 12) * $variation;
-                    
-                    $revenues[] = [
-                        'nip_nas' => $nipNas,
-                        'tahun' => $year,
-                        'bulan' => $month,
-                        'total_revenue' => round($monthlyRevenue, 2),
-                        'target' => round($baseRevenue / 12, 2),
-                        'note' => null,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-            }
-        }
-
-            // Batch insert revenues
-            foreach (array_chunk($revenues, 100) as $chunk) {
-                DB::table('revenues')->insert($chunk);
-            }
-            $this->command->info('✅ Revenues inserted: ' . count($revenues) . ' revenue records');
-        } else {
-            $this->command->info('⚠️  Revenues already exist, skipped.');
-        }
+        // 3. INSERT GROUP1-4 HIERARCHY (Revenue Breakdown Structure)
+        // NOTE: Revenue realisasi now stored in group4 (leaf nodes), not in revenues table
+        // This will create hierarchical breakdown: Companies -> Group1 -> Group2 -> Group3 -> Group4
+        $this->command->info('🔄 Seeding Group1-4 hierarchical revenue breakdown...');
+        $this->call(GroupBreakdownSeeder::class);
 
         // 4. INSERT LINI WAKTU (Quarterly periods for 2024-2025)
         $liniWaktu = [];

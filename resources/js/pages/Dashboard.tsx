@@ -28,8 +28,11 @@ interface DashboardProps {
         total_companies: number;
         active_subsegments: number;
         current_month_revenue: number;
+        current_month_target: number;
         formatted_total_revenue: string;
         formatted_current_month_revenue: string;
+        formatted_current_month_target: string;
+        current_month_achievement: number;
         avg_revenue_per_company: number;
     };
     yearlyRevenue: Array<{
@@ -103,8 +106,9 @@ export default function Dashboard({
     const [monthlySortOrder, setMonthlySortOrder] = useState<'chronological' | 'asc' | 'desc'>('chronological');
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
     
-    // Get current month name
+    // Get current month name and year (always actual current date)
     const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long' });
+    const actualCurrentYear = new Date().getFullYear();
     
     // Get available years from yearlyRevenue data
     const availableYears = useMemo(() => {
@@ -187,7 +191,8 @@ export default function Dashboard({
                     <StatCard
                         title="Current Month"
                         value={dashboardSummary.formatted_current_month_revenue}
-                        subtitle={`${currentMonthName} ${currentYear}`}
+                        subtitle={`${currentMonthName} ${actualCurrentYear}`}
+                        tooltip={formatCurrencyFull(dashboardSummary.current_month_revenue)}
                         icon={
                             <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -441,6 +446,8 @@ export default function Dashboard({
                     company={selectedCompany}
                     currentMonth={currentMonthName}
                     currentYear={currentYear}
+                    year={selectedYear}
+                    month={selectedMonth?.bulan}
                 />
 
                 <YtdComparisonModal

@@ -63,6 +63,15 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
         setExpandedSubsegments(newExpanded);
     };
 
+    const expandAll = () => {
+        const allSubsegments = data.map(s => s.subsegment);
+        setExpandedSubsegments(new Set(allSubsegments));
+    };
+
+    const collapseAll = () => {
+        setExpandedSubsegments(new Set());
+    };
+
     const getTrendColor = (value: number) => {
         if (value > 0) return 'text-green-600 dark:text-green-400';
         if (value < 0) return 'text-red-600 dark:text-red-400';
@@ -79,14 +88,34 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
     return (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
             <div className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                        <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">Financial Performance & LOP by Subsegment</h3>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">Financial Performance & LOP by Subsegment</h3>
+                    
+                    {/* Expand/Collapse All Buttons */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={expandAll}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
+                        >
+                            <ChevronDown className="h-4 w-4" />
+                            Expand All
+                        </button>
+                        <button
+                            onClick={collapseAll}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
+                        >
+                            <ChevronUp className="h-4 w-4" />
+                            Collapse All
+                        </button>
                     </div>
                 </div>
 
