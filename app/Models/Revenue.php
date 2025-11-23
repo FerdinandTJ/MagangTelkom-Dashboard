@@ -9,24 +9,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Model Revenue
  * 
- * Represents monthly revenue data for companies
+ * Represents monthly revenue data for Group4 products
+ * This is the normalized time-series table separated from product master data
  * 
  * @property int $id Primary Key
- * @property string $nip_nas FK to companies
+ * @property int $group4_id FK to group4 (product master)
  * @property int $tahun Year
  * @property int $bulan Month (1-12)
- * @property float $total_revenue Total revenue amount
- * @property string|null $note Notes
- * @property float $target Target revenue for this period
+ * @property float $revenue_realisasi Actual revenue amount
+ * @property float $revenue_target Target revenue for this period
  * 
  * Relations:
- * - company: BelongsTo (Many-to-One dengan Company)
+ * - group4: BelongsTo (Many-to-One with Group4 product)
  * 
- * PERUBAHAN DARI STRUKTUR LAMA:
- * - FK berubah dari company_id (INT) ke nip_nas (VARCHAR)
- * - Field 'revenue' berubah jadi 'total_revenue'
- * - Tambah field: 'note', 'target'
- * - Hapus: region_id, witel_id (tidak ada direct FK lagi)
+ * PERUBAHAN STRUKTUR TERBARU (Nov 2025):
+ * - Table revenues sekarang untuk group4 time-series data
+ * - FK: group4_id (stable product ID)
+ * - Fields: revenue_realisasi, revenue_target (bukan total_revenue)
+ * - UNIQUE constraint: (group4_id, tahun, bulan) - one record per product per month
  */
 class Revenue extends Model
 {
@@ -39,26 +39,21 @@ class Revenue extends Model
 
     /**
      * The attributes that are mass assignable.
-     * 
-     * PERUBAHAN: Ganti company_id dengan nip_nas, revenue jadi total_revenue
-     * Hapus: region_id, witel_id
-     * Tambah: note, target
      */
     protected $fillable = [
-        'nip_nas',
+        'group4_id',
         'tahun',
         'bulan',
-        'total_revenue',
-        'note',
-        'target',
+        'revenue_realisasi',
+        'revenue_target',
     ];
 
     /**
      * The attributes that should be cast.
      */
     protected $casts = [
-        'total_revenue' => 'decimal:6',
-        'target' => 'decimal:2',
+        'revenue_realisasi' => 'decimal:2',
+        'revenue_target' => 'decimal:2',
         'tahun' => 'integer',
         'bulan' => 'integer',
         'created_at' => 'datetime',
@@ -84,20 +79,20 @@ class Revenue extends Model
     ];
 
     /**
-     * RELATION: Revenue belongs to Company (Many-to-One)
-     * FK menggunakan nip_nas (bukan company_id lagi)
+     * RELATION: Revenue belongs to Group4 product (Many-to-One)
+     * FK references group4.idGroup4 (not 'id')
      */
-    public function company(): BelongsTo
+    public function group4(): BelongsTo
     {
-        return $this->belongsTo(Company::class, 'nip_nas', 'nip_nas');
+        return $this->belongsTo(Group4::class, 'group4_id', 'idGroup4');
     }
 
     /**
-     * Accessor: Get formatted revenue
+     * Accessor: Get formatted revenue realisasi
      */
     public function getFormattedRevenueAttribute(): string
     {
-        return 'Rp ' . number_format($this->total_revenue, 0, ',', '.');
+        return 'Rp ' . number_format($this->revenue_realisasi, 0, ',', '.');
     }
 
     /**
@@ -105,7 +100,7 @@ class Revenue extends Model
      */
     public function getFormattedTargetAttribute(): string
     {
-        return 'Rp ' . number_format($this->target, 0, ',', '.');
+        return 'Rp ' . number_format($this->revenue_target, 0, ',', '.');
     }
 
     /**
@@ -129,11 +124,11 @@ class Revenue extends Model
      */
     public function getAchievementPercentageAttribute(): float
     {
-        if ($this->target == 0) {
+        if ($this->revenue_target == 0) {
             return 0;
         }
 
-        return ($this->total_revenue / $this->target) * 100;
+        return ($this->revenue_realisasi / $this->revenue_target) * 100;
     }
 
     /**
@@ -141,7 +136,7 @@ class Revenue extends Model
      */
     public function getVarianceAttribute(): float
     {
-        return $this->total_revenue - $this->target;
+        return $this->revenue_realisasi - $this->revenue_target;
     }
 
     /**
@@ -149,7 +144,7 @@ class Revenue extends Model
      */
     public function isTargetAchieved(): bool
     {
-        return $this->total_revenue >= $this->target;
+        return $this->revenue_realisasi >= $this->revenue_target;
     }
 
     /**
@@ -177,11 +172,11 @@ class Revenue extends Model
     }
 
     /**
-     * Scope: Filter by company
+     * Scope: Filter by product (group4)
      */
-    public function scopeByCompany($query, string $nip_nas)
+    public function scopeByProduct($query, int $group4_id)
     {
-        return $query->where('nip_nas', $nip_nas);
+        return $query->where('group4_id', $group4_id);
     }
 
     /**
@@ -189,7 +184,7 @@ class Revenue extends Model
      */
     public function scopeAboveTarget($query)
     {
-        return $query->whereRaw('total_revenue >= target');
+        return $query->whereRaw('revenue_realisasi >= revenue_target');
     }
 
     /**
@@ -197,7 +192,7 @@ class Revenue extends Model
      */
     public function scopeBelowTarget($query)
     {
-        return $query->whereRaw('total_revenue < target');
+        return $query->whereRaw('revenue_realisasi < revenue_target');
     }
 
     /**
@@ -205,6 +200,6 @@ class Revenue extends Model
      */
     public function scopeHighestRevenue($query)
     {
-        return $query->orderBy('total_revenue', 'desc');
+        return $query->orderBy('revenue_realisasi', 'desc');
     }
 }

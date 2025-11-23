@@ -1,5 +1,5 @@
 import RevenueBarChart from '@/components/charts/RevenueBarChart';
-import SubsegmentPieChart from '@/components/charts/SubsegmentPieChart';
+// import SubsegmentPieChart from '@/components/charts/SubsegmentPieChart';
 import YearlyLineChart from '@/components/charts/YearlyLineChart';
 import StatCard from '@/components/StatCard';
 import MonthDetailModal from '@/components/modals/MonthDetailModal';

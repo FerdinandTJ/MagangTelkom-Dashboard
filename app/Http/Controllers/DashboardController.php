@@ -436,15 +436,16 @@ class DashboardController extends Controller
         ];
 
         // Get monthly summary (revenue, target, companies)
-        $monthlySummary = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        $monthlySummary = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->where('group4.tahun', $year)
-            ->where('group4.bulan', $month)
+            ->where('r.tahun', $year)
+            ->where('r.bulan', $month)
             ->selectRaw('
-                SUM(group4.revenue_realisasi) as total_revenue,
-                SUM(group4.revenue_target) as total_target,
+                SUM(r.revenue_realisasi) as total_revenue,
+                SUM(r.revenue_target) as total_target,
                 COUNT(DISTINCT group1.company_id) as total_companies
             ')
             ->first();
@@ -545,8 +546,9 @@ class DashboardController extends Controller
      */
     private function getRegionalBreakdown(int $year, ?int $month, string $subsegment): array
     {
-        $query = \DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        $query = \DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
             ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
@@ -555,10 +557,10 @@ class DashboardController extends Controller
             ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
             ->join('regions', 'witels.region_id', '=', 'regions.id')
             ->where('companies.subsegment', $subsegment)
-            ->where('group4.tahun', $year);
+            ->where('r.tahun', $year);
 
         if ($month) {
-            $query->where('group4.bulan', $month);
+            $query->where('r.bulan', $month);
         }
 
         $regionalData = $query
@@ -567,7 +569,7 @@ class DashboardController extends Controller
                 'regions.code',
                 'regions.description as name',
                 \DB::raw('COUNT(DISTINCT companies.nip_nas) as total_companies'),
-                \DB::raw('SUM(group4.revenue_realisasi) as total_revenue')
+                \DB::raw('SUM(r.revenue_realisasi) as total_revenue')
             )
             ->groupBy('regions.id', 'regions.code', 'regions.description')
             ->orderBy('total_revenue', 'desc')
@@ -608,52 +610,53 @@ class DashboardController extends Controller
             ->firstOrFail();
         
         // Base query for filtered data
-        $baseQuery = \DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        $baseQuery = \DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
             ->where('group1.company_id', $companyId);
         
         // Apply filters if provided
         if ($filterYear) {
-            $baseQuery->where('group4.tahun', $filterYear);
+            $baseQuery->where('r.tahun', $filterYear);
         }
         if ($filterMonth) {
-            $baseQuery->where('group4.bulan', $filterMonth);
+            $baseQuery->where('r.bulan', $filterMonth);
         }
         
         // Get all revenue history for summary calculations (with filters applied)
         $allMonthlyData = (clone $baseQuery)
-            ->select('group4.tahun', 'group4.bulan', \DB::raw('SUM(group4.revenue_realisasi) as total_revenue'))
-            ->groupBy('group4.tahun', 'group4.bulan')
-            ->orderBy('group4.tahun', 'asc')
-            ->orderBy('group4.bulan', 'asc')
+            ->select('r.tahun', 'r.bulan', \DB::raw('SUM(r.revenue_realisasi) as total_revenue'))
+            ->groupBy('r.tahun', 'r.bulan')
+            ->orderBy('r.tahun', 'asc')
+            ->orderBy('r.bulan', 'asc')
             ->get();
         
         // Get last 12 months revenue data for chart (with filters applied)
         $monthlyQuery = (clone $baseQuery)
             ->select(
-                'group4.tahun',
-                'group4.bulan',
-                \DB::raw('SUM(group4.revenue_realisasi) as total_revenue'),
+                'r.tahun',
+                'r.bulan',
+                \DB::raw('SUM(r.revenue_realisasi) as total_revenue'),
                 \DB::raw('CASE 
-                    WHEN group4.bulan = 1 THEN "Januari"
-                    WHEN group4.bulan = 2 THEN "Februari" 
-                    WHEN group4.bulan = 3 THEN "Maret"
-                    WHEN group4.bulan = 4 THEN "April"
-                    WHEN group4.bulan = 5 THEN "Mei"
-                    WHEN group4.bulan = 6 THEN "Juni"
-                    WHEN group4.bulan = 7 THEN "Juli"
-                    WHEN group4.bulan = 8 THEN "Agustus"
-                    WHEN group4.bulan = 9 THEN "September"
-                    WHEN group4.bulan = 10 THEN "Oktober"
-                    WHEN group4.bulan = 11 THEN "November"
-                    WHEN group4.bulan = 12 THEN "Desember"
+                    WHEN r.bulan = 1 THEN "Januari"
+                    WHEN r.bulan = 2 THEN "Februari" 
+                    WHEN r.bulan = 3 THEN "Maret"
+                    WHEN r.bulan = 4 THEN "April"
+                    WHEN r.bulan = 5 THEN "Mei"
+                    WHEN r.bulan = 6 THEN "Juni"
+                    WHEN r.bulan = 7 THEN "Juli"
+                    WHEN r.bulan = 8 THEN "Agustus"
+                    WHEN r.bulan = 9 THEN "September"
+                    WHEN r.bulan = 10 THEN "Oktober"
+                    WHEN r.bulan = 11 THEN "November"
+                    WHEN r.bulan = 12 THEN "Desember"
                     END as bulan_name')
             )
-            ->groupBy('group4.tahun', 'group4.bulan')
-            ->orderBy('group4.tahun', 'desc')
-            ->orderBy('group4.bulan', 'desc');
+            ->groupBy('r.tahun', 'r.bulan')
+            ->orderBy('r.tahun', 'desc')
+            ->orderBy('r.bulan', 'desc');
         
         // Only limit to 12 if no filters applied
         if (!$filterYear && !$filterMonth) {
@@ -678,12 +681,12 @@ class DashboardController extends Controller
         // Get yearly totals (with filters applied)
         $yearlyData = (clone $baseQuery)
             ->select(
-                'group4.tahun',
-                \DB::raw('SUM(group4.revenue_realisasi) as total_revenue'),
-                \DB::raw('COUNT(DISTINCT CONCAT(group4.tahun, "-", group4.bulan)) as months_count')
+                'r.tahun',
+                \DB::raw('SUM(r.revenue_realisasi) as total_revenue'),
+                \DB::raw('COUNT(DISTINCT CONCAT(r.tahun, "-", r.bulan)) as months_count')
             )
-            ->groupBy('group4.tahun')
-            ->orderBy('group4.tahun', 'asc')
+            ->groupBy('r.tahun')
+            ->orderBy('r.tahun', 'asc')
             ->get()
             ->map(function ($item) {
                 return [
@@ -990,7 +993,7 @@ class DashboardController extends Controller
      */
     public function getAvailablePeriods()
     {
-        $periods = DB::table('group4')
+        $periods = DB::table('revenues')
             ->select('tahun', 'bulan')
             ->distinct()
             ->orderBy('tahun', 'desc')

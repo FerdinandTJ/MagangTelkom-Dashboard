@@ -7,7 +7,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Calendar, ChevronDown, ChevronRight } from 'lucide-react';
 import axios from '@/lib/axios';
 import { formatCurrency, formatCurrencyFull } from '@/utils/currency';
 
@@ -16,22 +16,234 @@ interface YtdComparisonModalProps {
     onClose: () => void;
 }
 
+interface GroupBreakdown {
+    id: string;
+    name: string;
+    type: 'group1' | 'group2' | 'group3' | 'group4';
+    current_revenue: number;
+    previous_revenue: number;
+    growth_percentage: number;
+    growth_amount: number;
+    formatted_current: string;
+    formatted_previous: string;
+    formatted_growth: string;
+    is_positive: boolean;
+    children?: GroupBreakdown[];
+}
+
 interface YtdComparisonData {
     current_year: number;
     current_month: number;
-    current_ytd: number;
+    current_month_name: string;
+    current_revenue: number;
     previous_year: number;
     previous_month: number;
-    previous_ytd: number;
+    previous_month_name: string;
+    previous_revenue: number;
     growth_percentage: number;
     growth_amount: number;
-    formatted_current_ytd: string;
-    formatted_previous_ytd: string;
+    formatted_current_revenue: string;
+    formatted_previous_revenue: string;
     formatted_growth_amount: string;
     is_positive_growth: boolean;
-    current_month_name: string;
-    previous_month_name: string;
+    hierarchical_breakdown: GroupBreakdown[];
 }
+
+// YTD Breakdown Tree Component
+interface YtdBreakdownTreeProps {
+    data: GroupBreakdown[];
+    currentPeriod: string;
+    previousPeriod: string;
+}
+
+const YtdBreakdownTree: React.FC<YtdBreakdownTreeProps> = ({ data, currentPeriod, previousPeriod }) => {
+    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+    const toggleExpand = (id: string) => {
+        const newExpanded = new Set(expandedItems);
+        if (newExpanded.has(id)) {
+            newExpanded.delete(id);
+        } else {
+            newExpanded.add(id);
+        }
+        setExpandedItems(newExpanded);
+    };
+
+    const getAllNodeIds = (nodes: GroupBreakdown[]): string[] => {
+        let ids: string[] = [];
+        nodes.forEach(node => {
+            ids.push(node.id);
+            if (node.children && node.children.length > 0) {
+                ids = ids.concat(getAllNodeIds(node.children));
+            }
+        });
+        return ids;
+    };
+
+    const expandAll = () => {
+        setExpandedItems(new Set(getAllNodeIds(data)));
+    };
+
+    const collapseAll = () => {
+        setExpandedItems(new Set());
+    };
+
+    return (
+        <div className="space-y-3">
+            {/* Control Buttons */}
+            <div className="flex justify-end gap-2">
+                <button
+                    onClick={expandAll}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg border border-blue-200 dark:border-blue-800 transition-colors"
+                >
+                    <ChevronDown className="h-3 w-3" />
+                    Expand All
+                </button>
+                <button
+                    onClick={collapseAll}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors"
+                >
+                    <ChevronRight className="h-3 w-3" />
+                    Collapse All
+                </button>
+            </div>
+
+            {/* Tree Table */}
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <table className="w-full border-collapse">
+                    <thead>
+                        <tr className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-850 border-b-2 border-gray-300 dark:border-gray-600">
+                            <th className="text-left p-3 font-bold text-gray-800 dark:text-gray-200 text-xs uppercase tracking-wider">
+                                Category
+                            </th>
+                            <th className="text-right p-3 font-bold text-gray-800 dark:text-gray-200 text-xs uppercase tracking-wider w-32">
+                                {currentPeriod}
+                            </th>
+                            <th className="text-right p-3 font-bold text-gray-800 dark:text-gray-200 text-xs uppercase tracking-wider w-32">
+                                {previousPeriod}
+                            </th>
+                            <th className="text-right p-3 font-bold text-gray-800 dark:text-gray-200 text-xs uppercase tracking-wider w-24">
+                                Growth
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {data.map((group) => (
+                            <YtdTreeNode 
+                                key={group.id} 
+                                group={group}
+                                level={0}
+                                expandedItems={expandedItems}
+                                onToggle={toggleExpand}
+                            />
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+interface YtdTreeNodeProps {
+    group: GroupBreakdown;
+    level: number;
+    expandedItems: Set<string>;
+    onToggle: (id: string) => void;
+}
+
+const YtdTreeNode: React.FC<YtdTreeNodeProps> = ({ group, level, expandedItems, onToggle }) => {
+    const hasChildren = group.children && group.children.length > 0;
+    const isExpanded = expandedItems.has(group.id);
+
+    const getRowBackgroundColor = () => {
+        if (level === 0) return 'bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30';
+        if (level === 1) return 'bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30';
+        if (level === 2) return 'bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30';
+        if (level === 3) return 'bg-purple-50 dark:bg-purple-950/20 hover:bg-purple-100 dark:hover:bg-purple-900/30';
+        return 'hover:bg-gray-50 dark:hover:bg-gray-900/20';
+    };
+
+    const getTextSize = () => {
+        if (level === 0) return 'text-base';
+        if (level === 1) return 'text-sm';
+        return 'text-xs';
+    };
+
+    return (
+        <>
+            <tr className={`border-b border-gray-200 dark:border-gray-700 ${getRowBackgroundColor()} transition-colors`}>
+                {/* Category Name */}
+                <td className="p-3 border-r border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 24}px` }}>
+                        {hasChildren ? (
+                            <button
+                                onClick={() => onToggle(group.id)}
+                                className="flex-shrink-0 p-1 hover:bg-white/50 dark:hover:bg-black/30 rounded transition-colors"
+                            >
+                                {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                ) : (
+                                    <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                )}
+                            </button>
+                        ) : (
+                            <div className="w-6 flex-shrink-0" />
+                        )}
+                        <span className={`font-semibold text-gray-900 dark:text-gray-100 ${getTextSize()}`}>
+                            {group.name}
+                        </span>
+                        {hasChildren && (
+                            <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
+                                {group.children!.length}
+                            </span>
+                        )}
+                    </div>
+                </td>
+
+                {/* Current Revenue */}
+                <td className="p-3 text-right border-r border-gray-200 dark:border-gray-700">
+                    <span className={`font-semibold text-blue-700 dark:text-blue-400 ${getTextSize()}`}>
+                        {group.formatted_current}
+                    </span>
+                </td>
+
+                {/* Previous Revenue */}
+                <td className="p-3 text-right border-r border-gray-200 dark:border-gray-700">
+                    <span className={`font-semibold text-orange-700 dark:text-orange-400 ${getTextSize()}`}>
+                        {group.formatted_previous}
+                    </span>
+                </td>
+
+                {/* Growth */}
+                <td className="p-3 text-right">
+                    <div className={`inline-flex items-center gap-1 font-bold ${getTextSize()} ${
+                        group.is_positive 
+                            ? 'text-green-600 dark:text-green-400' 
+                            : 'text-red-600 dark:text-red-400'
+                    }`}>
+                        {group.is_positive ? (
+                            <TrendingUp className="h-3 w-3" />
+                        ) : (
+                            <TrendingDown className="h-3 w-3" />
+                        )}
+                        <span>{group.growth_percentage > 0 ? '+' : ''}{group.growth_percentage}%</span>
+                    </div>
+                </td>
+            </tr>
+
+            {/* Render children recursively */}
+            {isExpanded && hasChildren && group.children!.map((child) => (
+                <YtdTreeNode
+                    key={child.id}
+                    group={child}
+                    level={level + 1}
+                    expandedItems={expandedItems}
+                    onToggle={onToggle}
+                />
+            ))}
+        </>
+    );
+};
 
 const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
     isOpen,
@@ -311,7 +523,7 @@ const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
                                     {comparisonData.current_month_name} {comparisonData.current_year} YTD
                                 </p>
                                 <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                                    {comparisonData.formatted_current_ytd}
+                                    {comparisonData.formatted_current_revenue}
                                 </p>
                             </div>
 
@@ -350,7 +562,7 @@ const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
                                     {comparisonData.previous_month_name} {comparisonData.previous_year} YTD
                                 </p>
                                 <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                                    {comparisonData.formatted_previous_ytd}
+                                    {comparisonData.formatted_previous_revenue}
                                 </p>
                             </div>
                         </div>
@@ -375,6 +587,20 @@ const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
                                         {comparisonData.current_month_name} {comparisonData.current_year} vs {comparisonData.previous_month_name} {comparisonData.previous_year}
                                     </span>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Group1 Breakdown Tree */}
+                        <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                            <div className="bg-gray-100 dark:bg-gray-800 px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Revenue Breakdown by Category (Group1)</h4>
+                            </div>
+                            <div className="p-4">
+                                <YtdBreakdownTree 
+                                    data={comparisonData.hierarchical_breakdown}
+                                    currentPeriod={`${comparisonData.current_month_name} ${comparisonData.current_year}`}
+                                    previousPeriod={`${comparisonData.previous_month_name} ${comparisonData.previous_year}`}
+                                />
                             </div>
                         </div>
                     </div>

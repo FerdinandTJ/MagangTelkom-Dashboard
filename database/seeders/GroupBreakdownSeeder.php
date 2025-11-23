@@ -9,11 +9,16 @@ use App\Models\Group1;
 use App\Models\Group2;
 use App\Models\Group3;
 use App\Models\Group4;
+use App\Models\Revenue;
 
 class GroupBreakdownSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * 
+     * UPDATED TO USE NORMALIZED SCHEMA:
+     * - Group4: Master product data only (no revenue fields)
+     * - Revenue: Time-series revenue data (FK to Group4)
      */
     public function run(): void
     {
@@ -27,8 +32,9 @@ class GroupBreakdownSeeder extends Seeder
 
         $this->command->info('🔄 Creating revenue breakdown hierarchy for ' . $companies->count() . ' companies...');
 
-        // Helper to create hierarchy with target
+        // Helper to create hierarchy with revenue records (normalized schema)
         $makeLeaf = function ($company, $g1Name, $g2Name, $g3Name, $g4Name, $rev, $target, $tahun, $bulan) {
+            // Step 1: Create/get Group hierarchy (master data - no time-series)
             $g1 = Group1::firstOrCreate([
                 'company_id' => $company->nip_nas,
                 'nama_group1' => $g1Name
@@ -44,14 +50,28 @@ class GroupBreakdownSeeder extends Seeder
                 'nama_group3' => $g3Name
             ]);
 
-            Group4::create([
-                'group3_id' => $g3->idGroup3,
-                'nama_group4' => $g4Name,
-                'revenue_realisasi' => $rev,
-                'revenue_target' => $target,
-                'tahun' => $tahun,
-                'bulan' => $bulan,
-            ]);
+            // Step 2: Get or create Group4 product (master record - stable across time)
+            // Use group3_id + nama_group4 as natural unique key
+            $g4 = Group4::firstOrCreate(
+                [
+                    'group3_id' => $g3->idGroup3,
+                    'nama_group4' => $g4Name
+                ]
+            );
+
+            // Step 3: Create revenue record for this period (time-series data)
+            // This is separate from product master - allows stable product ID across all months!
+            Revenue::updateOrCreate(
+                [
+                    'group4_id' => $g4->idGroup4,
+                    'tahun' => $tahun,
+                    'bulan' => $bulan
+                ],
+                [
+                    'revenue_realisasi' => $rev,
+                    'revenue_target' => $target
+                ]
+            );
         };
 
         // Define company yearly targets based on subsegment
@@ -63,21 +83,47 @@ class GroupBreakdownSeeder extends Seeder
             'Media' => 2500000000,    // Rp 2.5 Miliar
         ];
 
-        // Define revenue breakdown structure (base values will be scaled per company)
+        // Define revenue breakdown structure based on real Telkom product portfolio
         $revenueStructure = [
-            ['CONNECTIVITY', 'Fixed Broadband', 'High Speed Internet', 'Abo HSI', 150000000],
-            ['CONNECTIVITY', 'Fixed Broadband', 'High Speed Internet', 'PSB HSI', 75000000],
-            ['CONNECTIVITY', 'Fixed Broadband', 'Wifi', 'Wifi Service', 50000000],
-            ['CONNECTIVITY', 'ICT Platform', 'Devices / Hardware', 'NTE', 120000000],
-            ['CONNECTIVITY', 'ICT Platform', 'Enterprise Connectivity', 'ASTINet', 90000000],
-            ['LEGACY', 'Fixed Legacy', 'Voice & SMS', 'Wireline', 50000000],
-            ['PLATFORM', 'Application Services & Smart Enablers', 'Device Enabler', 'Device Enabler', 30000000],
-            ['PLATFORM', 'Data Center & Cloud', 'Cloud', 'Cloud Service', 20000000],
-            ['SERVICE', 'Application Services & Smart Enablers', 'Content', 'Content Service', 25000000],
-            ['SERVICE', 'Consumer Digital', 'Mobile Digital (Game, Music)', 'Game', 15000000],
-            ['SERVICE', 'Consumer Digital', 'Mobile Digital (Game, Music)', 'Music', 10000000],
-            ['SERVICE', 'Video / TV', 'Video / TV', 'IPTV', 40000000],
-            ['SERVICE', 'Video / TV', 'Video / TV', 'USeeTV', 20000000],
+            // CONNECTIVITY - Fixed Broadband
+            ['CONNECTIVITY', 'Fixed Broadband', 'High Speed Internet', ['Abo HSI'], 180000000],
+            ['CONNECTIVITY', 'Fixed Broadband', 'High Speed Internet', ['PSB HSI'], 90000000],
+            ['CONNECTIVITY', 'Fixed Broadband', 'Managed Wifi', ['Wifi.id', 'Managed Wifi Service'], 70000000],
+            
+            // CONNECTIVITY - ICT Platform
+            ['CONNECTIVITY', 'ICT Platform', 'Devices / Hardware', ['NTE', 'CPE Device', 'Router Enterprise'], 120000000],
+            ['CONNECTIVITY', 'ICT Platform', 'Enterprise Connectivity', ['ASTINet', 'MPLS', 'VPN IP'], 100000000],
+            
+            // CONNECTIVITY - Mobile Broadband
+            ['CONNECTIVITY', 'Mobile Broadband', 'Mobile Data Solution', ['Orbit', '4G LTE', 'Mobile WiFi Router'], 85000000],
+            ['CONNECTIVITY', 'Mobile Broadband', 'IoT & M2M', ['IoT Connectivity', 'M2M Platform'], 60000000],
+            
+            // LEGACY - Fixed Line Services
+            ['LEGACY', 'Fixed Line', 'Telephony', ['PSTN', 'Speedy Legacy', 'Flexi Home'], 50000000],
+            ['LEGACY', 'Fixed Line', 'ISDN & PRI', ['ISDN Service', 'PRI Trunk'], 35000000],
+            
+            // PLATFORM - Data Center & Cloud
+            ['PLATFORM', 'Data Center & Cloud', 'Cloud Computing', ['Telkom Cloud', 'VPS', 'Cloud Storage'], 95000000],
+            ['PLATFORM', 'Data Center & Cloud', 'Colocation Services', ['Rack Colocation', 'Private Suite'], 75000000],
+            ['PLATFORM', 'Data Center & Cloud', 'Managed Services', ['Managed Server', 'DRC Services'], 65000000],
+            
+            // PLATFORM - IoT & Smart Solutions
+            ['PLATFORM', 'IoT & Digital Platform', 'Smart City', ['Smart Parking', 'Smart Lighting', 'Traffic Management'], 55000000],
+            ['PLATFORM', 'IoT & Digital Platform', 'Smart Building', ['BMS', 'Access Control', 'CCTV Integration'], 50000000],
+            
+            // SERVICE - Digital Entertainment
+            ['SERVICE', 'Digital Content', 'Video Services', ['IndiHome TV', 'UseeTV Go'], 80000000],
+            ['SERVICE', 'Digital Content', 'Entertainment Platform', ['MAXstream', 'Music Streaming'], 45000000],
+            ['SERVICE', 'Digital Content', 'Gaming & E-Sports', ['Dunia Games', 'E-Sports Arena'], 35000000],
+            
+            // SERVICE - Enterprise Applications
+            ['SERVICE', 'Enterprise Solutions', 'Business Applications', ['ERP Solutions', 'CRM Platform'], 70000000],
+            ['SERVICE', 'Enterprise Solutions', 'Collaboration Tools', ['Video Conference', 'Collaboration Suite'], 60000000],
+            ['SERVICE', 'Enterprise Solutions', 'Security Services', ['Cybersecurity', 'DDoS Protection'], 55000000],
+            
+            // SERVICE - Digital Services
+            ['SERVICE', 'Digital Banking & Payment', 'Payment Gateway', ['T-Cash', 'Digital Wallet'], 40000000],
+            ['SERVICE', 'Digital Banking & Payment', 'Financial Platform', ['LinkAja Integration'], 30000000],
         ];
 
         // Loop through each company and create revenue breakdown
@@ -129,7 +175,13 @@ class GroupBreakdownSeeder extends Seeder
                     $randomNoise = 1 + (rand(-5, 5) / 100);
                     
                     foreach ($revenueStructure as $item) {
-                        [$g1Name, $g2Name, $g3Name, $g4Name, $baseValue] = $item;
+                        [$g1Name, $g2Name, $g3Name, $g4Options, $baseValue] = $item;
+                        
+                        // Pick ONE product from the options array (different per company to create variation)
+                        $companyIndex = $companies->search($company);
+                        $g4Name = is_array($g4Options) 
+                            ? $g4Options[$companyIndex % count($g4Options)] 
+                            : $g4Options;
                         
                         // Add variation per product line (some products perform better than others)
                         $productVariation = 1 + (rand(-15, 15) / 100);

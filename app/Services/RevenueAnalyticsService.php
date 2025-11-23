@@ -30,18 +30,19 @@ class RevenueAnalyticsService
         $startYear = $startYear ?? date('Y') - 4;
         $endYear = $endYear ?? date('Y');
 
-        return DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        return DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
             ->select(
-                'group4.tahun',
-                DB::raw('SUM(group4.revenue_realisasi) as total_revenue'),
+                'r.tahun',
+                DB::raw('SUM(r.revenue_realisasi) as total_revenue'),
                 DB::raw('COUNT(DISTINCT group1.company_id) as total_companies')
             )
-            ->whereBetween('group4.tahun', [$startYear, $endYear])
-            ->groupBy('group4.tahun')
-            ->orderBy('group4.tahun')
+            ->whereBetween('r.tahun', [$startYear, $endYear])
+            ->groupBy('r.tahun')
+            ->orderBy('r.tahun')
             ->get()
             ->map(function ($item) {
                 return [
@@ -59,17 +60,17 @@ class RevenueAnalyticsService
      */
     public function getMonthlyRevenue(int $year): array
     {
-        // Get monthly revenue and target from group4
-        $monthlyData = DB::table('group4')
-            ->where('group4.tahun', $year)
+        // Get monthly revenue and target from revenues table (normalized schema)
+        $monthlyData = DB::table('revenues as r')
+            ->where('r.tahun', $year)
             ->select(
-                'group4.bulan',
-                DB::raw('SUM(group4.revenue_realisasi) as total_revenue'),
-                DB::raw('SUM(group4.revenue_target) as target_revenue'),
-                DB::raw('COUNT(DISTINCT group4.group3_id) as total_entries')
+                'r.bulan',
+                DB::raw('SUM(r.revenue_realisasi) as total_revenue'),
+                DB::raw('SUM(r.revenue_target) as target_revenue'),
+                DB::raw('COUNT(DISTINCT r.group4_id) as total_entries')
             )
-            ->groupBy('group4.bulan')
-            ->orderBy('group4.bulan')
+            ->groupBy('r.bulan')
+            ->orderBy('r.bulan')
             ->get()
             ->keyBy('bulan');
 
@@ -118,21 +119,23 @@ class RevenueAnalyticsService
         $currentMonth = date('n'); // Current month number
         $previousYear = $year - 1;
 
-        $currentYtd = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        $currentYtd = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->where('group4.tahun', $year)
-            ->where('group4.bulan', '<=', $currentMonth)
-            ->sum('group4.revenue_realisasi');
+            ->where('r.tahun', $year)
+            ->where('r.bulan', '<=', $currentMonth)
+            ->sum('r.revenue_realisasi');
 
-        $previousYtd = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        $previousYtd = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->where('group4.tahun', $previousYear)
-            ->where('group4.bulan', '<=', $currentMonth)
-            ->sum('group4.revenue_realisasi');
+            ->where('r.tahun', $previousYear)
+            ->where('r.bulan', '<=', $currentMonth)
+            ->sum('r.revenue_realisasi');
 
         $growth = $previousYtd > 0 ? (($currentYtd - $previousYtd) / $previousYtd) * 100 : 0;
 
@@ -155,42 +158,214 @@ class RevenueAnalyticsService
      */
     public function getCustomYtdComparison(int $currentYear, int $currentMonth, int $previousYear, int $previousMonth): array
     {
-        // Get current period YTD
-        $currentYtd = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        // Get current period revenue (YTD)
+        $currentRevenue = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->where('group4.tahun', $currentYear)
-            ->where('group4.bulan', '<=', $currentMonth)
-            ->sum('group4.revenue_realisasi');
+            ->where('r.tahun', $currentYear)
+            ->where('r.bulan', '<=', $currentMonth)
+            ->sum('r.revenue_realisasi');
 
-        // Get previous period YTD
-        $previousYtd = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        // Get previous period revenue (YTD)
+        $previousRevenue = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->where('group4.tahun', $previousYear)
-            ->where('group4.bulan', '<=', $previousMonth)
-            ->sum('group4.revenue_realisasi');
+            ->where('r.tahun', $previousYear)
+            ->where('r.bulan', '<=', $previousMonth)
+            ->sum('r.revenue_realisasi');
 
-        $growth = $previousYtd > 0 ? (($currentYtd - $previousYtd) / $previousYtd) * 100 : 0;
+        $growth = $previousRevenue > 0 ? (($currentRevenue - $previousRevenue) / $previousRevenue) * 100 : 0;
+
+        // Build hierarchical tree breakdown (Group1 -> Group2 -> Group3 -> Group4)
+        $hierarchicalBreakdown = $this->buildYtdHierarchicalTree($currentYear, $currentMonth, $previousYear, $previousMonth);
 
         return [
             'current_year' => $currentYear,
             'current_month' => $currentMonth,
             'current_month_name' => $this->getMonthName($currentMonth),
-            'current_ytd' => (float) $currentYtd,
+            'current_revenue' => (float) $currentRevenue,
             'previous_year' => $previousYear,
             'previous_month' => $previousMonth,
             'previous_month_name' => $this->getMonthName($previousMonth),
-            'previous_ytd' => (float) $previousYtd,
+            'previous_revenue' => (float) $previousRevenue,
             'growth_percentage' => round($growth, 2),
-            'growth_amount' => (float) ($currentYtd - $previousYtd),
-            'formatted_current_ytd' => 'Rp ' . number_format($currentYtd, 0, ',', '.'),
-            'formatted_previous_ytd' => 'Rp ' . number_format($previousYtd, 0, ',', '.'),
-            'formatted_growth_amount' => 'Rp ' . number_format(abs($currentYtd - $previousYtd), 0, ',', '.'),
-            'is_positive_growth' => $growth >= 0
+            'growth_amount' => (float) ($currentRevenue - $previousRevenue),
+            'formatted_current_revenue' => 'Rp ' . number_format($currentRevenue, 0, ',', '.'),
+            'formatted_previous_revenue' => 'Rp ' . number_format($previousRevenue, 0, ',', '.'),
+            'formatted_growth_amount' => 'Rp ' . number_format(abs($currentRevenue - $previousRevenue), 0, ',', '.'),
+            'is_positive_growth' => $growth >= 0,
+            'hierarchical_breakdown' => $hierarchicalBreakdown
         ];
+    }
+
+    /**
+     * Build hierarchical tree breakdown for YTD comparison
+     */
+    private function buildYtdHierarchicalTree(int $currentYear, int $currentMonth, int $previousYear, int $previousMonth): array
+    {
+        // Get AGGREGATED current period data using normalized schema
+        // JOIN group4 (product master) with revenues (time-series)
+        $currentData = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+            ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+            ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+            ->where('r.tahun', $currentYear)
+            ->where('r.bulan', '<=', $currentMonth)
+            ->select(
+                'group1.idGroup1',
+                'group1.nama_group1',
+                'group2.idGroup2',
+                'group2.nama_group2',
+                'group3.idGroup3',
+                'group3.nama_group3',
+                'p.idGroup4',
+                'p.nama_group4',
+                DB::raw('SUM(r.revenue_realisasi) as current_revenue')
+            )
+            ->groupBy(
+                'group1.idGroup1', 'group1.nama_group1',
+                'group2.idGroup2', 'group2.nama_group2',
+                'group3.idGroup3', 'group3.nama_group3',
+                'p.idGroup4', 'p.nama_group4'
+            )
+            ->get();
+
+        // Get AGGREGATED previous period data using normalized schema
+        $previousData = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+            ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+            ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+            ->where('r.tahun', $previousYear)
+            ->where('r.bulan', '<=', $previousMonth)
+            ->select(
+                'p.idGroup4',
+                DB::raw('SUM(r.revenue_realisasi) as previous_revenue')
+            )
+            ->groupBy('p.idGroup4')
+            ->get();
+
+        // Build lookup map for previous period revenues using stable product ID
+        // NOW we can use idGroup4 because it's stable across years! 🎉
+        $previousRevenueMap = [];
+        foreach ($previousData as $item) {
+            $previousRevenueMap[$item->idGroup4] = (float) $item->previous_revenue;
+        }
+
+        // Build hierarchical structure
+        $tree = [];
+
+        foreach ($currentData as $row) {
+            // Get previous revenue using stable product ID (not names!)
+            $previousRevenue = $previousRevenueMap[$row->idGroup4] ?? 0;
+            $currentRevenue = (float) $row->current_revenue;
+
+            // Build Group1 (if not exists)
+            $g1Key = 'g1_' . $row->idGroup1;
+            if (!isset($tree[$g1Key])) {
+                $tree[$g1Key] = [
+                    'id' => $g1Key,
+                    'name' => $row->nama_group1,
+                    'type' => 'group1',
+                    'current_revenue' => 0,
+                    'previous_revenue' => 0,
+                    'children' => []
+                ];
+            }
+
+            // Build Group2 (if not exists)
+            $g2Key = 'g2_' . $row->idGroup2;
+            if (!isset($tree[$g1Key]['children'][$g2Key])) {
+                $tree[$g1Key]['children'][$g2Key] = [
+                    'id' => $g2Key,
+                    'name' => $row->nama_group2,
+                    'type' => 'group2',
+                    'current_revenue' => 0,
+                    'previous_revenue' => 0,
+                    'children' => []
+                ];
+            }
+
+            // Build Group3 (if not exists)
+            $g3Key = 'g3_' . $row->idGroup3;
+            if (!isset($tree[$g1Key]['children'][$g2Key]['children'][$g3Key])) {
+                $tree[$g1Key]['children'][$g2Key]['children'][$g3Key] = [
+                    'id' => $g3Key,
+                    'name' => $row->nama_group3,
+                    'type' => 'group3',
+                    'current_revenue' => 0,
+                    'previous_revenue' => 0,
+                    'children' => []
+                ];
+            }
+
+            // Add Group4 (leaf node with aggregated YTD revenue) - only if not exists
+            $g4Key = 'g4_' . $row->idGroup4;
+            if (!isset($tree[$g1Key]['children'][$g2Key]['children'][$g3Key]['children'][$g4Key])) {
+                $tree[$g1Key]['children'][$g2Key]['children'][$g3Key]['children'][$g4Key] = [
+                    'id' => $g4Key,
+                    'name' => $row->nama_group4,
+                    'type' => 'group4',
+                    'current_revenue' => $currentRevenue,
+                    'previous_revenue' => $previousRevenue,
+                    'children' => []
+                ];
+
+                // Accumulate revenue UP the tree (only when adding new Group4)
+                $tree[$g1Key]['current_revenue'] += $currentRevenue;
+                $tree[$g1Key]['previous_revenue'] += $previousRevenue;
+
+                $tree[$g1Key]['children'][$g2Key]['current_revenue'] += $currentRevenue;
+                $tree[$g1Key]['children'][$g2Key]['previous_revenue'] += $previousRevenue;
+
+                $tree[$g1Key]['children'][$g2Key]['children'][$g3Key]['current_revenue'] += $currentRevenue;
+                $tree[$g1Key]['children'][$g2Key]['children'][$g3Key]['previous_revenue'] += $previousRevenue;
+            }
+        }
+
+        // Calculate growth metrics for all nodes and convert children to indexed arrays
+        foreach ($tree as &$g1) {
+            $g1['children'] = array_values($g1['children']);
+            $this->calculateGrowthMetricsForNode($g1);
+            
+            foreach ($g1['children'] as &$g2) {
+                $g2['children'] = array_values($g2['children']);
+                $this->calculateGrowthMetricsForNode($g2);
+                
+                foreach ($g2['children'] as &$g3) {
+                    $g3['children'] = array_values($g3['children']);
+                    $this->calculateGrowthMetricsForNode($g3);
+                    
+                    foreach ($g3['children'] as &$g4) {
+                        $this->calculateGrowthMetricsForNode($g4);
+                    }
+                }
+            }
+        }
+
+        return array_values($tree);
+    }
+
+    /**
+     * Calculate growth metrics for a node
+     */
+    private function calculateGrowthMetricsForNode(array &$node): void
+    {
+        $prevRevenue = $node['previous_revenue'];
+        $currRevenue = $node['current_revenue'];
+        $growthPct = $prevRevenue > 0 ? (($currRevenue - $prevRevenue) / $prevRevenue) * 100 : 0;
+        
+        $node['growth_percentage'] = round($growthPct, 2);
+        $node['growth_amount'] = (float) ($currRevenue - $prevRevenue);
+        $node['formatted_current'] = 'Rp ' . number_format($currRevenue, 0, ',', '.');
+        $node['formatted_previous'] = 'Rp ' . number_format($prevRevenue, 0, ',', '.');
+        $node['formatted_growth'] = 'Rp ' . number_format(abs($currRevenue - $prevRevenue), 0, ',', '.');
+        $node['is_positive'] = $growthPct >= 0;
     }
 
     /**
@@ -198,21 +373,22 @@ class RevenueAnalyticsService
      */
     public function getSubsegmentRevenue(int $year, ?int $month = null): array
     {
-        $query = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        $query = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
             ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
-            ->where('group4.tahun', $year)
+            ->where('r.tahun', $year)
             ->select(
                 'companies.subsegment',
-                DB::raw('SUM(group4.revenue_realisasi) as total_revenue'),
+                DB::raw('SUM(r.revenue_realisasi) as total_revenue'),
                 DB::raw('COUNT(DISTINCT group1.company_id) as total_companies'),
-                DB::raw('AVG(group4.revenue_realisasi) as avg_revenue')
+                DB::raw('AVG(r.revenue_realisasi) as avg_revenue')
             );
 
         if ($month) {
-            $query->where('group4.bulan', $month);
+            $query->where('r.bulan', $month);
         }
 
         return $query->groupBy('companies.subsegment')
@@ -240,23 +416,24 @@ class RevenueAnalyticsService
             ->join('group1', 'companies.nip_nas', '=', 'group1.company_id')
             ->join('group2', 'group1.idGroup1', '=', 'group2.group1_id')
             ->join('group3', 'group2.idGroup2', '=', 'group3.group2_id')
-            ->join('group4', 'group3.idGroup3', '=', 'group4.group3_id')
-            ->where('group4.tahun', $year)
+            ->join('group4 as p', 'group3.idGroup3', '=', 'p.group3_id')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->where('r.tahun', $year)
             ->where('companies.subsegment', $subsegment)
             ->select(
                 'companies.nip_nas',
                 'companies.nama_perusahaan',
                 'companies.subsegment',
                 'companies.source_data',
-                DB::raw('SUM(group4.revenue_realisasi) as total_revenue'),
-                DB::raw('COUNT(group4.idGroup4) as payment_count'),
-                DB::raw('AVG(group4.revenue_realisasi) as avg_revenue'),
-                DB::raw('MAX(group4.revenue_realisasi) as max_payment'),
-                DB::raw('MIN(group4.revenue_realisasi) as min_payment')
+                DB::raw('SUM(r.revenue_realisasi) as total_revenue'),
+                DB::raw('COUNT(p.idGroup4) as payment_count'),
+                DB::raw('AVG(r.revenue_realisasi) as avg_revenue'),
+                DB::raw('MAX(r.revenue_realisasi) as max_payment'),
+                DB::raw('MIN(r.revenue_realisasi) as min_payment')
             );
             
         if ($month !== null) {
-            $query->where('group4.bulan', $month);
+            $query->where('r.bulan', $month);
         }
         
         return $query
@@ -313,14 +490,15 @@ class RevenueAnalyticsService
             ->join('group1', 'companies.nip_nas', '=', 'group1.company_id')
             ->join('group2', 'group1.idGroup1', '=', 'group2.group1_id')
             ->join('group3', 'group2.idGroup2', '=', 'group3.group2_id')
-            ->join('group4', 'group3.idGroup3', '=', 'group4.group3_id')
-            ->where('group4.tahun', $year)
+            ->join('group4 as p', 'group3.idGroup3', '=', 'p.group3_id')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->where('r.tahun', $year)
             ->select(
                 'companies.nip_nas',
                 'companies.nama_perusahaan',
                 'companies.subsegment',
                 'companies.source_data',
-                DB::raw('SUM(group4.revenue_realisasi) as total_revenue')
+                DB::raw('SUM(r.revenue_realisasi) as total_revenue')
             )
             ->groupBy('companies.nip_nas', 'companies.nama_perusahaan', 'companies.subsegment', 'companies.source_data')
             ->orderByDesc('total_revenue')
@@ -344,20 +522,21 @@ class RevenueAnalyticsService
      */
     public function getSubsegmentTrend(string $subsegment, int $year): array
     {
-        return DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        return DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
             ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
             ->where('companies.subsegment', $subsegment)
-            ->where('group4.tahun', $year)
+            ->where('r.tahun', $year)
             ->select(
-                'group4.bulan',
-                DB::raw('SUM(group4.revenue_realisasi) as total_revenue'),
+                'r.bulan',
+                DB::raw('SUM(r.revenue_realisasi) as total_revenue'),
                 DB::raw('COUNT(DISTINCT group1.company_id) as total_companies')
             )
-            ->groupBy('group4.bulan')
-            ->orderBy('group4.bulan')
+            ->groupBy('r.bulan')
+            ->orderBy('r.bulan')
             ->get()
             ->map(function ($item) {
                 return [
@@ -391,12 +570,13 @@ class RevenueAnalyticsService
      */
     public function getDashboardSummary(int $year): array
     {
-        $totalRevenue = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        $totalRevenue = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->where('group4.tahun', $year)
-            ->sum('group4.revenue_realisasi');
+            ->where('r.tahun', $year)
+            ->sum('r.revenue_realisasi');
             
         $totalCompanies = Company::count();
         $activeSubsegments = Company::distinct('subsegment')->count('subsegment');
@@ -405,18 +585,19 @@ class RevenueAnalyticsService
         $currentMonth = date('n');
         $currentYear = date('Y');
         
-        $currentMonthRevenue = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        $currentMonthRevenue = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->where('group4.tahun', $currentYear)
-            ->where('group4.bulan', $currentMonth)
-            ->sum('group4.revenue_realisasi');
+            ->where('r.tahun', $currentYear)
+            ->where('r.bulan', $currentMonth)
+            ->sum('r.revenue_realisasi');
 
-        $currentMonthTarget = DB::table('group4')
-            ->where('group4.tahun', $currentYear)
-            ->where('group4.bulan', $currentMonth)
-            ->sum('group4.revenue_target');
+        $currentMonthTarget = DB::table('revenues as r')
+            ->where('r.tahun', $currentYear)
+            ->where('r.bulan', $currentMonth)
+            ->sum('r.revenue_target');
 
         return [
             'total_revenue' => (float) $totalRevenue,
@@ -441,31 +622,34 @@ class RevenueAnalyticsService
         $result = [];
 
         // Calculate total revenue for share percentage
-        $totalRevenue = DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        $totalRevenue = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-            ->where('group4.tahun', $year)
-            ->sum('group4.revenue_realisasi');
+            ->where('r.tahun', $year)
+            ->sum('r.revenue_realisasi');
 
         foreach ($subsegments as $subsegment) {
             // Get subsegment totals
-            $subsegmentRevenue = DB::table('group4')
-                ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+            $subsegmentRevenue = DB::table('group4 as p')
+                ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
                 ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
                 ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
                 ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
                 ->where('companies.subsegment', $subsegment)
-                ->where('group4.tahun', $year)
-                ->sum('group4.revenue_realisasi');
+                ->where('r.tahun', $year)
+                ->sum('r.revenue_realisasi');
 
-            $subsegmentCompanies = DB::table('group4')
-                ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+            $subsegmentCompanies = DB::table('group4 as p')
+                ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
                 ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
                 ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
                 ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
                 ->where('companies.subsegment', $subsegment)
-                ->where('group4.tahun', $year)
+                ->where('r.tahun', $year)
                 ->distinct('companies.nip_nas')
                 ->count('companies.nip_nas');
 
@@ -475,16 +659,17 @@ class RevenueAnalyticsService
 
             foreach ($regions as $region) {
                 // Get region revenue for this subsegment through company's witel
-                $regionRevenue = DB::table('group4')
-                    ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+                $regionRevenue = DB::table('group4 as p')
+                    ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                    ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
                     ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
                     ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
                     ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
                     ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
                     ->where('witels.region_id', $region->id)
                     ->where('companies.subsegment', $subsegment)
-                    ->where('group4.tahun', $year)
-                    ->sum('group4.revenue_realisasi');
+                    ->where('r.tahun', $year)
+                    ->sum('r.revenue_realisasi');
 
                 if ($regionRevenue > 0) {
                     // Get top 3 companies in this region for this subsegment
@@ -492,15 +677,16 @@ class RevenueAnalyticsService
                         ->join('group1', 'companies.nip_nas', '=', 'group1.company_id')
                         ->join('group2', 'group1.idGroup1', '=', 'group2.group1_id')
                         ->join('group3', 'group2.idGroup2', '=', 'group3.group2_id')
-                        ->join('group4', 'group3.idGroup3', '=', 'group4.group3_id')
+                        ->join('group4 as p', 'group3.idGroup3', '=', 'p.group3_id')
+                        ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
                         ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
                         ->where('witels.region_id', $region->id)
                         ->where('companies.subsegment', $subsegment)
-                        ->where('group4.tahun', $year)
+                        ->where('r.tahun', $year)
                         ->select(
                             'companies.nip_nas',
                             'companies.nama_perusahaan',
-                            DB::raw('SUM(group4.revenue_realisasi) as total_revenue')
+                            DB::raw('SUM(r.revenue_realisasi) as total_revenue')
                         )
                         ->groupBy('companies.nip_nas', 'companies.nama_perusahaan')
                         ->orderByDesc('total_revenue')
@@ -517,15 +703,16 @@ class RevenueAnalyticsService
                         })
                         ->toArray();
 
-                    $regionCompanyCount = DB::table('group4')
-                        ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+                    $regionCompanyCount = DB::table('group4 as p')
+                        ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                        ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
                         ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
                         ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
                         ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
                         ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
                         ->where('witels.region_id', $region->id)
                         ->where('companies.subsegment', $subsegment)
-                        ->where('group4.tahun', $year)
+                        ->where('r.tahun', $year)
                         ->distinct('companies.nip_nas')
                         ->count('companies.nip_nas');
 

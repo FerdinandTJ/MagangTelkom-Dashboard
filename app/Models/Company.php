@@ -159,14 +159,15 @@ class Company extends Model
      */
     public function getRevenueByYear(int $year): float
     {
-        // Sum realisasi from group4 filtered by year
-        return (float) \DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        // Sum realisasi from revenues table filtered by year
+        return (float) \DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
             ->where('group1.company_id', $this->nip_nas)
-            ->where('group4.tahun', $year)
-            ->sum('group4.revenue_realisasi');
+            ->where('r.tahun', $year)
+            ->sum('r.revenue_realisasi');
     }
 
     /**
@@ -176,14 +177,15 @@ class Company extends Model
      */
     public function getRevenueByMonth(int $year, int $month): float
     {
-        return (float) \DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        return (float) \DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
             ->where('group1.company_id', $this->nip_nas)
-            ->where('group4.tahun', $year)
-            ->where('group4.bulan', $month)
-            ->sum('group4.revenue_realisasi');
+            ->where('r.tahun', $year)
+            ->where('r.bulan', $month)
+            ->sum('r.revenue_realisasi');
     }
 
     /**
@@ -191,12 +193,13 @@ class Company extends Model
      */
     public function getTotalRevenueAttribute(): float
     {
-        return (float) \DB::table('group4')
-            ->join('group3', 'group4.group3_id', '=', 'group3.idGroup3')
+        return (float) \DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
             ->where('group1.company_id', $this->nip_nas)
-            ->sum('group4.revenue_realisasi');
+            ->sum('r.revenue_realisasi');
     }
 
     /**
