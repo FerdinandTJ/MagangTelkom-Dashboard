@@ -208,17 +208,21 @@ class RevenueAnalyticsService
     private function buildYtdHierarchicalTree(int $currentYear, int $currentMonth, int $previousYear, int $previousMonth): array
     {
         // Get AGGREGATED current period data using normalized schema
-        // JOIN group4 (product master) with revenues (time-series)
+        // JOIN group4 (product master) with revenues (time-series) and companies
         $currentData = DB::table('group4 as p')
             ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
             ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+            ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
             ->where('r.tahun', $currentYear)
             ->where('r.bulan', '<=', $currentMonth)
             ->select(
                 'group1.idGroup1',
                 'group1.nama_group1',
+                'group1.company_id',
+                'companies.nama_perusahaan',
+                'companies.subsegment',
                 'group2.idGroup2',
                 'group2.nama_group2',
                 'group3.idGroup3',
@@ -228,7 +232,8 @@ class RevenueAnalyticsService
                 DB::raw('SUM(r.revenue_realisasi) as current_revenue')
             )
             ->groupBy(
-                'group1.idGroup1', 'group1.nama_group1',
+                'group1.idGroup1', 'group1.nama_group1', 'group1.company_id',
+                'companies.nama_perusahaan', 'companies.subsegment',
                 'group2.idGroup2', 'group2.nama_group2',
                 'group3.idGroup3', 'group3.nama_group3',
                 'p.idGroup4', 'p.nama_group4'
@@ -259,7 +264,7 @@ class RevenueAnalyticsService
 
         // Build hierarchical structure
         $tree = [];
-
+        
         foreach ($currentData as $row) {
             // Get previous revenue using stable product ID (not names!)
             $previousRevenue = $previousRevenueMap[$row->idGroup4] ?? 0;
@@ -304,15 +309,25 @@ class RevenueAnalyticsService
                 ];
             }
 
-            // Add Group4 (leaf node with aggregated YTD revenue) - only if not exists
+            // Add Group4 (leaf node) with company info - only if not exists
             $g4Key = 'g4_' . $row->idGroup4;
             if (!isset($tree[$g1Key]['children'][$g2Key]['children'][$g3Key]['children'][$g4Key])) {
+                // Track company for this specific Group4 product
+                $companyInfo = [
+                    'company_id' => $row->company_id,
+                    'company_name' => $row->nama_perusahaan,
+                    'subsegment' => $row->subsegment,
+                    'current_revenue' => $currentRevenue,
+                    'previous_revenue' => $previousRevenue,
+                ];
+                
                 $tree[$g1Key]['children'][$g2Key]['children'][$g3Key]['children'][$g4Key] = [
                     'id' => $g4Key,
                     'name' => $row->nama_group4,
                     'type' => 'group4',
                     'current_revenue' => $currentRevenue,
                     'previous_revenue' => $previousRevenue,
+                    'company_info' => $companyInfo, // Store single company info here
                     'children' => []
                 ];
 
@@ -342,6 +357,25 @@ class RevenueAnalyticsService
                     $this->calculateGrowthMetricsForNode($g3);
                     
                     foreach ($g3['children'] as &$g4) {
+                        // Format company info for Group4
+                        if (isset($g4['company_info'])) {
+                            $company = $g4['company_info'];
+                            $growth = $company['previous_revenue'] > 0 
+                                ? (($company['current_revenue'] - $company['previous_revenue']) / $company['previous_revenue']) * 100 
+                                : 0;
+                            
+                            $g4['company_info'] = [
+                                'company_id' => $company['company_id'],
+                                'company_name' => $company['company_name'],
+                                'subsegment' => $company['subsegment'],
+                                'current_revenue' => $company['current_revenue'],
+                                'previous_revenue' => $company['previous_revenue'],
+                                'growth_percentage' => round($growth, 2),
+                                'formatted_current' => 'Rp ' . number_format($company['current_revenue'], 0, ',', '.'),
+                                'formatted_previous' => 'Rp ' . number_format($company['previous_revenue'], 0, ',', '.'),
+                                'is_positive' => $growth >= 0
+                            ];
+                        }
                         $this->calculateGrowthMetricsForNode($g4);
                     }
                 }

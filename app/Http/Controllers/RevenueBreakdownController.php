@@ -105,18 +105,26 @@ class RevenueBreakdownController extends Controller
                         'children' => [],
                     ];
 
-                    // Get all Group4 for this Group3
-                    $group4Query = Group4::where('group3_id', $g3->idGroup3);
+                    // Get all Group4 products for this Group3 with revenues
+                    $group4Query = DB::table('group4 as p')
+                        ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                        ->where('p.group3_id', $g3->idGroup3);
                     
                     // Apply filters if provided
                     if ($tahun) {
-                        $group4Query->where('tahun', $tahun);
+                        $group4Query->where('r.tahun', $tahun);
                     }
                     if ($bulan) {
-                        $group4Query->where('bulan', $bulan);
+                        $group4Query->where('r.bulan', $bulan);
                     }
                     
-                    $group4s = $group4Query->get();
+                    $group4s = $group4Query->select(
+                        'p.idGroup4',
+                        'p.nama_group4',
+                        'r.tahun',
+                        'r.bulan',
+                        'r.revenue_realisasi'
+                    )->get();
 
                     // If no month filter, aggregate by nama_group4
                     if (!$bulan) {
