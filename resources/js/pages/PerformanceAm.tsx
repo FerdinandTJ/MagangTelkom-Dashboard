@@ -103,6 +103,8 @@ export default function PerformanceAM({
     const [selectedAMNik, setSelectedAMNik] = useState<string | null>(null);
     const [isYearToDate, setIsYearToDate] = useState(currentYtd);
     const [activeRevenueTab, setActiveRevenueTab] = useState<'chart' | 'regional'>('chart');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 15;
 
     // Get unique regions dari amRevenueRanking
     const availableRegions = ['ALL', ...Array.from(new Set(amRevenueRanking.map(am => am.region_code)))].filter(Boolean);
@@ -126,6 +128,17 @@ export default function PerformanceAM({
     const filteredAccountManagerList = selectedRegion === 'ALL'
         ? accountManagerList
         : accountManagerList.filter(am => nikToRegionMap.get(am.nik) === selectedRegion);
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredAccountManagerList.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedAccountManagerList = filteredAccountManagerList.slice(startIndex, endIndex);
+
+    // Reset to page 1 when filter changes
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedRegion]);
 
     // Fungsi untuk handle perubahan filter tahun
     const handleYearChange = (year: string) => {
@@ -754,11 +767,11 @@ export default function PerformanceAM({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredAccountManagerList.length > 0 ? (
-                                        filteredAccountManagerList.map((am, index) => (
+                                    {paginatedAccountManagerList.length > 0 ? (
+                                        paginatedAccountManagerList.map((am, index) => (
                                             <tr key={am.nik} className="border-b border-gray-100 hover:bg-gray-50">
                                                 <td className="py-3 px-4">
-                                                    <div className="text-gray-700">{index + 1}</div>
+                                                    <div className="text-gray-700">{startIndex + index + 1}</div>
                                                 </td>
                                                 <td className="py-3 px-4">
                                                     <div className="font-medium text-gray-900">{am.nama}</div>
@@ -790,6 +803,47 @@ export default function PerformanceAM({
                                 </tbody>
                             </table>
                         </div>
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                                <div className="text-sm text-gray-600">
+                                    Showing {startIndex + 1} to {Math.min(endIndex, filteredAccountManagerList.length)} of {filteredAccountManagerList.length} Account Managers
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="h-8"
+                                    >
+                                        Previous
+                                    </Button>
+                                    <div className="flex items-center gap-1">
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                            <Button
+                                                key={page}
+                                                variant={currentPage === page ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`h-8 w-8 ${currentPage === page ? 'bg-red-600 hover:bg-red-700' : ''}`}
+                                            >
+                                                {page}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="h-8"
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
