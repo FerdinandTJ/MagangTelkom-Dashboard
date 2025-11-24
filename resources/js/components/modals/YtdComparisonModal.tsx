@@ -28,20 +28,7 @@ interface GroupBreakdown {
     formatted_previous: string;
     formatted_growth: string;
     is_positive: boolean;
-    company_info?: CompanyInfo; // Only for Group4
     children?: GroupBreakdown[];
-}
-
-interface CompanyInfo {
-    company_id: string;
-    company_name: string;
-    subsegment: string;
-    current_revenue: number;
-    previous_revenue: number;
-    growth_percentage: number;
-    formatted_current: string;
-    formatted_previous: string;
-    is_positive: boolean;
 }
 
 interface YtdComparisonData {
@@ -166,7 +153,6 @@ interface YtdTreeNodeProps {
 
 const YtdTreeNode: React.FC<YtdTreeNodeProps> = ({ group, level, expandedItems, onToggle }) => {
     const hasChildren = group.children && group.children.length > 0;
-    const hasCompanyInfo = group.company_info !== undefined;
     const isExpanded = expandedItems.has(group.id);
 
     const getRowBackgroundColor = () => {
@@ -205,11 +191,6 @@ const YtdTreeNode: React.FC<YtdTreeNodeProps> = ({ group, level, expandedItems, 
                         )}
                         <span className={`font-semibold text-gray-900 dark:text-gray-100 ${getTextSize()}`}>
                             {group.name}
-                            {hasCompanyInfo && (
-                                <span className="ml-2 font-normal text-blue-600 dark:text-blue-400">
-                                    ({group.company_info!.company_name})
-                                </span>
-                            )}
                         </span>
                         {hasChildren && (
                             <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
