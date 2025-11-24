@@ -28,6 +28,8 @@ interface PerformanceAMProps {
         region_code: string;
         t_revenue: number;
         formatted_revenue: string;
+        r_revenue: number;
+        formatted_r_revenue: string;
     }>;
     regionDistribution: Array<{
         region_id: number;
@@ -51,6 +53,16 @@ interface PerformanceAMProps {
             achievement: number;
             formatted_achievement: string;
         }>;
+    }>;
+    bestPerformance: Array<{
+        nik: string;
+        am_name: string;
+        region_code: string;
+        revenue: number;
+        formatted_revenue: string;
+        growth: number;
+        formatted_growth: string;
+        company_count: number;
     }>;
     accountManagerList: Array<{
         no: number;
@@ -77,6 +89,7 @@ export default function PerformanceAM({
     amRevenueRanking,
     regionDistribution,
     regionalPerformance,
+    bestPerformance,
     accountManagerList,
     currentYear,
     currentQuartal,
@@ -342,65 +355,66 @@ export default function PerformanceAM({
                 {/* Charts Section - Fungsi ini untuk menampilkan visualisasi data dalam bentuk chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 mb-8">
                     {/* Target Revenue AM Chart - Chart dengan lebar 70% (7 kolom dari 10) */}
-                    <Card className="lg:col-span-7">
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Target className="h-5 w-5 text-red-600" />
-                                        {activeRevenueTab === 'chart' ? 'Target Revenue AM' : 'Performance AM'}
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {activeRevenueTab === 'chart' 
-                                            ? 'Total target revenue per Account Manager'
-                                            : 'Regional performance with top Account Managers'
-                                        }
-                                    </CardDescription>
+                    <div className="lg:col-span-7 flex flex-col gap-6">
+                        <Card className="flex-1">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Target className="h-5 w-5 text-red-600" />
+                                            {activeRevenueTab === 'chart' ? 'Target Revenue AM' : 'Performance AM'}
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {activeRevenueTab === 'chart' 
+                                                ? 'Total target revenue per Account Manager'
+                                                : 'Regional performance with top Account Managers'
+                                            }
+                                        </CardDescription>
+                                    </div>
+                                    {/* Filter Region untuk chart ini */}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-600">Region:</span>
+                                        <Select value={selectedRegion} onValueChange={handleRegionChange}>
+                                            <SelectTrigger className="w-[140px]">
+                                                <SelectValue placeholder="All Regions" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableRegions.map((region) => (
+                                                    <SelectItem key={region} value={region}>
+                                                        {region === 'ALL' ? 'All Regions' : region}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
-                                {/* Filter Region untuk chart ini */}
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-600">Region:</span>
-                                    <Select value={selectedRegion} onValueChange={handleRegionChange}>
-                                        <SelectTrigger className="w-[140px]">
-                                            <SelectValue placeholder="All Regions" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {availableRegions.map((region) => (
-                                                <SelectItem key={region} value={region}>
-                                                    {region === 'ALL' ? 'All Regions' : region}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                {/* Tab Switcher */}
+                                <div className="flex gap-2 mt-4">
+                                    <Button
+                                        variant={activeRevenueTab === 'chart' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setActiveRevenueTab('chart')}
+                                        className={activeRevenueTab === 'chart' ? 'bg-red-600 hover:bg-red-700' : ''}
+                                    >
+                                        Chart View
+                                    </Button>
+                                    <Button
+                                        variant={activeRevenueTab === 'regional' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setActiveRevenueTab('regional')}
+                                        className={activeRevenueTab === 'regional' ? 'bg-red-600 hover:bg-red-700' : ''}
+                                    >
+                                        Regional Performance
+                                    </Button>
                                 </div>
-                            </div>
-                            {/* Tab Switcher */}
-                            <div className="flex gap-2 mt-4">
-                                <Button
-                                    variant={activeRevenueTab === 'chart' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setActiveRevenueTab('chart')}
-                                    className={activeRevenueTab === 'chart' ? 'bg-red-600 hover:bg-red-700' : ''}
-                                >
-                                    Chart View
-                                </Button>
-                                <Button
-                                    variant={activeRevenueTab === 'regional' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setActiveRevenueTab('regional')}
-                                    className={activeRevenueTab === 'regional' ? 'bg-red-600 hover:bg-red-700' : ''}
-                                >
-                                    Regional Performance
-                                </Button>
-                            </div>
-                        </CardHeader>
+                            </CardHeader>
                         <CardContent>
                             {activeRevenueTab === 'chart' ? (
                                 /* Chart View */
                                 <div className="overflow-x-auto">
-                                    <div style={{ width: `${Math.max(filteredAmRevenueRanking.length * 60, 800)}px`, minHeight: '300px' }}>
-                                        <ResponsiveContainer width="100%" height={300}>
-                                            <BarChart data={filteredAmRevenueRanking}>
+                                    <div style={{ width: `${Math.max(filteredAmRevenueRanking.length * 100, 800)}px`, minHeight: '400px' }}>
+                                        <ResponsiveContainer width="100%" height={400}>
+                                            <BarChart data={filteredAmRevenueRanking} barGap={4} barCategoryGap={10}>
                                                 <XAxis 
                                                     dataKey="am_name" 
                                                     tick={{ fontSize: 12 }}
@@ -419,10 +433,50 @@ export default function PerformanceAM({
                                                     }}
                                                 />
                                                 <Tooltip 
-                                                    formatter={(value: any, name: any, props: any) => [
-                                                        props.payload.formatted_revenue,
-                                                        'Target Revenue'
-                                                    ]}
+                                                    content={({ active, payload, label }) => {
+                                                        if (active && payload && payload.length) {
+                                                            return (
+                                                                <div
+                                                                    style={{
+                                                                        backgroundColor: '#ffffff',
+                                                                        border: '1px solid #e5e7eb',
+                                                                        borderRadius: '8px',
+                                                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                                                        padding: '12px',
+                                                                        color: '#374151'
+                                                                    }}
+                                                                >
+                                                                    <p style={{ fontWeight: 600, marginBottom: '8px', color: '#374151' }}>
+                                                                        AM: {label}
+                                                                    </p>
+                                                                    {payload.map((entry: any, index: number) => {
+                                                                        const formatValue = (val: number) => {
+                                                                            if (val >= 1000000000000) {
+                                                                                return `Rp ${(val / 1000000000000).toFixed(2)}T`;
+                                                                            } else {
+                                                                                return `Rp ${(val / 1000000000).toFixed(2)}M`;
+                                                                            }
+                                                                        };
+                                                                        
+                                                                        return (
+                                                                            <p key={index} style={{ margin: '4px 0', color: '#374151' }}>
+                                                                                <span style={{ 
+                                                                                    display: 'inline-block',
+                                                                                    width: '12px',
+                                                                                    height: '12px',
+                                                                                    backgroundColor: entry.color,
+                                                                                    marginRight: '8px',
+                                                                                    borderRadius: '2px'
+                                                                                }}></span>
+                                                                                {entry.dataKey === 't_revenue' ? 'Target Revenue' : 'Actual Revenue'}: {formatValue(entry.value)}
+                                                                            </p>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    }}
                                                 />
                                                 <Bar 
                                                     dataKey="t_revenue" 
@@ -430,6 +484,15 @@ export default function PerformanceAM({
                                                     radius={[4, 4, 0, 0]} 
                                                     onClick={handleBarClick}
                                                     cursor="pointer"
+                                                    name="Target Revenue"
+                                                />
+                                                <Bar 
+                                                    dataKey="r_revenue" 
+                                                    fill="#16a34a" 
+                                                    radius={[4, 4, 0, 0]} 
+                                                    onClick={handleBarClick}
+                                                    cursor="pointer"
+                                                    name="Actual Revenue"
                                                 />
                                             </BarChart>
                                         </ResponsiveContainer>
@@ -502,23 +565,11 @@ export default function PerformanceAM({
                                                                 <span className="font-semibold text-gray-900">{am.formatted_revenue}</span>
                                                             </td>
                                                             <td className="p-4 text-right">
-                                                                <div className="inline-flex items-center gap-2">
-                                                                    <div className={`h-2 w-16 rounded-full overflow-hidden bg-gray-200 ${
-                                                                        am.achievement >= 100 ? '' : 'opacity-50'
-                                                                    }`}>
-                                                                        <div 
-                                                                            className={`h-full transition-all duration-300 ${
-                                                                                am.achievement >= 100 ? 'bg-green-500' : 'bg-gray-400'
-                                                                            }`}
-                                                                            style={{ width: `${Math.min(am.achievement, 100)}%` }}
-                                                                        ></div>
-                                                                    </div>
-                                                                    <span className={`font-bold text-sm min-w-[60px] ${
-                                                                        am.achievement >= 100 ? 'text-green-600' : 'text-gray-700'
-                                                                    }`}>
-                                                                        {am.formatted_achievement}
-                                                                    </span>
-                                                                </div>
+                                                                <span className={`font-bold text-sm ${
+                                                                    am.achievement >= 100 ? 'text-green-600' : 'text-gray-700'
+                                                                }`}>
+                                                                    {am.formatted_achievement}
+                                                                </span>
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -529,17 +580,20 @@ export default function PerformanceAM({
                                 </div>
                             )}
                         </CardContent>
-                    </Card>
+                        </Card>
+                    </div>
 
-                    {/* Region Distribution Chart - Chart dengan lebar 30% (3 kolom dari 10) */}
-                    <Card className="lg:col-span-3">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <MapPin className="h-5 w-5 text-red-600" />
-                                Region Distribution
-                            </CardTitle>
-                            <CardDescription>Distribusi AM per Region</CardDescription>
-                        </CardHeader>
+                    {/* Right Column - Region Distribution and Best Performance */}
+                    <div className="lg:col-span-3 flex flex-col gap-6">
+                        {/* Region Distribution Chart */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <MapPin className="h-5 w-5 text-red-600" />
+                                    Region Distribution
+                                </CardTitle>
+                                <CardDescription>Distribusi AM per Region</CardDescription>
+                            </CardHeader>
                         <CardContent>
                             <ResponsiveContainer width="100%" height={300}>
                                 <PieChart>
@@ -605,7 +659,69 @@ export default function PerformanceAM({
                                 </PieChart>
                             </ResponsiveContainer>
                         </CardContent>
-                    </Card>
+                        </Card>
+
+                        {/* Best Performance Card - Hanya muncul saat tab Regional Performance aktif */}
+                        {activeRevenueTab === 'regional' && bestPerformance && bestPerformance.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Target className="h-5 w-5 text-red-600" />
+                                        Best Performance
+                                    </CardTitle>
+                                    <CardDescription>Top 3 Account Managers</CardDescription>
+                                </CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {bestPerformance.map((am, index) => {
+                                        const medals = ['🥇', '🥈', '🥉'];
+                                        const borderColors = ['border-yellow-400', 'border-gray-400', 'border-orange-400'];
+                                        const bgGradients = [
+                                            'from-yellow-50 to-orange-50',
+                                            'from-gray-50 to-gray-100',
+                                            'from-orange-50 to-amber-50'
+                                        ];
+                                        
+                                        return (
+                                            <div key={am.nik} className={`p-4 bg-gradient-to-r ${bgGradients[index]} border-2 ${borderColors[index]} rounded-xl`}>
+                                                {/* Header dengan Rank dan Nama */}
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <div className="flex-shrink-0">
+                                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
+                                                            <span className="text-xl">{medals[index]}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-bold text-base text-gray-900 truncate">{am.am_name}</h3>
+                                                        <p className="text-xs text-gray-600">Region: {am.region_code}</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Metrics dalam satu baris */}
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2 text-center">
+                                                        <p className="text-xs text-gray-600 mb-1">Revenue</p>
+                                                        <p className="text-sm font-bold text-gray-900">{am.formatted_revenue}</p>
+                                                    </div>
+                                                    <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2 text-center">
+                                                        <p className="text-xs text-gray-600 mb-1">Growth</p>
+                                                        <p className={`text-sm font-bold ${am.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {am.growth >= 0 ? '↗' : '↘'} {am.formatted_growth}
+                                                        </p>
+                                                    </div>
+                                                    <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2 text-center">
+                                                        <p className="text-xs text-gray-600 mb-1">CC</p>
+                                                        <p className="text-sm font-bold text-gray-900">{am.company_count}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+                        )}
+                    </div>
                 </div>
 
                 {/* List Account Manager Table - Fungsi ini untuk menampilkan daftar semua Account Manager */}

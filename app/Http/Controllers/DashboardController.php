@@ -102,6 +102,9 @@ class DashboardController extends Controller
             // Table data - Regional Performance with Top 3 AM
             'regionalPerformance' => $this->getRegionalPerformance($currentYear, $quartalsToInclude),
             
+            // Best Performance across all regions
+            'bestPerformance' => $this->getBestPerformance($currentYear, $quartalsToInclude),
+            
             // Table data - List Account Manager
             'accountManagerList' => $this->getAccountManagerList(),
             
@@ -300,7 +303,8 @@ class DashboardController extends Controller
                 'account_managers.nik',
                 'account_managers.nama as am_name',
                 'regions.code as region_code',
-                \DB::raw('COALESCE(SUM(target_account_m.t_revenue), 0) as t_revenue')
+                \DB::raw('COALESCE(SUM(target_account_m.t_revenue), 0) as t_revenue'),
+                \DB::raw('COALESCE(SUM(lini_waktu_target.r_revenue), 0) as r_revenue')
             )
             ->leftJoin('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
             ->leftJoin('regions', 'witels.region_id', '=', 'regions.id')
@@ -321,7 +325,9 @@ class DashboardController extends Controller
                 'am_name' => $item->am_name,
                 'region_code' => $item->region_code,
                 't_revenue' => (float) $item->t_revenue,
-                'formatted_revenue' => $this->formatCurrency($item->t_revenue, 2)
+                'formatted_revenue' => $this->formatCurrency($item->t_revenue, 2),
+                'r_revenue' => (float) $item->r_revenue,
+                'formatted_r_revenue' => $this->formatCurrency($item->r_revenue, 2)
             ];
         })->toArray();
     }
@@ -1257,6 +1263,70 @@ class DashboardController extends Controller
         }
 
         return 0;
+    }
+
+    /**
+     * Fungsi untuk mendapatkan Best Performance AM dari semua region
+     * Berdasarkan total r_revenue tertinggi - Top 3
+     */
+    private function getBestPerformance(int $year, array $quartals): array
+    {
+        // Get top 3 performing AMs by r_revenue
+        $topAMs = \DB::table('account_managers')
+            ->select(
+                'account_managers.nik',
+                'account_managers.nama as am_name',
+                'regions.code as region_code',
+                \DB::raw('COALESCE(SUM(lini_waktu_target.r_revenue), 0) as total_revenue'),
+                \DB::raw('COALESCE(AVG(lini_waktu_target.ach_revenue_plan), 0) as avg_growth')
+            )
+            ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+            ->join('regions', 'witels.region_id', '=', 'regions.id')
+            ->join('lini_waktu', 'account_managers.nik', '=', 'lini_waktu.nik_am')
+            ->join('lini_waktu_target', 'lini_waktu.id', '=', 'lini_waktu_target.lini_waktu_id')
+            ->where('lini_waktu.tahun', $year)
+            ->whereIn('lini_waktu.quartal', $quartals)
+            ->groupBy('account_managers.nik', 'account_managers.nama', 'regions.code')
+            ->orderBy('total_revenue', 'desc')
+            ->limit(3)
+            ->get();
+
+        if ($topAMs->isEmpty()) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($topAMs as $am) {
+            // Get company count for this AM
+            $liniWaktuIds = \DB::table('lini_waktu')
+                ->where('nik_am', $am->nik)
+                ->where('tahun', $year)
+                ->whereIn('quartal', $quartals)
+                ->pluck('id');
+
+            $companyCount = 0;
+            if ($liniWaktuIds->isNotEmpty()) {
+                $companyCount = \DB::table('lini_waktu_target')
+                    ->join('target_account_m', 'lini_waktu_target.target_id', '=', 'target_account_m.id')
+                    ->join('account_manager_company', 'target_account_m.account_manager_company_id', '=', 'account_manager_company.id')
+                    ->whereIn('lini_waktu_target.lini_waktu_id', $liniWaktuIds)
+                    ->distinct('account_manager_company.nip_nas')
+                    ->count('account_manager_company.nip_nas');
+            }
+
+            $result[] = [
+                'nik' => $am->nik,
+                'am_name' => $am->am_name,
+                'region_code' => $am->region_code,
+                'revenue' => (float) $am->total_revenue,
+                'formatted_revenue' => $this->formatCurrency($am->total_revenue, 2),
+                'growth' => round($am->avg_growth, 2),
+                'formatted_growth' => number_format($am->avg_growth, 2) . '%',
+                'company_count' => $companyCount
+            ];
+        }
+
+        return $result;
     }
 
     private function formatCurrency(float $value, int $decimals = 1): string
