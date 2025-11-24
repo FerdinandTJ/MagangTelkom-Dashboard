@@ -204,6 +204,7 @@ class RevenueAnalyticsService
 
     /**
      * Build hierarchical tree breakdown for YTD comparison
+     * AGGREGATES by Group1/2/3 to avoid duplication per company
      */
     private function buildYtdHierarchicalTree(int $currentYear, int $currentMonth, int $previousYear, int $previousMonth): array
     {
@@ -246,32 +247,34 @@ class RevenueAnalyticsService
             ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
             ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
             ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+            ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
             ->where('r.tahun', $previousYear)
             ->where('r.bulan', '<=', $previousMonth)
             ->select(
                 'p.idGroup4',
+                'companies.nip_nas',
                 DB::raw('SUM(r.revenue_realisasi) as previous_revenue')
             )
-            ->groupBy('p.idGroup4')
+            ->groupBy('p.idGroup4', 'companies.nip_nas')
             ->get();
 
-        // Build lookup map for previous period revenues using stable product ID
-        // NOW we can use idGroup4 because it's stable across years! 🎉
+        // Build lookup map for previous period revenues by composite key (product + company)
         $previousRevenueMap = [];
         foreach ($previousData as $item) {
-            $previousRevenueMap[$item->idGroup4] = (float) $item->previous_revenue;
+            $key = "{$item->idGroup4}_{$item->nip_nas}";
+            $previousRevenueMap[$key] = (float) $item->previous_revenue;
         }
 
-        // Build hierarchical structure
+        // Build hierarchical structure - AGGREGATING at parent levels
         $tree = [];
         
         foreach ($currentData as $row) {
-            // Get previous revenue using stable product ID (not names!)
-            $previousRevenue = $previousRevenueMap[$row->idGroup4] ?? 0;
+            $compositeKey = "{$row->idGroup4}_{$row->company_id}";
+            $previousRevenue = $previousRevenueMap[$compositeKey] ?? 0;
             $currentRevenue = (float) $row->current_revenue;
 
-            // Build Group1 (if not exists)
-            $g1Key = 'g1_' . $row->idGroup1;
+            // Build Group1 by NAME (not ID) - AGGREGATE across all companies with same name
+            $g1Key = 'g1_' . strtolower(str_replace(' ', '_', $row->nama_group1));
             if (!isset($tree[$g1Key])) {
                 $tree[$g1Key] = [
                     'id' => $g1Key,
@@ -283,8 +286,8 @@ class RevenueAnalyticsService
                 ];
             }
 
-            // Build Group2 (if not exists)
-            $g2Key = 'g2_' . $row->idGroup2;
+            // Build Group2 by NAME (not ID) - AGGREGATE across all companies with same name
+            $g2Key = 'g2_' . strtolower(str_replace(' ', '_', $row->nama_group2));
             if (!isset($tree[$g1Key]['children'][$g2Key])) {
                 $tree[$g1Key]['children'][$g2Key] = [
                     'id' => $g2Key,
@@ -296,8 +299,8 @@ class RevenueAnalyticsService
                 ];
             }
 
-            // Build Group3 (if not exists)
-            $g3Key = 'g3_' . $row->idGroup3;
+            // Build Group3 by NAME (not ID) - AGGREGATE across all companies with same name
+            $g3Key = 'g3_' . strtolower(str_replace(' ', '_', $row->nama_group3));
             if (!isset($tree[$g1Key]['children'][$g2Key]['children'][$g3Key])) {
                 $tree[$g1Key]['children'][$g2Key]['children'][$g3Key] = [
                     'id' => $g3Key,
@@ -309,25 +312,18 @@ class RevenueAnalyticsService
                 ];
             }
 
-            // Add Group4 (leaf node) with company info - only if not exists
-            $g4Key = 'g4_' . $row->idGroup4;
+            // Build Group4 with company - UNIQUE per company (key = product_id + company_id)
+            $g4Key = 'g4_' . $row->idGroup4 . '_' . $row->company_id;
             if (!isset($tree[$g1Key]['children'][$g2Key]['children'][$g3Key]['children'][$g4Key])) {
-                // Track company for this specific Group4 product
-                $companyInfo = [
-                    'company_id' => $row->company_id,
-                    'company_name' => $row->nama_perusahaan,
-                    'subsegment' => $row->subsegment,
-                    'current_revenue' => $currentRevenue,
-                    'previous_revenue' => $previousRevenue,
-                ];
+                // Format product name with company inline
+                $productNameWithCompany = "{$row->nama_group4} ({$row->nama_perusahaan})";
                 
                 $tree[$g1Key]['children'][$g2Key]['children'][$g3Key]['children'][$g4Key] = [
                     'id' => $g4Key,
-                    'name' => $row->nama_group4,
+                    'name' => $productNameWithCompany, // Display: "Service A (PT Telkom)"
                     'type' => 'group4',
                     'current_revenue' => $currentRevenue,
                     'previous_revenue' => $previousRevenue,
-                    'company_info' => $companyInfo, // Store single company info here
                     'children' => []
                 ];
 
