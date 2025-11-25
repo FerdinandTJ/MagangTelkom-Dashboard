@@ -339,8 +339,7 @@ const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
                     previous_year: previousYearInput,
                     previous_month: previousMonthInput
                 }
-            });
-
+            });          
             if (response.data.success) {
                 setComparisonData(response.data.data);
             } else {
