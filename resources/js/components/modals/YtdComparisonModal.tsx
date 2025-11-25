@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -7,7 +7,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, TrendingDown, Calendar, ChevronDown, ChevronRight } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Calendar, ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 import axios from '@/lib/axios';
 import { formatCurrency, formatCurrencyFull } from '@/utils/currency';
 
@@ -58,6 +58,98 @@ interface YtdBreakdownTreeProps {
 
 const YtdBreakdownTree: React.FC<YtdBreakdownTreeProps> = ({ data, currentPeriod, previousPeriod }) => {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [matchCount, setMatchCount] = useState<number>(0);
+
+    // Filter and search logic
+    const { filteredData, matchedIds } = useMemo(() => {
+        if (!searchQuery.trim()) {
+            return { filteredData: data, matchedIds: new Set<string>() };
+        }
+
+        const query = searchQuery.toLowerCase();
+        const matched = new Set<string>();
+        const ancestorIds = new Set<string>();
+
+        // Recursive function to check if node or any descendant matches
+        const checkNodeMatch = (node: GroupBreakdown, ancestors: string[]): boolean => {
+            const nameMatches = node.name.toLowerCase().includes(query);
+            
+            if (nameMatches) {
+                matched.add(node.id);
+                // Add all ancestors to ensure path visibility
+                ancestors.forEach(id => ancestorIds.add(id));
+            }
+
+            let hasMatchingChild = false;
+            if (node.children) {
+                for (const child of node.children) {
+                    if (checkNodeMatch(child, [...ancestors, node.id])) {
+                        hasMatchingChild = true;
+                        ancestorIds.add(node.id); // Mark this node as ancestor of match
+                    }
+                }
+            }
+
+            return nameMatches || hasMatchingChild;
+        };
+
+        // Filter data - only include nodes that match or have matching descendants
+        const filterData = (nodes: GroupBreakdown[]): GroupBreakdown[] => {
+            return nodes
+                .map(node => {
+                    const hasMatch = checkNodeMatch(node, []);
+                    
+                    if (!hasMatch) return null;
+
+                    // If node has children, filter them recursively
+                    if (node.children && node.children.length > 0) {
+                        const filteredChildren = filterData(node.children);
+                        return {
+                            ...node,
+                            children: filteredChildren
+                        };
+                    }
+
+                    return node;
+                })
+                .filter((node): node is GroupBreakdown => node !== null);
+        };
+
+        const filtered = filterData(data);
+        
+        return { 
+            filteredData: filtered, 
+            matchedIds: matched,
+            ancestorIds
+        };
+    }, [data, searchQuery]);
+
+    // Auto-expand matched nodes and their ancestors when searching
+    useEffect(() => {
+        if (searchQuery.trim() && matchedIds.size > 0) {
+            const newExpanded = new Set(expandedItems);
+            
+            // Expand all ancestor nodes to show matches
+            const expandAncestors = (nodes: GroupBreakdown[], path: string[] = []) => {
+                nodes.forEach(node => {
+                    if (matchedIds.has(node.id)) {
+                        // Expand all ancestors in path
+                        path.forEach(id => newExpanded.add(id));
+                    }
+                    if (node.children) {
+                        expandAncestors(node.children, [...path, node.id]);
+                    }
+                });
+            };
+
+            expandAncestors(filteredData);
+            setExpandedItems(newExpanded);
+            setMatchCount(matchedIds.size);
+        } else {
+            setMatchCount(0);
+        }
+    }, [searchQuery, matchedIds, filteredData]);
 
     const toggleExpand = (id: string) => {
         const newExpanded = new Set(expandedItems);
@@ -81,15 +173,62 @@ const YtdBreakdownTree: React.FC<YtdBreakdownTreeProps> = ({ data, currentPeriod
     };
 
     const expandAll = () => {
-        setExpandedItems(new Set(getAllNodeIds(data)));
+        setExpandedItems(new Set(getAllNodeIds(filteredData)));
     };
 
     const collapseAll = () => {
         setExpandedItems(new Set());
     };
 
+    const clearSearch = () => {
+        setSearchQuery('');
+        setMatchCount(0);
+    };
+
     return (
         <div className="space-y-3">
+            {/* Search Bar */}
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                    type="text"
+                    placeholder="Search by product or company name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+                {searchQuery && (
+                    <button
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                        title="Clear search"
+                    >
+                        <X className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                    </button>
+                )}
+            </div>
+
+            {/* Search Results Info */}
+            {searchQuery && (
+                <div className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <span className="text-sm text-blue-700 dark:text-blue-300">
+                        {matchCount > 0 ? (
+                            <>Found <span className="font-semibold">{matchCount}</span> {matchCount === 1 ? 'match' : 'matches'}</>
+                        ) : (
+                            <>No matches found for "<span className="font-semibold">{searchQuery}</span>"</>
+                        )}
+                    </span>
+                    {matchCount > 0 && (
+                        <button
+                            onClick={clearSearch}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 font-medium"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* Control Buttons */}
             <div className="flex justify-end gap-2">
                 <button
@@ -128,15 +267,25 @@ const YtdBreakdownTree: React.FC<YtdBreakdownTreeProps> = ({ data, currentPeriod
                         </tr>
                     </thead>
                     <tbody>
-                        {data.map((group) => (
-                            <YtdTreeNode 
-                                key={group.id} 
-                                group={group}
-                                level={0}
-                                expandedItems={expandedItems}
-                                onToggle={toggleExpand}
-                            />
-                        ))}
+                        {filteredData.length > 0 ? (
+                            filteredData.map((group) => (
+                                <YtdTreeNode 
+                                    key={group.id} 
+                                    group={group}
+                                    level={0}
+                                    expandedItems={expandedItems}
+                                    onToggle={toggleExpand}
+                                    searchQuery={searchQuery}
+                                    matchedIds={matchedIds}
+                                />
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={4} className="p-8 text-center text-gray-500 dark:text-gray-400">
+                                    No results found
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -149,11 +298,43 @@ interface YtdTreeNodeProps {
     level: number;
     expandedItems: Set<string>;
     onToggle: (id: string) => void;
+    searchQuery?: string;
+    matchedIds?: Set<string>;
 }
 
-const YtdTreeNode: React.FC<YtdTreeNodeProps> = ({ group, level, expandedItems, onToggle }) => {
+const YtdTreeNode: React.FC<YtdTreeNodeProps> = ({ 
+    group, 
+    level, 
+    expandedItems, 
+    onToggle,
+    searchQuery = '',
+    matchedIds = new Set()
+}) => {
     const hasChildren = group.children && group.children.length > 0;
     const isExpanded = expandedItems.has(group.id);
+    const isMatched = matchedIds.has(group.id);
+
+    // Highlight matching text
+    const highlightText = (text: string) => {
+        if (!searchQuery || !isMatched) {
+            return text;
+        }
+
+        const parts = text.split(new RegExp(`(${searchQuery})`, 'gi'));
+        return parts.map((part, index) => {
+            if (part.toLowerCase() === searchQuery.toLowerCase()) {
+                return (
+                    <mark 
+                        key={index} 
+                        className="bg-yellow-200 dark:bg-yellow-600 text-gray-900 dark:text-gray-100 px-0.5 rounded"
+                    >
+                        {part}
+                    </mark>
+                );
+            }
+            return part;
+        });
+    };
 
     const getRowBackgroundColor = () => {
         if (level === 0) return 'bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30';
@@ -190,7 +371,7 @@ const YtdTreeNode: React.FC<YtdTreeNodeProps> = ({ group, level, expandedItems, 
                             <div className="w-6 flex-shrink-0" />
                         )}
                         <span className={`font-semibold text-gray-900 dark:text-gray-100 ${getTextSize()}`}>
-                            {group.name}
+                            {highlightText(group.name)}
                         </span>
                         {hasChildren && (
                             <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
@@ -239,6 +420,8 @@ const YtdTreeNode: React.FC<YtdTreeNodeProps> = ({ group, level, expandedItems, 
                     level={level + 1}
                     expandedItems={expandedItems}
                     onToggle={onToggle}
+                    searchQuery={searchQuery}
+                    matchedIds={matchedIds}
                 />
             ))}
         </>
