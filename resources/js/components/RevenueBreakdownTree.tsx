@@ -1,6 +1,6 @@
 import React, { useState, createContext, useContext } from 'react';
 import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp } from 'lucide-react';
-import { formatCurrency } from '@/utils/currency';
+import { formatCurrencyFull } from '@/utils/currency';
 
 interface RevenueNode {
     id: string;
@@ -150,7 +150,7 @@ const TreeNode: React.FC<{ node: RevenueNode; level: number }> = ({ node, level 
                     <div className="flex flex-col items-end">
                         <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Revenue</span>
                         <span className="font-bold text-blue-700 dark:text-blue-400 text-base">
-                            {formatCurrency(node.revenue, 2)}
+                            {formatCurrencyFull(node.revenue)}
                         </span>
                     </div>
                 </td>

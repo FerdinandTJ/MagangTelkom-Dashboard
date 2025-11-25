@@ -150,13 +150,13 @@ const SubsegmentDetailModal: React.FC<SubsegmentDetailModalProps> = ({
 
                 {/* Summary Cards */}
                 {summary ? (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30 p-4 rounded-lg border border-red-100 dark:border-red-900">
                             <div className="flex items-center gap-2 mb-2">
                                 <TrendingUp className="h-5 w-5 text-red-600 dark:text-red-400" />
                                 <span className="text-sm font-medium text-red-700 dark:text-red-300">Total Revenue</span>
                             </div>
-                            <p className="text-xl font-bold text-red-900 dark:text-red-100">{summary.formatted_total_revenue || 'Rp 0.00M'}</p>
+                            <p className="text-xl font-bold text-red-900 dark:text-red-100">{summary.formatted_total_revenue || 'Rp 0'}</p>
                         </div>
                         
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
@@ -165,14 +165,6 @@ const SubsegmentDetailModal: React.FC<SubsegmentDetailModalProps> = ({
                                 <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Companies</span>
                             </div>
                             <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{summary.total_companies || 0}</p>
-                        </div>
-                        
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-100 dark:border-green-900">
-                            <div className="flex items-center gap-2 mb-2">
-                                <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                <span className="text-sm font-medium text-green-700 dark:text-green-300">Avg Revenue</span>
-                            </div>
-                            <p className="text-xl font-bold text-green-900 dark:text-green-100">{summary.formatted_avg_revenue || 'Rp 0.00M'}</p>
                         </div>
                         
                         <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 p-4 rounded-lg border border-purple-100 dark:border-purple-900">

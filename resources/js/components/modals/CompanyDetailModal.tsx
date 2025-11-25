@@ -250,21 +250,13 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                     <>
                         {/* Summary Cards - Always show if we have summary data */}
                         {summary ? (
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
                                     <div className="flex items-center gap-2 mb-2">
                                         <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                         <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Revenue</span>
                                     </div>
-                                    <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{summary.formatted_total_revenue || 'Rp 0.00M'}</p>
-                                </div>
-                                
-                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-100 dark:border-green-900">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <BarChart3 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                        <span className="text-sm font-medium text-green-700 dark:text-green-300">Avg Monthly</span>
-                                    </div>
-                                    <p className="text-xl font-bold text-green-900 dark:text-green-100">{summary.formatted_avg_monthly || 'Rp 0.00M'}</p>
+                                    <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{summary.formatted_total_revenue || 'Rp 0'}</p>
                                 </div>
                                 
                                 <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 p-4 rounded-lg border border-purple-100 dark:border-purple-900">
@@ -275,14 +267,6 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                     <p className="text-xl font-bold text-purple-900 dark:text-purple-100">
                                         {summary.period || 'All Time'}
                                     </p>
-                                </div>
-                                
-                                <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 p-4 rounded-lg border border-orange-100 dark:border-orange-900">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                                        <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Best Year</span>
-                                    </div>
-                                    <p className="text-xl font-bold text-orange-900 dark:text-orange-100">{summary.best_year || 'N/A'}</p>
                                 </div>
                             </div>
                         ) : (

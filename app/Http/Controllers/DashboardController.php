@@ -529,9 +529,7 @@ class DashboardController extends Controller
         $summaryData = [
             'total_revenue' => $totalRevenue,
             'total_companies' => $totalCompanies,
-            'avg_revenue' => $avgRevenue,
-            'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue / 1000000000, 2) . 'M',
-            'formatted_avg_revenue' => 'Rp ' . number_format($avgRevenue / 1000000000, 2) . 'M'
+            'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue, 0, ',', '.')
         ];
 
         return response()->json([
@@ -726,8 +724,8 @@ class DashboardController extends Controller
             'avg_monthly_revenue' => $avgMonthlyRevenue,
             'best_month' => $bestMonthRecord ? $monthNames[$bestMonthRecord->bulan] . ' ' . $bestMonthRecord->tahun : null,
             'best_year' => $bestYear ? $bestYear['tahun'] : null,
-            'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue / 1000000000, 2) . 'M',
-            'formatted_avg_monthly' => 'Rp ' . number_format($avgMonthlyRevenue / 1000000000, 2) . 'M',
+            'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'),
+            'formatted_avg_monthly' => 'Rp ' . number_format($avgMonthlyRevenue, 0, ',', '.'),
             'period' => $periodText,
             'filter_year' => $filterYear,
             'filter_month' => $filterMonth
