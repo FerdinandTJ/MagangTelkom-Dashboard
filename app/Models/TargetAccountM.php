@@ -124,8 +124,8 @@ class TargetAccountM extends Model
 
     /**
      * RELATION: TargetAccountM has many LiniWaktu (Many-to-Many)
-     * Pivot table: lini_waktu_target (berisi realisasi)
-     * Pivot columns: r_revenue, r_scalling, r_datin, dll (14 fields realisasi)
+     * Pivot table: lini_waktu_target (berisi realisasi dan achievement)
+     * Pivot model: LiniWaktuTarget (dengan validation constraints)
      */
     public function liniWaktu(): BelongsToMany
     {
@@ -134,7 +134,9 @@ class TargetAccountM extends Model
             'lini_waktu_target',
             'target_id',
             'lini_waktu_id'
-        )->withPivot([
+        )->using(LiniWaktuTarget::class)
+        ->withPivot([
+            // Realization fields
             'r_revenue',
             'r_scalling',
             'r_datin',
@@ -149,6 +151,26 @@ class TargetAccountM extends Model
             'r_lop',
             'r_capability',
             'r_cc',
+            // Achievement fields - Result
+            'ach_revenue_plan',
+            'ach_scaling',
+            'ach_sales_datin',
+            'ach_hsi',
+            'ach_wireline',
+            'ach_wifi',
+            'ach_cyc',
+            'ach_cr',
+            'ach_profit',
+            'ach_nps',
+            // Achievement fields - Process
+            'ach_maps',
+            'ach_lop',
+            'ach_capability',
+            'ach_cc',
+            // Achievement totals
+            'ach_result',
+            'ach_proses',
+            'nki_adjustment',
         ])->withTimestamps();
     }
 

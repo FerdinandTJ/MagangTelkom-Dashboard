@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Model LiniWaktu
@@ -45,6 +46,22 @@ class LiniWaktu extends Model
         'bulan_akhir',
         'tahun',
         'nik_am',
+        'percentage_result',
+        'percentage_revenue',
+        'percentage_scaling',
+        'percentage_datin',
+        'percentage_hsi',
+        'percentage_wireline',
+        'percentage_wifi',
+        'percentage_cyc',
+        'percentage_cr',
+        'percentage_profit',
+        'percentage_customer',
+        'percentage_proses',
+        'percentage_maps',
+        'percentage_lop',
+        'percentage_capability',
+        'percentage_cc',
     ];
 
     /**
@@ -65,6 +82,70 @@ class LiniWaktu extends Model
     const QUARTAL_Q2 = 'Q2';
     const QUARTAL_Q3 = 'Q3';
     const QUARTAL_Q4 = 'Q4';
+
+    /**
+     * The "booted" method of the model.
+     * Add validation on saving to enforce percentage constraints
+     */
+    protected static function booted(): void
+    {
+        // Validate before saving (creating or updating)
+        static::saving(function (LiniWaktu $liniWaktu) {
+            $liniWaktu->validatePercentages();
+        });
+    }
+
+    /**
+     * Validate percentage constraints
+     * 
+     * @throws ValidationException
+     */
+    public function validatePercentages(): void
+    {
+        // Rule 1: percentage_result + percentage_proses = 100%
+        $totalResultAndProses = round($this->percentage_result + $this->percentage_proses, 3);
+        if ($totalResultAndProses !== 100.0) {
+            throw ValidationException::withMessages([
+                'percentage_result' => "The sum of percentage_result ({$this->percentage_result}%) and percentage_proses ({$this->percentage_proses}%) must equal 100%. Current: {$totalResultAndProses}%"
+            ]);
+        }
+
+        // Rule 2: Result sub-percentages must sum to percentage_result
+        $resultSubTotal = round(
+            $this->percentage_revenue +
+            $this->percentage_scaling +
+            $this->percentage_datin +
+            $this->percentage_hsi +
+            $this->percentage_wireline +
+            $this->percentage_wifi +
+            $this->percentage_cyc +
+            $this->percentage_cr +
+            $this->percentage_profit +
+            $this->percentage_customer,
+            3
+        );
+
+        if ($resultSubTotal !== round($this->percentage_result, 3)) {
+            throw ValidationException::withMessages([
+                'percentage_revenue' => "The sum of result sub-percentages ({$resultSubTotal}%) must equal percentage_result ({$this->percentage_result}%)"
+            ]);
+        }
+
+        // Rule 3: Process sub-percentages must sum to percentage_proses
+        $prosesSubTotal = round(
+            $this->percentage_maps +
+            $this->percentage_lop +
+            $this->percentage_capability +
+            $this->percentage_cc,
+            3
+        );
+
+        if ($prosesSubTotal !== round($this->percentage_proses, 3)) {
+            throw ValidationException::withMessages([
+                'percentage_maps' => "The sum of process sub-percentages ({$prosesSubTotal}%) must equal percentage_proses ({$this->percentage_proses}%)"
+            ]);
+        }
+    }
 
     /**
      * Get quartal options
@@ -104,8 +185,8 @@ class LiniWaktu extends Model
 
     /**
      * RELATION: LiniWaktu has many Targets (Many-to-Many)
-     * Pivot table: lini_waktu_target (berisi realisasi)
-     * Pivot columns: r_revenue, r_scalling, r_datin, dll (14 fields realisasi)
+     * Pivot table: lini_waktu_target (berisi realisasi dan achievement)
+     * Pivot model: LiniWaktuTarget (dengan validation constraints)
      */
     public function targets(): BelongsToMany
     {
@@ -114,7 +195,9 @@ class LiniWaktu extends Model
             'lini_waktu_target',
             'lini_waktu_id',
             'target_id'
-        )->withPivot([
+        )->using(LiniWaktuTarget::class)
+        ->withPivot([
+            // Realization fields
             'r_revenue',
             'r_scalling',
             'r_datin',
@@ -129,6 +212,26 @@ class LiniWaktu extends Model
             'r_lop',
             'r_capability',
             'r_cc',
+            // Achievement fields - Result
+            'ach_revenue_plan',
+            'ach_scaling',
+            'ach_sales_datin',
+            'ach_hsi',
+            'ach_wireline',
+            'ach_wifi',
+            'ach_cyc',
+            'ach_cr',
+            'ach_profit',
+            'ach_nps',
+            // Achievement fields - Process
+            'ach_maps',
+            'ach_lop',
+            'ach_capability',
+            'ach_cc',
+            // Achievement totals
+            'ach_result',
+            'ach_proses',
+            'nki_adjustment',
         ])->withTimestamps();
     }
 

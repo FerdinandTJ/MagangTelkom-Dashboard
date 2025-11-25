@@ -16,6 +16,14 @@ class DummyDataSeeder extends Seeder
         // 1. INSERT COMPANIES DATA (if empty)
         if (DB::table('companies')->count() == 0) {
             $companies = [
+            // HQ TREG2 - Headquarters (Corporate/Enterprise/Government)
+            ['nip_nas' => 'NIP016', 'nama_perusahaan' => 'PT Bank Mandiri Tbk', 'subsegment' => 'Corporate', 'source_data' => 'TIBS-NP', 'idwitels' => 2101], // HQ Corporate
+            ['nip_nas' => 'NIP017', 'nama_perusahaan' => 'PT Pertamina (Persero)', 'subsegment' => 'Corporate', 'source_data' => 'TIBS-NP', 'idwitels' => 2101], // HQ Corporate
+            ['nip_nas' => 'NIP018', 'nama_perusahaan' => 'PT Astra International Tbk', 'subsegment' => 'Enterprise', 'source_data' => 'TIBS-NP', 'idwitels' => 2102], // HQ Enterprise
+            ['nip_nas' => 'NIP019', 'nama_perusahaan' => 'PT Unilever Indonesia Tbk', 'subsegment' => 'Enterprise', 'source_data' => 'TIBS-NP', 'idwitels' => 2102], // HQ Enterprise
+            ['nip_nas' => 'NIP020', 'nama_perusahaan' => 'Kementerian Keuangan RI', 'subsegment' => 'Government', 'source_data' => 'TIBS-NP', 'idwitels' => 2103], // HQ Government
+            ['nip_nas' => 'NIP021', 'nama_perusahaan' => 'Kementerian BUMN RI', 'subsegment' => 'Government', 'source_data' => 'TIBS-NP', 'idwitels' => 2103], // HQ Government
+            
             // TREG1 - Sumatera (Aceh witel)
             ['nip_nas' => 'NIP001', 'nama_perusahaan' => 'PT Telkom Indonesia', 'subsegment' => 'PTN', 'source_data' => 'TIBS-NP', 'idwitels' => 1001],
             
@@ -54,35 +62,58 @@ class DummyDataSeeder extends Seeder
         }
 
         // 2. INSERT ACCOUNT MANAGER - COMPANY ASSIGNMENTS (if empty)
+        // STRATEGI: Pastikan SETIAP REGION (HQ TREG2 + TREG1-5) punya minimal 2 AM dengan berbagai segment
+        // Ini penting untuk Performance AM Dashboard yang grouping by region
         if (DB::table('account_manager_company')->count() == 0) {
             $assignments = [
-                // AM untuk TREG1 (Sumatera) - Aceh
-                ['nik_am' => '810001', 'nip_nas' => 'NIP001', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
+                // ========== HQ TREG2 (HEADQUARTERS) - 6 assignments dengan 3 AM ==========
+                // HQ Corporate (witel 2101) - NIK 210001
+                ['nik_am' => '210001', 'nip_nas' => 'NIP016', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Corporate'],
+                ['nik_am' => '210001', 'nip_nas' => 'NIP017', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Corporate'],
+                // HQ Enterprise (witel 2102) - NIK 210002
+                ['nik_am' => '210002', 'nip_nas' => 'NIP018', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Enterprise'],
+                ['nik_am' => '210002', 'nip_nas' => 'NIP019', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Enterprise'],
+                // HQ Government (witel 2103) - NIK 210003
+                ['nik_am' => '210003', 'nip_nas' => 'NIP020', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Government'],
+                ['nik_am' => '210003', 'nip_nas' => 'NIP021', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Government'],
                 
-                // AM untuk TREG2 (Jakarta) - Multiple companies
+                // ========== TREG1 (SUMATERA) - 3 AM dengan 3 segment ==========
+                ['nik_am' => '810001', 'nip_nas' => 'NIP001', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
+                ['nik_am' => '810002', 'nip_nas' => 'NIP001', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'Hospital'], // Shared
+                ['nik_am' => '810003', 'nip_nas' => 'NIP001', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'Airport'], // Shared
+                
+                // ========== TREG2 (JAKARTA & JABAR) - 9 AM dengan berbagai segment ==========
+                // Jakarta AMs
                 ['nik_am' => '820001', 'nip_nas' => 'NIP002', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Hospital'],
                 ['nik_am' => '820002', 'nip_nas' => 'NIP003', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
-                ['nik_am' => '820003', 'nip_nas' => 'NIP004', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Airport'],
-                ['nik_am' => '820004', 'nip_nas' => 'NIP013', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Media'],
-                ['nik_am' => '820005', 'nip_nas' => 'NIP014', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Media'],
+                ['nik_am' => '820003', 'nip_nas' => 'NIP013', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Media'],
+                ['nik_am' => '820004', 'nip_nas' => 'NIP014', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Media'],
+                // Jakarta Barat AM
+                ['nik_am' => '820005', 'nip_nas' => 'NIP011', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'PTS'],
+                // Tangerang AM
+                ['nik_am' => '820006', 'nip_nas' => 'NIP004', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Airport'],
+                // Bandung AMs
+                ['nik_am' => '820007', 'nip_nas' => 'NIP007', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
+                ['nik_am' => '820008', 'nip_nas' => 'NIP010', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Hospital'],
+                ['nik_am' => '820008', 'nip_nas' => 'NIP011', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'PTS'], // Shared
                 
-                // AM untuk TREG3 (Jateng) - Semarang & Yogyakarta
-                ['nik_am' => '830001', 'nip_nas' => 'NIP005', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
-                ['nik_am' => '830002', 'nip_nas' => 'NIP006', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Hospital'],
-                ['nik_am' => '830003', 'nip_nas' => 'NIP011', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'PTS'],
+                // ========== TREG3 (JATENG & DIY) - 4 AM dengan berbagai segment ==========
+                // Semarang AM
+                ['nik_am' => '830001', 'nip_nas' => 'NIP012', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTS'],
+                // Yogyakarta AMs
+                ['nik_am' => '830002', 'nip_nas' => 'NIP005', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
+                ['nik_am' => '830003', 'nip_nas' => 'NIP006', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Hospital'],
+                ['nik_am' => '830004', 'nip_nas' => 'NIP005', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'Airport'], // Shared
                 
-                // AM untuk TREG2 (Bandung) - Shared company
-                ['nik_am' => '820006', 'nip_nas' => 'NIP007', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
-                ['nik_am' => '820007', 'nip_nas' => 'NIP010', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Hospital'],
-                ['nik_am' => '820007', 'nip_nas' => 'NIP011', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'PTS'], // Shared with TREG3
-                
-                // AM untuk TREG4 (Surabaya)
+                // ========== TREG4 (JAWA TIMUR) - 3 AM dengan berbagai segment ==========
                 ['nik_am' => '840001', 'nip_nas' => 'NIP008', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
                 ['nik_am' => '840002', 'nip_nas' => 'NIP009', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Airport'],
-                ['nik_am' => '840003', 'nip_nas' => 'NIP012', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTS'],
+                ['nik_am' => '840003', 'nip_nas' => 'NIP008', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'Hospital'], // Shared
                 
-                // AM untuk TREG5 (Bali)
+                // ========== TREG5 (BALI & NUSA TENGGARA) - 3 AM dengan berbagai segment ==========
                 ['nik_am' => '850001', 'nip_nas' => 'NIP015', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Airport'],
+                ['nik_am' => '850002', 'nip_nas' => 'NIP015', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'PTN'], // Shared
+                ['nik_am' => '850003', 'nip_nas' => 'NIP015', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'Hospital'], // Shared
             ];
 
             foreach ($assignments as $assignment) {
@@ -92,6 +123,7 @@ class DummyDataSeeder extends Seeder
                 ]));
             }
             $this->command->info('✅ AM-Company assignments inserted: ' . count($assignments) . ' assignments');
+            $this->command->info('   📊 Coverage: HQ TREG2(6 assignments, 3 AM), TREG1(3 AM), TREG2(9 AM), TREG3(4 AM), TREG4(3 AM), TREG5(3 AM)');
         } else {
             $this->command->info('⚠️  AM-Company assignments already exist, skipped.');
         }
@@ -126,28 +158,39 @@ class DummyDataSeeder extends Seeder
                         'bulan_awal' => $year . $dates['bulan_awal'],
                         'bulan_akhir' => $year . $dates['bulan_akhir'],
                         
-                        // Percentage/Weight untuk masing-masing KPI (total = 100%)
-                        // NOTE: Bobot Result dan Process (Result 70% + Process 30%)
+                        /**
+                         * PERCENTAGE CONSTRAINTS (Auto-validated by LiniWaktu Model)
+                         * 
+                         * RULE 1: percentage_result + percentage_proses = 100%
+                         * RULE 2: Sum of result sub-percentages = percentage_result
+                         * RULE 3: Sum of process sub-percentages = percentage_proses
+                         * 
+                         * See: LINI_WAKTU_PERCENTAGE_CONSTRAINTS.md for details
+                         */
+                        
+                        // CONSTRAINT: percentage_result + percentage_proses = 100%
                         'percentage_result' => 70.000,        // Bobot result dalam total score (70%)
                         'percentage_proses' => 30.000,        // Bobot process dalam total score (30%)
                         
-                        // Breakdown Result KPI (total 70% dari overall)
-                        'percentage_revenue' => 20.000,       // Revenue: 20% dari total
-                        'percentage_scaling' => 15.000,       // Scaling: 15% dari total
-                        'percentage_datin' => 10.000,         // Datin: 10% dari total
-                        'percentage_hsi' => 5.000,            // HSI: 5% dari total
-                        'percentage_wireline' => 5.000,       // Wireline: 5% dari total
-                        'percentage_wifi' => 5.000,           // WiFi: 5% dari total
-                        'percentage_cyc' => 5.000,            // CYC: 5% dari total
-                        'percentage_cr' => 3.000,             // CR: 3% dari total
-                        'percentage_profit' => 2.000,         // Profit: 2% dari total
+                        // Breakdown Result KPI (CONSTRAINT: total harus = 70%)
+                        'percentage_revenue' => 20.000,       // Revenue: 20%
+                        'percentage_scaling' => 15.000,       // Scaling: 15%
+                        'percentage_datin' => 10.000,         // Datin: 10%
+                        'percentage_hsi' => 5.000,            // HSI: 5%
+                        'percentage_wireline' => 5.000,       // Wireline: 5%
+                        'percentage_wifi' => 5.000,           // WiFi: 5%
+                        'percentage_cyc' => 3.000,            // CYC: 3%
+                        'percentage_cr' => 3.000,             // CR: 3%
+                        'percentage_profit' => 2.000,         // Profit: 2%
+                        'percentage_customer' => 2.000,       // Customer: 2%
+                        // Total Result = 70% ✅
                         
-                        // Breakdown Process KPI (total 30% dari overall)
-                        'percentage_customer' => 15.000,      // Customer satisfaction: 15% dari total
-                        'percentage_maps' => 7.000,           // MAPS: 7% dari total
-                        'percentage_lop' => 5.000,            // LOP: 5% dari total
-                        'percentage_capability' => 2.000,     // Capability: 2% dari total
-                        'percentage_cc' => 1.000,             // CC: 1% dari total
+                        // Breakdown Process KPI (CONSTRAINT: total harus = 30%)
+                        'percentage_maps' => 15.000,          // MAPS: 15%
+                        'percentage_lop' => 10.000,           // LOP: 10%
+                        'percentage_capability' => 3.000,     // Capability: 3%
+                        'percentage_cc' => 2.000,             // CC: 2%
+                        // Total Process = 30% ✅
                         
                         'created_at' => now(),
                         'updated_at' => now(),
@@ -318,6 +361,50 @@ class DummyDataSeeder extends Seeder
                     // Calculate realisasi (achievement 85-110%)
                     $achievementRate = (rand(85, 110) / 100);
                     
+                    /**
+                     * ACHIEVEMENT CONSTRAINTS:
+                     * 1. ach_result MUST equal sum of 10 result achievement fields
+                     * 2. ach_proses MUST equal sum of 4 process achievement fields
+                     * 
+                     * Important: decimal(6,3) max = 999.999%
+                     * - Result: 10 fields, total must be < 1000% → each field 7-10% (total 700-1000%)
+                     * - Process: 4 fields, total must be < 1000% → each field 20-25% (total 800-1000%)
+                     * 
+                     * See: LINI_WAKTU_TARGET_ACHIEVEMENT_CONSTRAINTS.md for details
+                     */
+                    
+                    // Generate individual achievement percentages (scaled for database limit)
+                    // Result fields: 10 fields * 8.5% avg = 850% total (safe under 999.999)
+                    $achRevenuePlan = round(rand(700, 1000) / 100, 3);  // 7.000 - 10.000%
+                    $achScaling = round(rand(700, 1000) / 100, 3);
+                    $achSalesDatin = round(rand(700, 1000) / 100, 3);
+                    $achHsi = round(rand(700, 1000) / 100, 3);
+                    $achWireline = round(rand(700, 1000) / 100, 3);
+                    $achWifi = round(rand(700, 1000) / 100, 3);
+                    $achCyc = round(rand(700, 1000) / 100, 3);
+                    $achCr = round(rand(700, 1000) / 100, 3);
+                    $achProfit = round(rand(700, 1000) / 100, 3);
+                    $achNps = round(rand(700, 1000) / 100, 3);
+                    
+                    // Process fields: 4 fields * 22.5% avg = 900% total (safe under 999.999)
+                    $achMaps = round(rand(2000, 2500) / 100, 3);  // 20.000 - 25.000%
+                    $achLop = round(rand(2000, 2500) / 100, 3);
+                    $achCapability = round(rand(2000, 2500) / 100, 3);
+                    $achCc = round(rand(2000, 2500) / 100, 3);
+                    
+                    // Calculate ach_result (sum of 10 result fields)
+                    $achResult = round(
+                        $achRevenuePlan + $achScaling + $achSalesDatin + $achHsi + 
+                        $achWireline + $achWifi + $achCyc + $achCr + $achProfit + $achNps,
+                        3
+                    );
+                    
+                    // Calculate ach_proses (sum of 4 process fields)
+                    $achProses = round(
+                        $achMaps + $achLop + $achCapability + $achCc,
+                        3
+                    );
+                    
                     $liniWaktuTarget[] = [
                         'lini_waktu_id' => $liniWaktu->id,
                         'target_id' => $target->id,
@@ -340,28 +427,30 @@ class DummyDataSeeder extends Seeder
                         'r_profit' => min(100, max(0, $target->t_profit + rand(-5, 10))),
                         'r_maps' => min(100, max(0, $target->t_maps + rand(-5, 10))),
                         
-                        // ACHIEVEMENT PERCENTAGE
-                        'ach_revenue_plan' => round(($achievementRate * 100), 3),
-                        'ach_scaling' => round(($achievementRate * 100), 3),
-                        'ach_sales_datin' => round(($achievementRate * 100), 3),
-                        'ach_hsi' => round(($achievementRate * 100), 3),
-                        'ach_wireline' => round(($achievementRate * 100), 3),
-                        'ach_wifi' => round(($achievementRate * 100), 3),
-                        'ach_cyc' => round(rand(85, 110), 3),
-                        'ach_cr' => round(rand(85, 110), 3),
-                        'ach_profit' => round(rand(85, 110), 3),
-                        'ach_nps' => round(($achievementRate * 100), 3),
-                        'ach_maps' => round(rand(85, 110), 3),
-                        'ach_lop' => round(($achievementRate * 100), 3),
-                        'ach_capability' => round(($achievementRate * 100), 3),
-                        'ach_cc' => round(($achievementRate * 100), 3),
+                        // ACHIEVEMENT PERCENTAGE - Result (10 fields)
+                        'ach_revenue_plan' => $achRevenuePlan,
+                        'ach_scaling' => $achScaling,
+                        'ach_sales_datin' => $achSalesDatin,
+                        'ach_hsi' => $achHsi,
+                        'ach_wireline' => $achWireline,
+                        'ach_wifi' => $achWifi,
+                        'ach_cyc' => $achCyc,
+                        'ach_cr' => $achCr,
+                        'ach_profit' => $achProfit,
+                        'ach_nps' => $achNps,
                         
-                        // OVERALL ACHIEVEMENT
-                        'ach_result' => round(rand(85, 110), 3),
-                        'ach_proses' => round(rand(85, 110), 3),
+                        // ACHIEVEMENT PERCENTAGE - Process (4 fields)
+                        'ach_maps' => $achMaps,
+                        'ach_lop' => $achLop,
+                        'ach_capability' => $achCapability,
+                        'ach_cc' => $achCc,
                         
-                        // NKI ADJUSTMENT
-                        'nki_adjustment' => round(rand(0, 10), 3),
+                        // OVERALL ACHIEVEMENT (calculated from sums above)
+                        'ach_result' => $achResult,
+                        'ach_proses' => $achProses,
+                        
+                        // NKI ADJUSTMENT (realistic range: 70-130% with more variation)
+                        'nki_adjustment' => round(rand(70, 130) + (rand(0, 999) / 1000), 3),
                         
                         'created_at' => now(),
                         'updated_at' => now(),
@@ -373,8 +462,101 @@ class DummyDataSeeder extends Seeder
         DB::table('lini_waktu_target')->insert($liniWaktuTarget);
         $this->command->info('✅ Lini Waktu-Target pivot inserted: ' . count($liniWaktuTarget) . ' realisasi records');
 
+        // ========== DATA VALIDATION & SUMMARY ==========
         $this->command->info('');
-        $this->command->info('🎉 SEMUA DUMMY DATA BERHASIL DIINSERT! 🎉');
+        $this->command->info('📊 ========== DATA DISTRIBUTION SUMMARY ==========');
+        
+        // Validasi 1: Coverage per Region
+        $regionCoverage = DB::table('account_managers as am')
+            ->join('witels as w', 'am.idwitels', '=', 'w.idwitels')
+            ->join('regions as r', 'w.region_id', '=', 'r.id')
+            ->select('r.name as region', DB::raw('COUNT(DISTINCT am.nik) as am_count'))
+            ->groupBy('r.id', 'r.name')
+            ->orderBy('r.name')
+            ->get();
+        
+        $this->command->info('');
+        $this->command->info('✅ Region Coverage (Account Managers):');
+        foreach ($regionCoverage as $region) {
+            $this->command->info("   • {$region->region}: {$region->am_count} AM");
+        }
+        
+        // Validasi 2: Data per Year & Quarter
+        $periodCoverage = DB::table('lini_waktu')
+            ->select('tahun', 'quartal', DB::raw('COUNT(*) as count'))
+            ->groupBy('tahun', 'quartal')
+            ->orderBy('tahun')
+            ->orderBy('quartal')
+            ->get();
+        
+        $this->command->info('');
+        $this->command->info('✅ Period Coverage (Lini Waktu):');
+        foreach ($periodCoverage as $period) {
+            $this->command->info("   • {$period->tahun} {$period->quartal}: {$period->count} records");
+        }
+        
+        // Validasi 3: Target & Realisasi per Region
+        $regionTargets = DB::table('lini_waktu_target as lwt')
+            ->join('lini_waktu as lw', 'lwt.lini_waktu_id', '=', 'lw.id')
+            ->join('account_managers as am', 'lw.nik_am', '=', 'am.nik')
+            ->join('witels as w', 'am.idwitels', '=', 'w.idwitels')
+            ->join('regions as r', 'w.region_id', '=', 'r.id')
+            ->select(
+                'r.name as region',
+                'lw.tahun',
+                'lw.quartal',
+                DB::raw('COUNT(*) as target_count'),
+                DB::raw('AVG(lwt.ach_result) as avg_result'),
+                DB::raw('AVG(lwt.ach_proses) as avg_process')
+            )
+            ->groupBy('r.id', 'r.name', 'lw.tahun', 'lw.quartal')
+            ->orderBy('r.name')
+            ->orderBy('lw.tahun')
+            ->orderBy('lw.quartal')
+            ->get();
+        
+        $this->command->info('');
+        $this->command->info('✅ Target & Achievement Distribution:');
+        $currentRegion = '';
+        foreach ($regionTargets as $data) {
+            if ($currentRegion !== $data->region) {
+                $currentRegion = $data->region;
+                $this->command->info("   📍 {$data->region}:");
+            }
+            $avgResult = number_format($data->avg_result, 2);
+            $avgProcess = number_format($data->avg_process, 2);
+            $this->command->info("      {$data->tahun} {$data->quartal}: {$data->target_count} targets | Avg Result: {$avgResult}% | Avg Process: {$avgProcess}%");
+        }
+        
+        // Validasi 4: Segment Distribution
+        $segmentDistribution = DB::table('account_manager_company')
+            ->select('segment', DB::raw('COUNT(*) as count'))
+            ->groupBy('segment')
+            ->orderBy('segment')
+            ->get();
+        
+        $this->command->info('');
+        $this->command->info('✅ Segment Distribution:');
+        foreach ($segmentDistribution as $segment) {
+            $this->command->info("   • {$segment->segment}: {$segment->count} assignments");
+        }
+        
+        // Final Summary
+        $totalCompanies = DB::table('companies')->count();
+        $totalAMs = DB::table('account_managers')->count();
+        $totalAssignments = DB::table('account_manager_company')->count();
+        $totalTargets = DB::table('target_account_m')->count();
+        $totalRealisasi = DB::table('lini_waktu_target')->count();
+        
+        $this->command->info('');
+        $this->command->info('🎉 ========== SEEDING COMPLETED SUCCESSFULLY! ==========');
+        $this->command->info('   📊 Total Companies: ' . $totalCompanies);
+        $this->command->info('   👥 Total Account Managers: ' . $totalAMs);
+        $this->command->info('   🔗 Total AM-Company Assignments: ' . $totalAssignments);
+        $this->command->info('   🎯 Total Targets: ' . $totalTargets);
+        $this->command->info('   📈 Total Realisasi Records: ' . $totalRealisasi);
+        $this->command->info('');
+        $this->command->info('✅ Semua region memiliki data lengkap untuk Performance AM Dashboard!');
         $this->command->info('');
     }
 }

@@ -28,6 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('available-periods', [DashboardController::class, 'getAvailablePeriods'])->name('api.dashboard.available-periods');
         Route::get('ytd-comparison-custom', [DashboardController::class, 'getCustomYtdComparison'])->name('api.dashboard.ytd-comparison-custom');
         Route::get('am-revenue-details', [DashboardController::class, 'getAMRevenueDetails'])->name('api.dashboard.am-revenue-details');
+        Route::get('region-nki/{regionId}', [\App\Http\Controllers\RegionNkiController::class, 'getRegionNkiData'])->name('api.dashboard.region-nki');
         
         // DUMMY ENDPOINT - For testing Revenue Breakdown Tree component
         // Route::get('revenue-breakdown-dummy', [RevenueBreakdownDummyController::class, 'getDummyRevenueBreakdown'])->name('api.dashboard.revenue-breakdown-dummy');

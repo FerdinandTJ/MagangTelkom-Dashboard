@@ -7,6 +7,7 @@ import { Users, Target, Calendar, FileSpreadsheet, Download, Upload, MapPin } fr
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import AMRevenueDetailModal from '@/components/modals/AMRevenueDetailModal';
+import RegionNkiModal from '@/components/RegionNkiModal';
 
 interface PerformanceAMProps {
     amMetrics: {
@@ -97,14 +98,35 @@ export default function PerformanceAM({
     currentYtd = false
 }: PerformanceAMProps) {
     const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [selectedQuartal, setSelectedQuartal] = useState(currentQuartal);
+    const [selectedQuartal, setSelectedQuartal] = useState(
+        currentYtd && currentQuartal !== 'Q1' ? `${currentQuartal} YTD` : currentQuartal
+    );
     const [selectedRegion, setSelectedRegion] = useState<string>(currentRegion);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAMNik, setSelectedAMNik] = useState<string | null>(null);
-    const [isYearToDate, setIsYearToDate] = useState(currentYtd);
     const [activeRevenueTab, setActiveRevenueTab] = useState<'chart' | 'regional'>('chart');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
+
+    // State for Region NKI Modal
+    const [isRegionNkiModalOpen, setIsRegionNkiModalOpen] = useState(false);
+    const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
+    const [selectedRegionName, setSelectedRegionName] = useState<string>('');
+
+    // Parse quartal to determine if YTD and base quartal
+    const isYearToDate = selectedQuartal.includes('YTD');
+    const baseQuartal = selectedQuartal.replace(' YTD', '');
+
+    // Generate quartal options with YTD
+    const quartalOptions = [
+        { value: 'Q1', label: 'Q1' },
+        { value: 'Q2', label: 'Q2' },
+        { value: 'Q2 YTD', label: 'Q2 YTD' },
+        { value: 'Q3', label: 'Q3' },
+        { value: 'Q3 YTD', label: 'Q3 YTD' },
+        { value: 'Q4', label: 'Q4' },
+        { value: 'Q4 YTD', label: 'Q4 YTD' }
+    ];
 
     // Get unique regions dari amRevenueRanking
     const availableRegions = ['ALL', ...Array.from(new Set(amRevenueRanking.map(am => am.region_code)))].filter(Boolean);
@@ -143,25 +165,20 @@ export default function PerformanceAM({
     // Fungsi untuk handle perubahan filter tahun
     const handleYearChange = (year: string) => {
         setSelectedYear(parseInt(year));
-        router.get('/performance-am', { year: year, quartal: selectedQuartal, ytd: isYearToDate ? '1' : '0', region: selectedRegion }, {
+        const ytdValue = selectedQuartal.includes('YTD') ? '1' : '0';
+        const baseQ = selectedQuartal.replace(' YTD', '');
+        router.get('/performance-am', { year: year, quartal: baseQ, ytd: ytdValue, region: selectedRegion }, {
             preserveState: true,
             preserveScroll: true
         });
     };
 
-    // Fungsi untuk handle perubahan filter quartal
-    const handleQuartalChange = (quartal: string) => {
-        setSelectedQuartal(quartal);
-        router.get('/performance-am', { year: selectedYear, quartal: quartal, ytd: isYearToDate ? '1' : '0', region: selectedRegion }, {
-            preserveState: true,
-            preserveScroll: true
-        });
-    };
-
-    // Fungsi untuk handle perubahan YTD checkbox
-    const handleYTDChange = (checked: boolean) => {
-        setIsYearToDate(checked);
-        router.get('/performance-am', { year: selectedYear, quartal: selectedQuartal, ytd: checked ? '1' : '0', region: selectedRegion }, {
+    // Fungsi untuk handle perubahan filter quartal (with YTD)
+    const handleQuartalChange = (quartalWithYtd: string) => {
+        setSelectedQuartal(quartalWithYtd);
+        const isYtd = quartalWithYtd.includes('YTD');
+        const baseQ = quartalWithYtd.replace(' YTD', '');
+        router.get('/performance-am', { year: selectedYear, quartal: baseQ, ytd: isYtd ? '1' : '0', region: selectedRegion }, {
             preserveState: true,
             preserveScroll: true
         });
@@ -170,7 +187,9 @@ export default function PerformanceAM({
     // Fungsi untuk handle perubahan filter region
     const handleRegionChange = (region: string) => {
         setSelectedRegion(region);
-        router.get('/performance-am', { year: selectedYear, quartal: selectedQuartal, ytd: isYearToDate ? '1' : '0', region: region }, {
+        const ytdValue = selectedQuartal.includes('YTD') ? '1' : '0';
+        const baseQ = selectedQuartal.replace(' YTD', '');
+        router.get('/performance-am', { year: selectedYear, quartal: baseQ, ytd: ytdValue, region: region }, {
             preserveState: true,
             preserveScroll: true
         });
@@ -193,6 +212,34 @@ export default function PerformanceAM({
         if (data && data.nik) {
             setSelectedAMNik(data.nik);
             setIsModalOpen(true);
+        }
+    };
+
+    // Handler untuk click pada pie chart region
+    const handlePieClick = (data: any) => {
+        console.log('Pie clicked:', data);
+        
+        // Hanya buka modal untuk HQ TREG2
+        // HQ TREG2 memiliki code "HQ TREG2" atau "Headquarters TREG2"
+        if (data && data.region_id) {
+            const regionCode = data.region_code || '';
+            const regionName = data.region_name || '';
+            
+            // Filter: Hanya HQ TREG2 yang bisa buka modal
+            const isHqTreg2 = regionCode.includes('HQ') || regionName.includes('Headquarters');
+            
+            if (isHqTreg2) {
+                console.log('Opening NKI modal for HQ TREG2:', {
+                    region_id: data.region_id,
+                    region_name: regionName,
+                    region_code: regionCode
+                });
+                setSelectedRegionId(data.region_id);
+                setSelectedRegionName(regionName || regionCode);
+                setIsRegionNkiModalOpen(true);
+            } else {
+                console.log('Modal only available for HQ TREG2. Clicked:', regionCode);
+            }
         }
     };
 
@@ -292,29 +339,17 @@ export default function PerformanceAM({
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {availableQuartals.map(quartal => (
-                                                    <SelectItem key={quartal} value={quartal}>
-                                                        {quartal}
+                                                {quartalOptions.map(option => (
+                                                    <SelectItem key={option.value} value={option.value}>
+                                                        {option.label}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <input
-                                            type="checkbox"
-                                            id="ytd-checkbox"
-                                            checked={isYearToDate}
-                                            onChange={(e) => handleYTDChange(e.target.checked)}
-                                            className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
-                                        />
-                                        <label htmlFor="ytd-checkbox" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                                            Year to Date
-                                        </label>
-                                    </div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        {isYearToDate && selectedQuartal !== 'Q1' 
-                                            ? `Q1 - ${selectedQuartal} (YTD)` 
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                        {isYearToDate && baseQuartal !== 'Q1' 
+                                            ? `Q1 - ${baseQuartal} (YTD)` 
                                             : formatMonthRange()
                                         }
                                     </p>
@@ -564,7 +599,7 @@ export default function PerformanceAM({
                                                                     </div>
                                                                 </td>
                                                             ) : null}
-                                                            <td className="p-4">
+                                                            <td className="pl-4">
                                                                 <div className="flex items-center gap-3">
                                                                     <div className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 text-xs font-bold text-white rounded-full shadow-sm ${
                                                                         idx === 0 ? 'bg-yellow-500' : idx === 1 ? 'bg-gray-400' : 'bg-orange-600'
@@ -641,6 +676,7 @@ export default function PerformanceAM({
                                         fill="#8884d8"
                                         dataKey="am_count"
                                         className="cursor-pointer"
+                                        onClick={handlePieClick}
                                     >
                                         {regionDistribution.map((entry, index) => (
                                             <Cell 
@@ -853,9 +889,21 @@ export default function PerformanceAM({
                     onClose={() => setIsModalOpen(false)}
                     amNik={selectedAMNik}
                     year={selectedYear}
-                    quartal={selectedQuartal}
+                    quartal={baseQuartal}
                     isYearToDate={isYearToDate}
                 />
+
+                {/* Region NKI Modal */}
+                {selectedRegionId && (
+                    <RegionNkiModal
+                        isOpen={isRegionNkiModalOpen}
+                        onClose={() => setIsRegionNkiModalOpen(false)}
+                        regionId={selectedRegionId}
+                        regionName={selectedRegionName}
+                        quarter={parseInt(baseQuartal.replace('Q', ''))}
+                        year={selectedYear}
+                    />
+                )}
             </div>
         </AppSidebarLayout>
     );
