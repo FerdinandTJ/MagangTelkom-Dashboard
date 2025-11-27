@@ -123,6 +123,57 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
     const [compareQuarter, setCompareQuarter] = useState(quarter > 1 ? quarter - 1 : 4);
     const [compareYear, setCompareYear] = useState(quarter > 1 ? year : year - 1);
     const [activeParameterTab, setActiveParameterTab] = useState<'result' | 'proses'>('result');
+    const [availableYears, setAvailableYears] = useState<number[]>([]);
+    const [availableQuarters, setAvailableQuarters] = useState<number[]>([1, 2, 3, 4]);
+    const [quartersByYear, setQuartersByYear] = useState<Record<number, number[]>>({});
+
+    // Fetch available periods from API
+    useEffect(() => {
+        const fetchAvailablePeriods = async () => {
+            try {
+                const response = await axios.get('/api/dashboard/region-nki-periods');
+                if (response.data.success) {
+                    const years = response.data.data.years;
+                    const qByYear = response.data.data.quarters_by_year;
+                    
+                    setAvailableYears(years);
+                    setQuartersByYear(qByYear);
+                    
+                    // Set quarters for current compareYear
+                    if (qByYear[compareYear]) {
+                        setAvailableQuarters(qByYear[compareYear]);
+                    } else if (years.length > 0) {
+                        // Fallback to first available year
+                        setAvailableQuarters(qByYear[years[0]] || [1, 2, 3, 4]);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch available periods:', err);
+                // Fallback to default values
+                setAvailableYears([year, year - 1, year - 2, year - 3, year - 4, year - 5]);
+                setAvailableQuarters([1, 2, 3, 4]);
+            }
+        };
+
+        if (isOpen) {
+            fetchAvailablePeriods();
+        }
+    }, [isOpen, year]);
+
+    // Update available quarters when compareYear changes
+    useEffect(() => {
+        if (quartersByYear[compareYear]) {
+            setAvailableQuarters(quartersByYear[compareYear]);
+            
+            // Auto-adjust compareQuarter if not available in new year
+            if (!quartersByYear[compareYear].includes(compareQuarter)) {
+                const firstAvailable = quartersByYear[compareYear][0];
+                if (firstAvailable) {
+                    setCompareQuarter(firstAvailable);
+                }
+            }
+        }
+    }, [compareYear, quartersByYear]);
 
     useEffect(() => {
         if (isOpen && regionId) {
@@ -353,17 +404,18 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                             onChange={(e) => setCompareQuarter(Number(e.target.value))}
                                             className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                                         >
-                                            <option value={1} disabled={compareYear === year && quarter === 1}>Q1{compareYear === year && quarter === 1 ? ' (Current)' : ''}</option>
-                                            <option value={2} disabled={compareYear === year && quarter === 2}>Q2{compareYear === year && quarter === 2 ? ' (Current)' : ''}</option>
-                                            <option value={3} disabled={compareYear === year && quarter === 3}>Q3{compareYear === year && quarter === 3 ? ' (Current)' : ''}</option>
-                                            <option value={4} disabled={compareYear === year && quarter === 4}>Q4{compareYear === year && quarter === 4 ? ' (Current)' : ''}</option>
+                                            {availableQuarters.map((q) => (
+                                                <option key={q} value={q} disabled={compareYear === year && quarter === q}>
+                                                    Q{q}{compareYear === year && quarter === q ? ' (Current)' : ''}
+                                                </option>
+                                            ))}
                                         </select>
                                         <select
                                             value={compareYear}
                                             onChange={(e) => setCompareYear(Number(e.target.value))}
                                             className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                                         >
-                                            {Array.from({ length: 6 }, (_, i) => year - i).map((y) => (
+                                            {availableYears.map((y) => (
                                                 <option key={y} value={y}>{y}{y === year ? ' (Current Year)' : ''}</option>
                                             ))}
                                         </select>

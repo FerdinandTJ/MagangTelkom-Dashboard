@@ -436,4 +436,45 @@ class RegionNkiController extends Controller
         \Log::info('Format currency:', ['value' => $value, 'formatted' => $formatted]);
         return $formatted;
     }
+
+    /**
+     * Get available quarters and years from lini_waktu table
+     */
+    public function getAvailablePeriods(Request $request)
+    {
+        // Get all unique years and quarters from lini_waktu
+        $periods = DB::table('lini_waktu')
+            ->select('tahun as year', 'quartal as quarter')
+            ->distinct()
+            ->orderBy('tahun', 'desc')
+            ->orderBy('quartal', 'desc')
+            ->get();
+
+        // Get unique years
+        $years = $periods->pluck('year')->unique()->sort()->values()->toArray();
+        
+        // Get quarters for each year
+        $quartersByYear = [];
+        foreach ($years as $year) {
+            $quarters = $periods->where('year', $year)
+                ->pluck('quarter')
+                ->map(function($q) {
+                    return (int) str_replace('Q', '', $q);
+                })
+                ->unique()
+                ->sort()
+                ->values()
+                ->toArray();
+            
+            $quartersByYear[$year] = $quarters;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'years' => $years,
+                'quarters_by_year' => $quartersByYear
+            ]
+        ]);
+    }
 }
