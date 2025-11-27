@@ -30,6 +30,8 @@ interface SegmentStat {
     highest_nki: number;
     lowest_nki: number;
     avg_nki: number;
+    total_am: number;
+    parameters_to_improve: string;
 }
 
 interface ParameterStat {
@@ -364,10 +366,8 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                                 </span>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-center text-sm text-gray-400 dark:text-gray-500">
-                                                            <span className="inline-flex items-center px-2 py-1 rounded text-xs">
-                                                                -
-                                                            </span>
+                                                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                                                            {stat.parameters_to_improve || '-'}
                                                         </td>
                                                     </tr>
                                                 ))

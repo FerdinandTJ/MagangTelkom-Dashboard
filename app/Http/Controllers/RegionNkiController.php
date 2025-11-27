@@ -125,8 +125,9 @@ class RegionNkiController extends Controller
         // Calculate segment statistics
         $segmentStats = [];
         
-        // Get first lini_waktu for threshold values (they're same for all AMs in same period)
-        $sampleLiniWaktu = LiniWaktu::whereIn('id', $liniWaktuIds)->first();
+        // Get lini_waktu records for threshold values
+        $liniWaktuRecords = LiniWaktu::whereIn('id', $liniWaktuIds)->get()->keyBy('id');
+        $sampleLiniWaktu = $liniWaktuRecords->first();
         
         foreach ($segmentData as $segment => $targets) {
             $targetIds = $targets->pluck('target_id');
@@ -141,6 +142,11 @@ class RegionNkiController extends Controller
 
             \Log::info("Segment '{$segment}' pivots:", ['count' => $segmentPivots->count()]);
 
+            // Group pivots by lini_waktu_id (per AM)
+            $pivotsByAM = $segmentPivots->groupBy('lini_waktu_id');
+            
+            \Log::info("Segment '{$segment}' unique AMs:", ['am_count' => $pivotsByAM->count()]);
+
             $resultAch = 0;
             $resultNotAch = 0;
             $prosesAch = 0;
@@ -149,34 +155,37 @@ class RegionNkiController extends Controller
             $nkiBelow100 = 0;
             $nkiValues = [];
 
-            foreach ($segmentPivots as $pivot) {
-                // Use stored achievement values from database
-                $resultPercentage = $pivot->ach_result; // Already stored as sum of 10 fields
-                $prosesPercentage = $pivot->ach_proses; // Already stored as sum of 4 fields
+            // Calculate per AM (not per pivot)
+            foreach ($pivotsByAM as $liniWaktuId => $pivots) {
+                $liniWaktu = $liniWaktuRecords[$liniWaktuId];
+                
+                // Sum all achievements for this AM across all their assignments in this segment
+                $totalAchResult = $pivots->sum('ach_result');
+                $totalAchProses = $pivots->sum('ach_proses');
+                
+                // Get average NKI for this AM
+                $avgNki = $pivots->avg('nki_adjustment');
+                $nkiValues[] = $avgNki;
 
-                // Compare with lini_waktu thresholds (70% for result, 30% for process)
-                // Achievement is in percentage format (e.g., 85.50 means 85.50%)
-                // Threshold needs to be converted to match (70.00 means 70%)
-                if ($resultPercentage >= $sampleLiniWaktu->percentage_result) {
+                // Compare with thresholds
+                if ($totalAchResult >= $liniWaktu->percentage_result) {
                     $resultAch++;
                 } else {
                     $resultNotAch++;
                 }
 
-                if ($prosesPercentage >= $sampleLiniWaktu->percentage_proses) {
+                if ($totalAchProses >= $liniWaktu->percentage_proses) {
                     $prosesAch++;
                 } else {
                     $prosesNotAch++;
                 }
 
                 // NKI analysis (nki_adjustment is already in percentage: 70-130%)
-                if ($pivot->nki_adjustment >= 100) {
+                if ($avgNki >= 100) {
                     $nkiAbove100++;
                 } else {
                     $nkiBelow100++;
                 }
-
-                $nkiValues[] = $pivot->nki_adjustment;
             }
 
             $segmentStats[] = [
@@ -195,7 +204,8 @@ class RegionNkiController extends Controller
                 ],
                 'highest_nki' => count($nkiValues) > 0 ? (float) max($nkiValues) : 0.0,
                 'lowest_nki' => count($nkiValues) > 0 ? (float) min($nkiValues) : 0.0,
-                'avg_nki' => count($nkiValues) > 0 ? (float) round(array_sum($nkiValues) / count($nkiValues), 2) : 0.0
+                'avg_nki' => count($nkiValues) > 0 ? (float) round(array_sum($nkiValues) / count($nkiValues), 2) : 0.0,
+                'total_am' => $pivotsByAM->count() // Store total AM for this segment
             ];
         }
 
@@ -203,25 +213,35 @@ class RegionNkiController extends Controller
         $resultParameters = [
             ['name' => 'Revenue', 'field' => 'ach_revenue_plan', 'percentage_field' => 'percentage_revenue'],
             ['name' => 'Scaling', 'field' => 'ach_scaling', 'percentage_field' => 'percentage_scaling'],
-            ['name' => 'Sales-Datin', 'field' => 'ach_sales_datin', 'percentage_field' => 'percentage_sales_datin'],
-            ['name' => 'Sales-HSI', 'field' => 'ach_sales_hsi', 'percentage_field' => 'percentage_sales_hsi'],
-            ['name' => 'Sales-Wireline', 'field' => 'ach_sales_wireline', 'percentage_field' => 'percentage_sales_wireline'],
-            ['name' => 'Sales-Wifi', 'field' => 'ach_sales_wifi', 'percentage_field' => 'percentage_sales_wifi'],
+            ['name' => 'Sales-Datin', 'field' => 'ach_sales_datin', 'percentage_field' => 'percentage_datin'],
+            ['name' => 'Sales-HSI', 'field' => 'ach_hsi', 'percentage_field' => 'percentage_hsi'],
+            ['name' => 'Sales-Wireline', 'field' => 'ach_wireline', 'percentage_field' => 'percentage_wireline'],
+            ['name' => 'Sales-Wifi', 'field' => 'ach_wifi', 'percentage_field' => 'percentage_wifi'],
             ['name' => 'CYC', 'field' => 'ach_cyc', 'percentage_field' => 'percentage_cyc'],
             ['name' => 'CR', 'field' => 'ach_cr', 'percentage_field' => 'percentage_cr'],
-            ['name' => 'Profitability', 'field' => 'ach_profitability', 'percentage_field' => 'percentage_profitability'],
-            ['name' => 'Customer(NPS)', 'field' => 'ach_customer', 'percentage_field' => 'percentage_customer']
+            ['name' => 'Profitability', 'field' => 'ach_profit', 'percentage_field' => 'percentage_profit'],
+            ['name' => 'Customer(NPS)', 'field' => 'ach_nps', 'percentage_field' => 'percentage_customer']
         ];
+
+        // Group pivot data by lini_waktu_id (one per AM)
+        $pivotsByLiniWaktu = $pivotData->groupBy('lini_waktu_id');
+        $liniWaktuRecords = LiniWaktu::whereIn('id', $liniWaktuIds)->get()->keyBy('id');
 
         $resultParameterStats = [];
         foreach ($resultParameters as $param) {
             $ach = 0;
             $notAch = 0;
+            
+            // Get bobot from first lini_waktu (should be same for all AMs in same period)
             $bobot = $sampleLiniWaktu->{$param['percentage_field']} ?? 0;
 
-            foreach ($pivotData as $pivot) {
-                $achValue = $pivot->{$param['field']} ?? 0;
-                if ($achValue >= $bobot) {
+            // Calculate per AM (per lini_waktu_id)
+            foreach ($pivotsByLiniWaktu as $liniWaktuId => $pivots) {
+                // Sum all achievements for this AM across all their assignments
+                $totalAch = $pivots->sum($param['field']);
+                
+                // Compare with bobot
+                if ($totalAch >= $bobot) {
                     $ach++;
                 } else {
                     $notAch++;
@@ -241,18 +261,24 @@ class RegionNkiController extends Controller
             ['name' => 'MAPS', 'field' => 'ach_maps', 'percentage_field' => 'percentage_maps'],
             ['name' => 'Kecukupan LOP', 'field' => 'ach_lop', 'percentage_field' => 'percentage_lop'],
             ['name' => 'Capability', 'field' => 'ach_capability', 'percentage_field' => 'percentage_capability'],
-            ['name' => 'Behavior', 'field' => 'ach_behavior', 'percentage_field' => 'percentage_behavior']
+            ['name' => 'Behavior', 'field' => 'ach_cc', 'percentage_field' => 'percentage_cc']
         ];
 
         $prosesParameterStats = [];
         foreach ($prosesParameters as $param) {
             $ach = 0;
             $notAch = 0;
+            
+            // Get bobot from first lini_waktu
             $bobot = $sampleLiniWaktu->{$param['percentage_field']} ?? 0;
 
-            foreach ($pivotData as $pivot) {
-                $achValue = $pivot->{$param['field']} ?? 0;
-                if ($achValue >= $bobot) {
+            // Calculate per AM (per lini_waktu_id)
+            foreach ($pivotsByLiniWaktu as $liniWaktuId => $pivots) {
+                // Sum all achievements for this AM across all their assignments
+                $totalAch = $pivots->sum($param['field']);
+                
+                // Compare with bobot
+                if ($totalAch >= $bobot) {
                     $ach++;
                 } else {
                     $notAch++;
@@ -265,6 +291,33 @@ class RegionNkiController extends Controller
                 'ach' => $ach,
                 'not_ach' => $notAch
             ];
+        }
+
+        // Calculate "Parameter To Be Improve" for each segment
+        // Parameters with Ach < 50% of total AM in segment
+        foreach ($segmentStats as &$segmentStat) {
+            $segment = $segmentStat['segment'];
+            $totalAmInSegment = $segmentStat['total_am'];
+            $threshold = $totalAmInSegment * 0.5; // 50% threshold
+            
+            $parametersToImprove = [];
+            
+            // Check Result parameters
+            foreach ($resultParameterStats as $param) {
+                if ($param['ach'] < $threshold) {
+                    $parametersToImprove[] = $param['parameter'];
+                }
+            }
+            
+            // Check Process parameters
+            foreach ($prosesParameterStats as $param) {
+                if ($param['ach'] < $threshold) {
+                    $parametersToImprove[] = $param['parameter'];
+                }
+            }
+            
+            // Add to segment stat
+            $segmentStat['parameters_to_improve'] = implode(', ', $parametersToImprove);
         }
 
         return response()->json([

@@ -68,14 +68,14 @@ class DummyDataSeeder extends Seeder
             $assignments = [
                 // ========== HQ TREG2 (HEADQUARTERS) - 6 assignments dengan 3 AM ==========
                 // HQ Corporate (witel 2101) - NIK 210001
-                ['nik_am' => '210001', 'nip_nas' => 'NIP016', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Corporate'],
-                ['nik_am' => '210001', 'nip_nas' => 'NIP017', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Corporate'],
+                ['nik_am' => '210001', 'nip_nas' => 'NIP016', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'HQ-TWS'],
+                ['nik_am' => '210001', 'nip_nas' => 'NIP017', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'HQ-TWS'],
                 // HQ Enterprise (witel 2102) - NIK 210002
-                ['nik_am' => '210002', 'nip_nas' => 'NIP018', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Enterprise'],
-                ['nik_am' => '210002', 'nip_nas' => 'NIP019', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Enterprise'],
+                ['nik_am' => '210002', 'nip_nas' => 'NIP018', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'HQ-TWS'],
+                ['nik_am' => '210002', 'nip_nas' => 'NIP019', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'HQ-TWS'],
                 // HQ Government (witel 2103) - NIK 210003
-                ['nik_am' => '210003', 'nip_nas' => 'NIP020', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Government'],
-                ['nik_am' => '210003', 'nip_nas' => 'NIP021', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Government'],
+                ['nik_am' => '210003', 'nip_nas' => 'NIP020', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'HQ-TWS'],
+                ['nik_am' => '210003', 'nip_nas' => 'NIP021', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'HQ-TWS'],
                 
                 // ========== TREG1 (SUMATERA) - 3 AM dengan 3 segment ==========
                 ['nik_am' => '810001', 'nip_nas' => 'NIP001', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
