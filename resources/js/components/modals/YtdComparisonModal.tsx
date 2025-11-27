@@ -775,7 +775,7 @@ const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
                         {/* Group1 Breakdown Tree */}
                         <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
                             <div className="bg-gray-100 dark:bg-gray-800 px-6 py-3 border-b border-gray-200 dark:border-gray-700">
-                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Revenue Breakdown by Category (Group1)</h4>
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Revenue Breakdown by Category</h4>
                             </div>
                             <div className="p-4">
                                 <YtdBreakdownTree 
