@@ -15,20 +15,109 @@ class RegionNkiController extends Controller
     {
         $request->validate([
             'quarter' => 'required|integer|min:1|max:4',
-            'year' => 'required|integer|min:2020'
+            'year' => 'required|integer|min:2020',
+            'compare' => 'nullable|in:true,false,1,0',
+            'compare_quarter' => 'nullable|integer|min:1|max:4',
+            'compare_year' => 'nullable|integer|min:2020'
         ]);
 
         $quarter = $request->quarter;
         $year = $request->year;
+        $enableCompare = $request->boolean('compare', false) && $request->has('compare_quarter') && $request->has('compare_year');
 
         \Log::info('Region NKI Request:', [
             'region_id' => $regionId,
             'quarter' => $quarter,
-            'year' => $year
+            'year' => $year,
+            'compare' => $enableCompare
         ]);
+
+        // Validate: Cannot compare with the same period
+        if ($enableCompare) {
+            $compareQuarter = $request->compare_quarter;
+            $compareYear = $request->compare_year;
+            
+            if ($compareQuarter == $quarter && $compareYear == $year) {
+                return response()->json([
+                    'error' => 'Cannot compare with the same period. Please select a different quarter or year.'
+                ], 400);
+            }
+        }
 
         // Get region info
         $region = Region::findOrFail($regionId);
+        
+        // Get current period data
+        $currentData = $this->getPeriodData($regionId, $quarter, $year);
+        
+        // Get comparison period data if compare is enabled
+        $comparisonData = null;
+        $comparisonPeriod = null;
+        
+        if ($enableCompare) {
+            $compareQuarter = $request->compare_quarter;
+            $compareYear = $request->compare_year;
+            $comparisonPeriod = [
+                'quarter' => $compareQuarter,
+                'year' => $compareYear
+            ];
+            $comparisonData = $this->getPeriodData($regionId, $compareQuarter, $compareYear);
+        }
+        
+        // Return different structure based on compare mode
+        if ($enableCompare && $comparisonData) {
+            return response()->json([
+                'region' => [
+                    'id' => $region->id,
+                    'name' => $region->name
+                ],
+                'current_period' => [
+                    'quarter' => $quarter,
+                    'year' => $year,
+                    'label' => "Q{$quarter} {$year}",
+                    'data' => $currentData
+                ],
+                'comparison_period' => [
+                    'quarter' => $comparisonPeriod['quarter'],
+                    'year' => $comparisonPeriod['year'],
+                    'label' => "Q{$comparisonPeriod['quarter']} {$comparisonPeriod['year']}",
+                    'data' => $comparisonData
+                ],
+                'compare_enabled' => true
+            ]);
+        } else {
+            // Default mode - old structure
+            return response()->json([
+                'region' => [
+                    'id' => $region->id,
+                    'name' => $region->name
+                ],
+                'period' => [
+                    'quarter' => $quarter,
+                    'year' => $year
+                ],
+                'summary' => $currentData['summary'],
+                'segment_stats' => $currentData['segment_stats'],
+                'parameter_result' => $currentData['parameter_result'],
+                'parameter_proses' => $currentData['parameter_proses']
+            ]);
+        }
+    }
+    
+    private function getPreviousPeriod($quarter, $year)
+    {
+        if ($quarter == 1) {
+            return ['quarter' => 4, 'year' => $year - 1];
+        } else {
+            return ['quarter' => $quarter - 1, 'year' => $year];
+        }
+    }
+    
+    private function getPeriodData($regionId, $quarter, $year)
+    {
+        // Get region info
+        $region = Region::findOrFail($regionId);
+        
         \Log::info('Region found:', ['region' => $region->toArray()]);
 
         // Get all account_manager_company IDs in this region (through witels)
@@ -42,9 +131,7 @@ class RegionNkiController extends Controller
 
         if ($amCompanyIds->isEmpty()) {
             \Log::warning('No AM companies found in region');
-            return response()->json([
-                'error' => 'Tidak ada Account Manager di region ini'
-            ], 404);
+            return null;
         }
 
         // Get targets for these account_manager_company records
@@ -54,9 +141,7 @@ class RegionNkiController extends Controller
 
         if ($targets->isEmpty()) {
             \Log::warning('No targets found for AM companies');
-            return response()->json([
-                'error' => 'Tidak ada target untuk AM di region ini'
-            ], 404);
+            return null;
         }
 
         // Get NIKs for the AMs in this region
@@ -79,9 +164,7 @@ class RegionNkiController extends Controller
 
         if ($liniWaktuIds->isEmpty()) {
             \Log::error('Lini Waktu not found for AMs in region', ['quarter' => $quarter, 'year' => $year, 'niks' => $amNiks->toArray()]);
-            return response()->json([
-                'error' => 'Periode tidak ditemukan untuk AM di region ini'
-            ], 404);
+            return null;
         }
 
         // Get pivot data with realizations for this period
@@ -320,15 +403,7 @@ class RegionNkiController extends Controller
             $segmentStat['parameters_to_improve'] = implode(', ', $parametersToImprove);
         }
 
-        return response()->json([
-            'region' => [
-                'id' => $region->id,
-                'name' => $region->name
-            ],
-            'period' => [
-                'quarter' => $quarter,
-                'year' => $year
-            ],
+        return [
             'summary' => [
                 'target_revenue' => $targetRevenue,
                 'formatted_target_revenue' => $this->formatCurrency($targetRevenue, 2),
@@ -345,7 +420,7 @@ class RegionNkiController extends Controller
                 'percentage_proses' => $sampleLiniWaktu->percentage_proses ?? 0,
                 'parameters' => $prosesParameterStats
             ]
-        ]);
+        ];
     }
 
     private function formatCurrency(float $value, int $decimals = 2): string
