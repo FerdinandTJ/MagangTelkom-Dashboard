@@ -100,7 +100,7 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
                         </div>
                     </div>
                     
-                    {/* Expand/Collapse All Buttons */}
+                    {/* Expand/Collapse Buttons */}
                     <div className="flex items-center gap-2">
                         <button
                             onClick={expandAll}

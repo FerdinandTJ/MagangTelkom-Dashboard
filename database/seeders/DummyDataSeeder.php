@@ -16,38 +16,130 @@ class DummyDataSeeder extends Seeder
         // 1. INSERT COMPANIES DATA (if empty)
         if (DB::table('companies')->count() == 0) {
             $companies = [
-            // HQ TREG2 - Headquarters (Corporate/Enterprise/Government)
-            ['nip_nas' => 'NIP016', 'nama_perusahaan' => 'PT Bank Mandiri Tbk', 'subsegment' => 'Corporate', 'source_data' => 'TIBS-NP', 'idwitels' => 2101], // HQ Corporate
-            ['nip_nas' => 'NIP017', 'nama_perusahaan' => 'PT Pertamina (Persero)', 'subsegment' => 'Corporate', 'source_data' => 'TIBS-NP', 'idwitels' => 2101], // HQ Corporate
-            ['nip_nas' => 'NIP018', 'nama_perusahaan' => 'PT Astra International Tbk', 'subsegment' => 'Enterprise', 'source_data' => 'TIBS-NP', 'idwitels' => 2102], // HQ Enterprise
-            ['nip_nas' => 'NIP019', 'nama_perusahaan' => 'PT Unilever Indonesia Tbk', 'subsegment' => 'Enterprise', 'source_data' => 'TIBS-NP', 'idwitels' => 2102], // HQ Enterprise
-            ['nip_nas' => 'NIP020', 'nama_perusahaan' => 'Kementerian Keuangan RI', 'subsegment' => 'Government', 'source_data' => 'TIBS-NP', 'idwitels' => 2103], // HQ Government
-            ['nip_nas' => 'NIP021', 'nama_perusahaan' => 'Kementerian BUMN RI', 'subsegment' => 'Government', 'source_data' => 'TIBS-NP', 'idwitels' => 2103], // HQ Government
+            // ========== HQ TREG2 - Headquarters (Corporate/Enterprise/Government) ==========
+            ['nip_nas' => 'NIP016', 'nama_perusahaan' => 'PT Bank Mandiri Tbk', 'subsegment' => 'Corporate', 'source_data' => 'TIBS-NP', 'idwitels' => 2101],
+            ['nip_nas' => 'NIP017', 'nama_perusahaan' => 'PT Pertamina (Persero)', 'subsegment' => 'Corporate', 'source_data' => 'TIBS-NP', 'idwitels' => 2101],
+            ['nip_nas' => 'NIP018', 'nama_perusahaan' => 'PT Astra International Tbk', 'subsegment' => 'Enterprise', 'source_data' => 'TIBS-NP', 'idwitels' => 2102],
+            ['nip_nas' => 'NIP019', 'nama_perusahaan' => 'PT Unilever Indonesia Tbk', 'subsegment' => 'Enterprise', 'source_data' => 'TIBS-NP', 'idwitels' => 2102],
+            ['nip_nas' => 'NIP020', 'nama_perusahaan' => 'Kementerian Keuangan RI', 'subsegment' => 'Government', 'source_data' => 'TIBS-NP', 'idwitels' => 2103],
+            ['nip_nas' => 'NIP021', 'nama_perusahaan' => 'Kementerian BUMN RI', 'subsegment' => 'Government', 'source_data' => 'TIBS-NP', 'idwitels' => 2103],
             
-            // TREG1 - Sumatera (Aceh witel)
-            ['nip_nas' => 'NIP001', 'nama_perusahaan' => 'PT Telkom Indonesia', 'subsegment' => 'PTN', 'source_data' => 'TIBS-NP', 'idwitels' => 1001],
+            // ========== TREG1 - SUMATERA (Aceh, Medan, Padang, Palembang) ==========
+            // PTN - Perguruan Tinggi Negeri
+            ['nip_nas' => 'NIP001', 'nama_perusahaan' => 'Universitas Syiah Kuala', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1001], // Aceh
+            ['nip_nas' => 'NIP101', 'nama_perusahaan' => 'Universitas Sumatera Utara', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1002], // Medan
+            ['nip_nas' => 'NIP102', 'nama_perusahaan' => 'Universitas Andalas', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1003], // Padang
+            ['nip_nas' => 'NIP103', 'nama_perusahaan' => 'Universitas Sriwijaya', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1004], // Palembang
+            // Hospital
+            ['nip_nas' => 'NIP104', 'nama_perusahaan' => 'RSUP H. Adam Malik Medan', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 1002], // Medan
+            ['nip_nas' => 'NIP105', 'nama_perusahaan' => 'RSUP Dr. M. Djamil Padang', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 1003], // Padang
+            ['nip_nas' => 'NIP106', 'nama_perusahaan' => 'RSUP Dr. Moh. Hoesin Palembang', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 1004], // Palembang
+            // Airport
+            ['nip_nas' => 'NIP107', 'nama_perusahaan' => 'Bandara Kualanamu Medan', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 1002], // Medan
+            ['nip_nas' => 'NIP108', 'nama_perusahaan' => 'Bandara Minangkabau Padang', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 1003], // Padang
             
-            // TREG2 - Jakarta & Jabar
-            ['nip_nas' => 'NIP002', 'nama_perusahaan' => 'RS Cipto Mangunkusumo', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 2001], // Jakarta
+            // ========== TREG2 - JAKARTA & JABAR ==========
+            // PTN
             ['nip_nas' => 'NIP003', 'nama_perusahaan' => 'Universitas Indonesia', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 2002], // Jakarta Selatan
-            ['nip_nas' => 'NIP004', 'nama_perusahaan' => 'Bandara Soekarno-Hatta', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 2007], // Tangerang
             ['nip_nas' => 'NIP007', 'nama_perusahaan' => 'Institut Teknologi Bandung', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 2008], // Bandung
-            ['nip_nas' => 'NIP010', 'nama_perusahaan' => 'RS Hasan Sadikin Bandung', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 2008], // Bandung
+            ['nip_nas' => 'NIP201', 'nama_perusahaan' => 'Universitas Pendidikan Indonesia', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 2008], // Bandung
+            ['nip_nas' => 'NIP202', 'nama_perusahaan' => 'Universitas Padjajaran', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 2008], // Bandung
+            // PTS
             ['nip_nas' => 'NIP011', 'nama_perusahaan' => 'Universitas Bina Nusantara', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 2003], // Jakarta Barat
+            ['nip_nas' => 'NIP203', 'nama_perusahaan' => 'Universitas Trisakti', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP204', 'nama_perusahaan' => 'Universitas Tarumanagara', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 2003], // Jakarta Barat
+            ['nip_nas' => 'NIP205', 'nama_perusahaan' => 'Telkom University', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 2008], // Bandung
+            // Hospital
+            ['nip_nas' => 'NIP002', 'nama_perusahaan' => 'RS Cipto Mangunkusumo', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP010', 'nama_perusahaan' => 'RS Hasan Sadikin Bandung', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 2008], // Bandung
+            ['nip_nas' => 'NIP206', 'nama_perusahaan' => 'RS Fatmawati Jakarta', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 2002], // Jakarta Selatan
+            ['nip_nas' => 'NIP207', 'nama_perusahaan' => 'RS Persahabatan Jakarta', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 2004], // Jakarta Timur
+            ['nip_nas' => 'NIP208', 'nama_perusahaan' => 'RS Pantai Indah Kapuk', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 2005], // Jakarta Utara
+            // Airport
+            ['nip_nas' => 'NIP004', 'nama_perusahaan' => 'Bandara Soekarno-Hatta', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 2007], // Tangerang
+            ['nip_nas' => 'NIP209', 'nama_perusahaan' => 'Bandara Halim Perdanakusuma', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 2004], // Jakarta Timur
+            ['nip_nas' => 'NIP210', 'nama_perusahaan' => 'Bandara Husein Sastranegara', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 2008], // Bandung
+            // Media
             ['nip_nas' => 'NIP013', 'nama_perusahaan' => 'Media Group Indonesia', 'subsegment' => 'Media', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
             ['nip_nas' => 'NIP014', 'nama_perusahaan' => 'Trans Media Corporation', 'subsegment' => 'Media', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP211', 'nama_perusahaan' => 'PT MNC Media', 'subsegment' => 'Media', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP212', 'nama_perusahaan' => 'PT Kompas Gramedia', 'subsegment' => 'Media', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            // Airlines
+            ['nip_nas' => 'NIP213', 'nama_perusahaan' => 'PT Garuda Indonesia', 'subsegment' => 'Airlines', 'source_data' => 'TIBS-NP', 'idwitels' => 2007], // Tangerang
+            ['nip_nas' => 'NIP214', 'nama_perusahaan' => 'PT Lion Air', 'subsegment' => 'Airlines', 'source_data' => 'TIBS-NP', 'idwitels' => 2007], // Tangerang
+            ['nip_nas' => 'NIP215', 'nama_perusahaan' => 'PT AirAsia Indonesia', 'subsegment' => 'Airlines', 'source_data' => 'TIBS-NP', 'idwitels' => 2007], // Tangerang
+            // OLO (Other Licensed Operator)
+            ['nip_nas' => 'NIP216', 'nama_perusahaan' => 'PT XL Axiata', 'subsegment' => 'OLO', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP217', 'nama_perusahaan' => 'PT Indosat Ooredoo', 'subsegment' => 'OLO', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            // Professional Service
+            ['nip_nas' => 'NIP218', 'nama_perusahaan' => 'PT Deloitte Indonesia', 'subsegment' => 'Professional Service', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP219', 'nama_perusahaan' => 'PT KPMG Indonesia', 'subsegment' => 'Professional Service', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP220', 'nama_perusahaan' => 'PT McKinsey Indonesia', 'subsegment' => 'Professional Service', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            // Tourism and MICE
+            ['nip_nas' => 'NIP221', 'nama_perusahaan' => 'Hotel Mulia Senayan', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP222', 'nama_perusahaan' => 'Hotel Grand Hyatt Jakarta', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 2001], // Jakarta
+            ['nip_nas' => 'NIP223', 'nama_perusahaan' => 'Trans Luxury Hotel Bandung', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 2008], // Bandung
             
-            // TREG3 - Jateng & DIY
+            // ========== TREG3 - JATENG & DIY (Semarang, Yogyakarta, Solo) ==========
+            // PTN
             ['nip_nas' => 'NIP005', 'nama_perusahaan' => 'Universitas Gadjah Mada', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 3005], // Yogyakarta
+            ['nip_nas' => 'NIP301', 'nama_perusahaan' => 'Universitas Diponegoro', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 3001], // Semarang
+            ['nip_nas' => 'NIP302', 'nama_perusahaan' => 'Universitas Sebelas Maret', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 3002], // Solo
+            ['nip_nas' => 'NIP303', 'nama_perusahaan' => 'Universitas Negeri Yogyakarta', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 3005], // Yogyakarta
+            // PTS
+            ['nip_nas' => 'NIP012', 'nama_perusahaan' => 'Universitas Islam Indonesia', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 3005], // Yogyakarta
+            ['nip_nas' => 'NIP304', 'nama_perusahaan' => 'Universitas Muhammadiyah Yogyakarta', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 3005], // Yogyakarta
+            ['nip_nas' => 'NIP305', 'nama_perusahaan' => 'Universitas Dian Nuswantoro', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 3001], // Semarang
+            // Hospital
             ['nip_nas' => 'NIP006', 'nama_perusahaan' => 'RS Sardjito Yogyakarta', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 3005], // Yogyakarta
-            ['nip_nas' => 'NIP012', 'nama_perusahaan' => 'Universitas Trisakti', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 3001], // Semarang
+            ['nip_nas' => 'NIP306', 'nama_perusahaan' => 'RS Dr. Kariadi Semarang', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 3001], // Semarang
+            ['nip_nas' => 'NIP307', 'nama_perusahaan' => 'RS Dr. Moewardi Solo', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 3002], // Solo
+            // Airport
+            ['nip_nas' => 'NIP308', 'nama_perusahaan' => 'Bandara Ahmad Yani Semarang', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 3001], // Semarang
+            ['nip_nas' => 'NIP309', 'nama_perusahaan' => 'Bandara Adisucipto Yogyakarta', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 3005], // Yogyakarta
+            ['nip_nas' => 'NIP310', 'nama_perusahaan' => 'Bandara Adi Soemarmo Solo', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 3002], // Solo
+            // Tourism and MICE
+            ['nip_nas' => 'NIP311', 'nama_perusahaan' => 'Hotel Phoenix Yogyakarta', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 3005], // Yogyakarta
+            ['nip_nas' => 'NIP312', 'nama_perusahaan' => 'Borobudur Convention Center', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 3005], // Yogyakarta
             
-            // TREG4 - Jawa Timur
+            // ========== TREG4 - JAWA TIMUR (Surabaya, Malang) ==========
+            // PTN
             ['nip_nas' => 'NIP008', 'nama_perusahaan' => 'Universitas Airlangga', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 4001], // Surabaya
+            ['nip_nas' => 'NIP401', 'nama_perusahaan' => 'Institut Teknologi Sepuluh Nopember', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 4001], // Surabaya
+            ['nip_nas' => 'NIP402', 'nama_perusahaan' => 'Universitas Brawijaya', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 4002], // Malang
+            ['nip_nas' => 'NIP403', 'nama_perusahaan' => 'Universitas Negeri Surabaya', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 4001], // Surabaya
+            // PTS
+            ['nip_nas' => 'NIP404', 'nama_perusahaan' => 'Universitas Surabaya', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 4001], // Surabaya
+            ['nip_nas' => 'NIP405', 'nama_perusahaan' => 'Universitas Petra', 'subsegment' => 'PTS', 'source_data' => 'NGTMA', 'idwitels' => 4001], // Surabaya
+            // Hospital
+            ['nip_nas' => 'NIP406', 'nama_perusahaan' => 'RS Dr. Soetomo Surabaya', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 4001], // Surabaya
+            ['nip_nas' => 'NIP407', 'nama_perusahaan' => 'RS Dr. Saiful Anwar Malang', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 4002], // Malang
+            ['nip_nas' => 'NIP408', 'nama_perusahaan' => 'RS Siloam Surabaya', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 4001], // Surabaya
+            // Airport
             ['nip_nas' => 'NIP009', 'nama_perusahaan' => 'Bandara Juanda Surabaya', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 4001], // Surabaya
+            ['nip_nas' => 'NIP409', 'nama_perusahaan' => 'Bandara Abdul Rachman Saleh', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 4002], // Malang
+            // Tourism and MICE
+            ['nip_nas' => 'NIP410', 'nama_perusahaan' => 'Hotel JW Marriott Surabaya', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 4001], // Surabaya
+            ['nip_nas' => 'NIP411', 'nama_perusahaan' => 'Grand City Convention Surabaya', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 4001], // Surabaya
             
-            // TREG5 - Bali
+            // ========== TREG5 - BALI & NUSA TENGGARA (Denpasar, Mataram) ==========
+            // PTN
+            ['nip_nas' => 'NIP501', 'nama_perusahaan' => 'Universitas Udayana', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 5001], // Bali
+            ['nip_nas' => 'NIP502', 'nama_perusahaan' => 'Universitas Pendidikan Ganesha', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 5001], // Bali
+            ['nip_nas' => 'NIP503', 'nama_perusahaan' => 'Universitas Mataram', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 5002], // NTB
+            // Hospital
+            ['nip_nas' => 'NIP504', 'nama_perusahaan' => 'RS Sanglah Denpasar', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 5001], // Bali
+            ['nip_nas' => 'NIP505', 'nama_perusahaan' => 'RSUD Provinsi NTB', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 5002], // NTB
+            ['nip_nas' => 'NIP506', 'nama_perusahaan' => 'BIMC Hospital Bali', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 5001], // Bali
+            // Airport
             ['nip_nas' => 'NIP015', 'nama_perusahaan' => 'Bandara Ngurah Rai Bali', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 5001], // Bali
+            ['nip_nas' => 'NIP507', 'nama_perusahaan' => 'Bandara Lombok Internasional', 'subsegment' => 'Airport', 'source_data' => 'TIBS-NP', 'idwitels' => 5002], // NTB
+            // Tourism and MICE
+            ['nip_nas' => 'NIP508', 'nama_perusahaan' => 'Bali International Convention Centre', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 5001], // Bali
+            ['nip_nas' => 'NIP509', 'nama_perusahaan' => 'The Mulia Resort Bali', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 5001], // Bali
+            ['nip_nas' => 'NIP510', 'nama_perusahaan' => 'Hotel Ritz Carlton Bali', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 5001], // Bali
+            ['nip_nas' => 'NIP511', 'nama_perusahaan' => 'Nusa Dua Convention Center', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 5001], // Bali
+            ['nip_nas' => 'NIP512', 'nama_perusahaan' => 'Sheraton Senggigi Resort Lombok', 'subsegment' => 'Tourism and MICE', 'source_data' => 'TIBS-NP', 'idwitels' => 5002], // NTB
         ];
 
             foreach ($companies as $company) {

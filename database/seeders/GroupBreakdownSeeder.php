@@ -74,13 +74,21 @@ class GroupBreakdownSeeder extends Seeder
             );
         };
 
-        // Define company yearly targets based on subsegment
+        // Define company yearly targets based on subsegment (more realistic & varied)
         $subsegmentTargets = [
-            'PTN' => 1500000000,      // Rp 1.5 Miliar
-            'PTS' => 500000000,       // Rp 500 Juta
-            'Hospital' => 700000000,  // Rp 700 Juta
-            'Airport' => 2000000000,  // Rp 2 Miliar
-            'Media' => 2500000000,    // Rp 2.5 Miliar
+            'PTN' => 1500000000,                    // Rp 1.5 Miliar (University - stable)
+            'PTS' => 800000000,                     // Rp 800 Juta (Private University - smaller)
+            'Hospital' => 1200000000,               // Rp 1.2 Miliar (Healthcare - high data needs)
+            'Airport' => 3000000000,                // Rp 3 Miliar (Airport - very high connectivity)
+            'Media' => 2500000000,                  // Rp 2.5 Miliar (Media - high bandwidth)
+            'Airlines' => 2000000000,               // Rp 2 Miliar (Airlines - enterprise level)
+            'OLO' => 1800000000,                    // Rp 1.8 Miliar (Telco competitor - medium)
+            'Professional Service' => 1000000000,   // Rp 1 Miliar (Consulting - moderate)
+            'Tourism and MICE' => 900000000,        // Rp 900 Juta (Hotel/Convention - moderate)
+            'Corporate' => 5000000000,              // Rp 5 Miliar (Large Corporate)
+            'Enterprise' => 4000000000,             // Rp 4 Miliar (Enterprise)
+            'Government' => 3500000000,             // Rp 3.5 Miliar (Government)
+            'default' => 1000000000,                // Rp 1 Miliar (fallback)
         ];
 
         // Define revenue breakdown structure based on real Telkom product portfolio
@@ -128,8 +136,12 @@ class GroupBreakdownSeeder extends Seeder
 
         // Loop through each company and create revenue breakdown
         foreach ($companies as $company) {
-            // Get target based on company subsegment
-            $yearlyTarget = $subsegmentTargets[$company->subsegment] ?? 1000000000;
+            // Get target based on company subsegment with variation
+            $yearlyTarget = $subsegmentTargets[$company->subsegment] ?? $subsegmentTargets['default'];
+            
+            // Add company size variation (±20% to make companies different even in same subsegment)
+            $companySizeVariation = 1 + (rand(-20, 20) / 100);
+            $yearlyTarget = $yearlyTarget * $companySizeVariation;
             
             // Calculate monthly base target (without seasonal adjustment)
             $monthlyBaseTarget = $yearlyTarget / 12;
@@ -137,32 +149,66 @@ class GroupBreakdownSeeder extends Seeder
             // Calculate base value for breakdown items
             $totalBaseValue = array_sum(array_column($revenueStructure, 4));
             
+            // Company performance profile (some companies consistently outperform, others underperform)
+            $companyPerformanceProfile = match(true) {
+                rand(1, 100) <= 15 => 'excellent',  // 15% excellent performers
+                rand(1, 100) <= 50 => 'good',       // 35% good performers
+                rand(1, 100) <= 80 => 'average',    // 30% average
+                default => 'below_average'          // 20% below average
+            };
+            
             // Generate data for 2023 (full year), 2024 (full year), 2025 (Jan - Nov)
             $periods = [
-                ['year' => 2023, 'months' => range(1, 12), 'achievement' => 0.80 + (rand(0, 10) / 100)], // 80-90% (historical)
-                ['year' => 2024, 'months' => range(1, 12), 'achievement' => 0.85 + (rand(0, 10) / 100)], // 85-95% (improved)
-                ['year' => 2025, 'months' => range(1, 11), 'achievement' => 0.88 + (rand(0, 12) / 100)], // 88-100% (target year)
+                ['year' => 2023, 'months' => range(1, 12), 'base_achievement' => match($companyPerformanceProfile) {
+                    'excellent' => 1.05 + (rand(0, 10) / 100),      // 105-115%
+                    'good' => 0.90 + (rand(0, 10) / 100),           // 90-100%
+                    'average' => 0.75 + (rand(0, 10) / 100),        // 75-85%
+                    'below_average' => 0.60 + (rand(0, 10) / 100), // 60-70%
+                }],
+                ['year' => 2024, 'months' => range(1, 12), 'base_achievement' => match($companyPerformanceProfile) {
+                    'excellent' => 1.08 + (rand(0, 12) / 100),      // 108-120% (improving)
+                    'good' => 0.92 + (rand(0, 10) / 100),           // 92-102%
+                    'average' => 0.78 + (rand(0, 12) / 100),        // 78-90%
+                    'below_average' => 0.62 + (rand(0, 10) / 100), // 62-72%
+                }],
+                ['year' => 2025, 'months' => range(1, 11), 'base_achievement' => match($companyPerformanceProfile) {
+                    'excellent' => 1.10 + (rand(0, 15) / 100),      // 110-125% (strong)
+                    'good' => 0.95 + (rand(0, 10) / 100),           // 95-105%
+                    'average' => 0.80 + (rand(0, 15) / 100),        // 80-95%
+                    'below_average' => 0.65 + (rand(0, 12) / 100), // 65-77%
+                }],
             ];
 
             foreach ($periods as $period) {
                 $tahun = $period['year'];
-                $yearAchievement = $period['achievement'];
+                $yearBaseAchievement = $period['base_achievement'];
                 
                 foreach ($period['months'] as $bulan) {
                     // Create realistic monthly variation:
                     // - Lower revenue at start of year (Q1)
                     // - Gradual increase through year
                     // - Higher revenue at end of year (Q4)
-                    $seasonalFactor = 1.0;
-                    if ($bulan <= 3) {
-                        $seasonalFactor = 0.85 + (rand(0, 10) / 100); // Q1: 85-95%
-                    } elseif ($bulan <= 6) {
-                        $seasonalFactor = 0.90 + (rand(0, 10) / 100); // Q2: 90-100%
-                    } elseif ($bulan <= 9) {
-                        $seasonalFactor = 0.95 + (rand(0, 15) / 100); // Q3: 95-110%
-                    } else {
-                        $seasonalFactor = 1.05 + (rand(0, 20) / 100); // Q4: 105-125%
-                    }
+                    // - Add monthly randomness for realism
+                    $seasonalFactor = match(true) {
+                        $bulan <= 3 => 0.85 + (rand(0, 10) / 100),   // Q1: 85-95% (slower start)
+                        $bulan <= 6 => 0.92 + (rand(0, 10) / 100),   // Q2: 92-102% (building up)
+                        $bulan <= 9 => 0.98 + (rand(0, 15) / 100),   // Q3: 98-113% (momentum)
+                        default => 1.08 + (rand(0, 20) / 100)        // Q4: 108-128% (year-end push)
+                    };
+                    
+                    // Regional growth factor (TREG1-7 have different growth rates)
+                    $witelId = $company->idwitels ?? 0;
+                    $regionalGrowthFactor = match(true) {
+                        $witelId >= 2000 && $witelId < 3000 => 1.10, // TREG2 (Jakarta) - highest growth
+                        $witelId >= 5000 && $witelId < 6000 => 1.08, // TREG5 (Bali) - tourism boost
+                        $witelId >= 4000 && $witelId < 5000 => 1.05, // TREG4 (Jatim) - strong
+                        $witelId >= 3000 && $witelId < 4000 => 1.03, // TREG3 (Jateng) - steady
+                        $witelId >= 1000 && $witelId < 2000 => 1.02, // TREG1 (Sumatra) - moderate
+                        default => 1.00                              // Others - baseline
+                    };
+                    
+                    // Calculate yearly achievement with regional factor
+                    $yearAchievement = $yearBaseAchievement * (($tahun >= 2024) ? $regionalGrowthFactor : 1.0);
                     
                     // Calculate monthly target with seasonal adjustment
                     $monthlyTargetWithSeason = $monthlyBaseTarget * $seasonalFactor;
@@ -171,8 +217,8 @@ class GroupBreakdownSeeder extends Seeder
                     // Calculate monthly revenue (actual achievement)
                     $revenueScaleFactor = $monthlyTargetWithSeason * $yearAchievement / $totalBaseValue;
                     
-                    // Add small random noise (±5%) for realism
-                    $randomNoise = 1 + (rand(-5, 5) / 100);
+                    // Add small monthly random noise (±5%) for realism
+                    $monthlyRandomNoise = 1 + (rand(-5, 5) / 100);
                     
                     foreach ($revenueStructure as $item) {
                         [$g1Name, $g2Name, $g3Name, $g4Options, $baseValue] = $item;
@@ -188,14 +234,14 @@ class GroupBreakdownSeeder extends Seeder
                         
                         // Calculate target and revenue for this product line
                         $target = $baseValue * $targetScaleFactor * (1 + (rand(-5, 5) / 100));
-                        $revenue = $baseValue * $revenueScaleFactor * $productVariation * $randomNoise;
+                        $revenue = $baseValue * $revenueScaleFactor * $productVariation * $monthlyRandomNoise;
                         
                         $makeLeaf($company, $g1Name, $g2Name, $g3Name, $g4Name, $revenue, $target, $tahun, $bulan);
                     }
                 }
             }
             
-            $this->command->info('  ✓ Created breakdown for: ' . $company->nama_perusahaan . ' (2023-2025)');
+            $this->command->info('  ✓ Created breakdown for: ' . $company->nama_perusahaan . ' (' . $companyPerformanceProfile . ' performer, 2023-2025)');
         }
 
         $this->command->info('✅ Revenue breakdown hierarchy created for all companies!');
