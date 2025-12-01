@@ -238,7 +238,7 @@ class DummyDataSeeder extends Seeder
         // Get all Account Manager NIKs from database untuk generate lini_waktu
         // NOTE: Generate untuk semua AM agar semua region punya data
         $sampleAMs = DB::table('account_managers')->pluck('nik')->toArray();
-        $years = [2024, 2025];
+        $years = [2023, 2024, 2025];
 
         foreach ($sampleAMs as $nikAm) {
             foreach ($years as $year) {

@@ -171,7 +171,7 @@ class GroupBreakdownSeeder extends Seeder
                     'average' => 0.78 + (rand(0, 12) / 100),        // 78-90%
                     'below_average' => 0.62 + (rand(0, 10) / 100), // 62-72%
                 }],
-                ['year' => 2025, 'months' => range(1, 11), 'base_achievement' => match($companyPerformanceProfile) {
+                ['year' => 2025, 'months' => range(1, 12), 'base_achievement' => match($companyPerformanceProfile) {
                     'excellent' => 1.10 + (rand(0, 15) / 100),      // 110-125% (strong)
                     'good' => 0.95 + (rand(0, 10) / 100),           // 95-105%
                     'average' => 0.80 + (rand(0, 15) / 100),        // 80-95%
