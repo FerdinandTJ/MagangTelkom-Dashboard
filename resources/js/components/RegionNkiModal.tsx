@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Target, Calendar, Users } from 'lucide-react';
 import axios from 'axios';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
 interface RegionNkiModalProps {
     isOpen: boolean;
@@ -340,6 +341,48 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
         }
         
         return <span className="text-sm font-bold">{current.toFixed(2)}%</span>;
+    };
+
+    // Prepare data for Stacked Bar Chart - Achievement by Segment
+    const prepareAchievementChartData = () => {
+        const segmentStats = getCurrentSegmentStats();
+        if (!segmentStats || segmentStats.length === 0) return [];
+
+        return segmentStats.map(stat => ({
+            segment: stat.segment || 'N/A',
+            'Result Ach': stat.result.ach,
+            'Result Not Ach': stat.result.not_ach,
+            'Proses Ach': stat.proses.ach,
+            'Proses Not Ach': stat.proses.not_ach,
+        }));
+    };
+
+    // Prepare data for Radar Chart - Parameter Performance
+    const prepareRadarChartData = () => {
+        const paramResult = getCurrentParameterResult();
+        const paramProses = getCurrentParameterProses();
+
+        if (!paramResult || !paramProses) return [];
+
+        // Combine both parameter lists
+        const allParameters = paramResult.parameters.map(p => p.parameter);
+
+        return allParameters.map(paramName => {
+            const resultParam = paramResult.parameters.find(p => p.parameter === paramName);
+            const prosesParam = paramProses.parameters.find(p => p.parameter === paramName);
+
+            const resultTotal = (resultParam?.ach || 0) + (resultParam?.not_ach || 0);
+            const prosesTotal = (prosesParam?.ach || 0) + (prosesParam?.not_ach || 0);
+
+            const resultPercentage = resultTotal > 0 ? ((resultParam?.ach || 0) / resultTotal * 100) : 0;
+            const prosesPercentage = prosesTotal > 0 ? ((prosesParam?.ach || 0) / prosesTotal * 100) : 0;
+
+            return {
+                parameter: paramName,
+                'Result': Math.round(resultPercentage),
+                'Proses': Math.round(prosesPercentage),
+            };
+        });
     };
 
 
@@ -756,6 +799,70 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {/* Charts Section - Below Summary Table */}
+                                {getCurrentSegmentStats().length > 0 && (
+                                    <div className="p-5 space-y-6 bg-gray-50 dark:bg-gray-900">
+                                        {/* Stacked Bar Chart - Achievement by Segment */}
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border border-gray-200 dark:border-gray-700">
+                                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                </svg>
+                                                Achievement by Segment
+                                            </h4>
+                                            <ResponsiveContainer width="100%" height={300}>
+                                                <BarChart data={prepareAchievementChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                                                    <XAxis dataKey="segment" className="text-xs" stroke="#6B7280" />
+                                                    <YAxis className="text-xs" stroke="#6B7280" />
+                                                    <Tooltip 
+                                                        contentStyle={{ 
+                                                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                                                            border: '1px solid #E5E7EB',
+                                                            borderRadius: '8px',
+                                                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                                                        }}
+                                                    />
+                                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                                    <Bar dataKey="Result Ach" stackId="result" fill="#10B981" name="Result Ach" />
+                                                    <Bar dataKey="Result Not Ach" stackId="result" fill="#EF4444" name="Result Not Ach" />
+                                                    <Bar dataKey="Proses Ach" stackId="proses" fill="#3B82F6" name="Proses Ach" />
+                                                    <Bar dataKey="Proses Not Ach" stackId="proses" fill="#F59E0B" name="Proses Not Ach" />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+
+                                        {/* Radar Chart - Parameter Performance */}
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border border-gray-200 dark:border-gray-700">
+                                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                                <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                </svg>
+                                                Parameter Performance Balance
+                                            </h4>
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <RadarChart data={prepareRadarChartData()} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
+                                                    <PolarGrid className="stroke-gray-200 dark:stroke-gray-700" />
+                                                    <PolarAngleAxis dataKey="parameter" className="text-xs" stroke="#6B7280" />
+                                                    <PolarRadiusAxis angle={90} domain={[0, 100]} className="text-xs" stroke="#6B7280" />
+                                                    <Radar name="Result (%)" dataKey="Result" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} />
+                                                    <Radar name="Proses (%)" dataKey="Proses" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
+                                                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                                    <Tooltip 
+                                                        contentStyle={{ 
+                                                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                                                            border: '1px solid #E5E7EB',
+                                                            borderRadius: '8px',
+                                                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                                                        }}
+                                                        formatter={(value: any) => `${value}%`}
+                                                    />
+                                                </RadarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Right: Parameter Section - 35% (7 columns) */}
