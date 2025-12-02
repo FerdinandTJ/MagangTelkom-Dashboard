@@ -14,6 +14,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { formatCurrencyFull } from '@/utils/currency';
+import { Button } from '@/components/ui/button';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -321,29 +322,23 @@ export default function Dashboard({
                             </div>
 
                             {/* Tab Navigation - Moved below title */}
-                            <div className="mb-6">
-                                <div className="inline-flex space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-                                    <button
-                                        onClick={() => setRevenueViewTab('chart')}
-                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                                            revenueViewTab === 'chart'
-                                                ? 'bg-red-600 text-white shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                                        }`}
-                                    >
-                                        Chart View
-                                    </button>
-                                    <button
-                                        onClick={() => setRevenueViewTab('subsegment')}
-                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                                            revenueViewTab === 'subsegment'
-                                                ? 'bg-red-600 text-white shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                                        }`}
-                                    >
-                                        Regional Performance
-                                    </button>
-                                </div>
+                            <div className="flex gap-2 mb-6">
+                                <Button
+                                    variant={revenueViewTab === 'chart' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setRevenueViewTab('chart')}
+                                    className={revenueViewTab === 'chart' ? 'bg-red-600 hover:bg-red-700' : ''}
+                                >
+                                    Chart View
+                                </Button>
+                                <Button
+                                    variant={revenueViewTab === 'subsegment' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setRevenueViewTab('subsegment')}
+                                    className={revenueViewTab === 'subsegment' ? 'bg-red-600 hover:bg-red-700' : ''}
+                                >
+                                    Regional Performance
+                                </Button>
                             </div>
 
                             {/* Tab Content */}

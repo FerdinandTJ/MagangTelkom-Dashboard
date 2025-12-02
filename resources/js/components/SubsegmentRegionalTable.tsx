@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface RegionalData {
     region_code: string;
@@ -52,6 +53,7 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
 }) => {
     const [expandedSubsegments, setExpandedSubsegments] = useState<Set<string>>(new Set());
     const [isDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
+    const [expandCollapseState, setExpandCollapseState] = useState<'collapsed' | 'expanded'>('collapsed');
 
     const toggleSubsegment = (subsegment: string) => {
         const newExpanded = new Set(expandedSubsegments);
@@ -66,10 +68,12 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
     const expandAll = () => {
         const allSubsegments = data.map(s => s.subsegment);
         setExpandedSubsegments(new Set(allSubsegments));
+        setExpandCollapseState('expanded');
     };
 
     const collapseAll = () => {
         setExpandedSubsegments(new Set());
+        setExpandCollapseState('collapsed');
     };
 
     const getTrendColor = (value: number) => {
@@ -88,21 +92,25 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
     return (
         <div className="px-6 pb-6">
             {/* Expand/Collapse Buttons */}
-            <div className="flex items-center justify-end gap-2 mb-6">
-                <button
+            <div className="flex items-center justify-end gap-1.5 mb-3">
+                <Button
                     onClick={expandAll}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
+                    variant={expandCollapseState === 'expanded' ? 'default' : 'outline'}
+                    size="sm"
+                    className={`h-7 px-2 gap-1 text-xs ${expandCollapseState === 'expanded' ? 'bg-red-600 hover:bg-red-700' : ''}`}
                 >
-                    <ChevronDown className="h-4 w-4" />
-                    Expand All
-                </button>
-                <button
+                    <ChevronDown className="h-3 w-3" />
+                    Expand
+                </Button>
+                <Button
                     onClick={collapseAll}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
+                    variant={expandCollapseState === 'collapsed' ? 'default' : 'outline'}
+                    size="sm"
+                    className={`h-7 px-2 gap-1 text-xs ${expandCollapseState === 'collapsed' ? 'bg-red-600 hover:bg-red-700' : ''}`}
                 >
-                    <ChevronUp className="h-4 w-4" />
-                    Collapse All
-                </button>
+                    <ChevronUp className="h-3 w-3" />
+                    Collapse
+                </Button>
             </div>
 
                 <div className="space-y-3">
