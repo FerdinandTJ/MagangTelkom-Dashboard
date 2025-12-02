@@ -29,7 +29,7 @@ class DummyDataSeeder extends Seeder
             ['nip_nas' => 'NIP001', 'nama_perusahaan' => 'Universitas Syiah Kuala', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1001], // Aceh
             ['nip_nas' => 'NIP101', 'nama_perusahaan' => 'Universitas Sumatera Utara', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1002], // Medan
             ['nip_nas' => 'NIP102', 'nama_perusahaan' => 'Universitas Andalas', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1003], // Padang
-            ['nip_nas' => 'NIP103', 'nama_perusahaan' => 'Universitas Sriwijaya', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwikelastels' => 1004], // Palembang
+            ['nip_nas' => 'NIP103', 'nama_perusahaan' => 'Universitas Sriwijaya', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1004], // Palembang
             // Hospital
             ['nip_nas' => 'NIP104', 'nama_perusahaan' => 'RSUP H. Adam Malik Medan', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 1002], // Medan
             ['nip_nas' => 'NIP105', 'nama_perusahaan' => 'RSUP Dr. M. Djamil Padang', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 1003], // Padang
@@ -188,6 +188,20 @@ class DummyDataSeeder extends Seeder
                 ['nik_am' => '820007', 'nip_nas' => 'NIP007', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'PTN'],
                 ['nik_am' => '820008', 'nip_nas' => 'NIP010', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Hospital'],
                 ['nik_am' => '820008', 'nip_nas' => 'NIP011', 'proporsi' => 50.00, 'pembagian' => 'MULTI', 'segment' => 'PTS'], // Shared
+
+                // OLO (Jakarta) - NIK 820009
+                ['nik_am' => '820009', 'nip_nas' => 'NIP216', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'OLO'],
+                ['nik_am' => '820009', 'nip_nas' => 'NIP217', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'OLO'],
+
+                // Airlines (Tangerang) - NIK 820010
+                ['nik_am' => '820010', 'nip_nas' => 'NIP213', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Airlines'],
+                ['nik_am' => '820010', 'nip_nas' => 'NIP214', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Airlines'],
+                ['nik_am' => '820010', 'nip_nas' => 'NIP215', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Airlines'],
+
+                // Professional Service (Jakarta) - NIK 820001 (Dewi Lestari - SAM Jakarta)
+                ['nik_am' => '820001', 'nip_nas' => 'NIP218', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Professional Service'],
+                ['nik_am' => '820001', 'nip_nas' => 'NIP219', 'proporsi' => 100.00, 'pembagian' => 'SINGLE', 'segment' => 'Professional Service'],
+                ['nik_am' => '820001', 'nip_nas' => 'NIP220', 'proporsi' => 100.00, 'pembagian' => 'MULTI', 'segment' => 'Professional Service'],
                 
                 // ========== TREG3 (JATENG & DIY) - 4 AM dengan berbagai segment ==========
                 // Semarang AM
