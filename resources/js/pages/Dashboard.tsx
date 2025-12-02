@@ -102,6 +102,9 @@ export default function Dashboard({
     const [companyModalOpen, setCompanyModalOpen] = useState(false);
     const [ytdModalOpen, setYtdModalOpen] = useState(false);
     
+    // Tab states
+    const [revenueViewTab, setRevenueViewTab] = useState<'chart' | 'subsegment'>('chart');
+    
     // Filter states
     const [monthlySortOrder, setMonthlySortOrder] = useState<'chronological' | 'asc' | 'desc'>('chronological');
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
@@ -275,49 +278,96 @@ export default function Dashboard({
                 {/* Charts Section */}
                 {/* <div className="grid auto-rows-min gap-6 lg:grid-cols-2"> */}
                 <div className="">
-                    {/* Monthly Revenue Chart */}
+                    {/* Revenue Analysis Section with Tabs */}
                     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
                         <div className="p-6">
-                            <div className="flex items-center justify-between mb-6">
+                            {/* Header with Title */}
+                            <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
                                         <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                            {revenueViewTab === 'chart' ? (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                            ) : (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            )}
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Monthly Revenue Trend</h3>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Click bars to view subsegment details</p>
+                                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                                            {revenueViewTab === 'chart' ? 'Monthly Revenue Analysis' : 'Financial Performance & LOP by Subsegment'}
+                                        </h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            {revenueViewTab === 'chart' ? 'Click bars to view subsegment details' : 'Click rows to view company details'}
+                                        </p>
                                     </div>
                                 </div>
-                                {/* Sort Order Filter */}
-                                <div className="relative">
-                                    <select
-                                        value={monthlySortOrder}
-                                        onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
-                                        className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+
+                                {/* Sort Order Filter - Only show in chart view */}
+                                {revenueViewTab === 'chart' && (
+                                    <div className="relative">
+                                        <select
+                                            value={monthlySortOrder}
+                                            onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
+                                            className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        >
+                                            <option value="chronological">Original</option>
+                                            <option value="desc">Revenue: High to Low</option>
+                                            <option value="asc">Revenue: Low to High</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Tab Navigation - Moved below title */}
+                            <div className="mb-6">
+                                <div className="inline-flex space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                                    <button
+                                        onClick={() => setRevenueViewTab('chart')}
+                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                                            revenueViewTab === 'chart'
+                                                ? 'bg-red-600 text-white shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                        }`}
                                     >
-                                        <option value="chronological">Original</option>
-                                        <option value="desc">Revenue: High to Low</option>
-                                        <option value="asc">Revenue: Low to High</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                        Chart View
+                                    </button>
+                                    <button
+                                        onClick={() => setRevenueViewTab('subsegment')}
+                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                                            revenueViewTab === 'subsegment'
+                                                ? 'bg-red-600 text-white shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                        }`}
+                                    >
+                                        Regional Performance
+                                    </button>
                                 </div>
                             </div>
-                            <RevenueBarChart 
-                                data={sortedMonthlyRevenue} 
-                                height={450}
-                                onBarClick={handleMonthClick}
-                            />
+
+                            {/* Tab Content */}
+                            <div className="-mx-6 -mb-6">
+                                {revenueViewTab === 'chart' ? (
+                                    // Monthly Revenue Chart View
+                                    <div className="px-6 pb-6">
+                                        <RevenueBarChart 
+                                            data={sortedMonthlyRevenue} 
+                                            height={450}
+                                            onBarClick={handleMonthClick}
+                                        />
+                                    </div>
+                                ) : (
+                                    // Subsegment Regional Performance View
+                                    <SubsegmentRegionalTable 
+                                        data={subsegmentRegionalData} 
+                                        onSubsegmentClick={handleSubsegmentClick}
+                                    />
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                {/* Subsegment Regional Performance Table */}
-                <SubsegmentRegionalTable 
-                    data={subsegmentRegionalData} 
-                    onSubsegmentClick={handleSubsegmentClick}
-                />
 
                 {/* Yearly Trend and Top Companies */}
                 <div className="grid auto-rows-min gap-6 lg:grid-cols-5">

@@ -102,22 +102,27 @@ const MonthDetailModal: React.FC<MonthDetailModalProps> = ({
 
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30 p-4 rounded-lg border border-red-100 dark:border-red-900">
-                        <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="h-5 w-5 text-red-600 dark:text-red-400" />
-                            <span className="text-sm font-medium text-red-700 dark:text-red-300">Total Revenue</span>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                                <TrendingUp className="h-5 w-5 text-red-600 dark:text-red-400" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</span>
                         </div>
-                        <p className="text-2xl font-bold text-red-900 dark:text-red-100">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                             {monthDetails?.formatted_total_revenue || monthData.formatted_revenue}
                         </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Monthly earnings</p>
                     </div>
                     
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Target</span>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                                <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Target</span>
                         </div>
-                        <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                             {monthDetails?.formatted_total_target || 'Loading...'}
                         </p>
                         {monthDetails?.achievement_percentage !== undefined && (
@@ -127,14 +132,17 @@ const MonthDetailModal: React.FC<MonthDetailModalProps> = ({
                         )}
                     </div>
                     
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-100 dark:border-green-900">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                            <span className="text-sm font-medium text-green-700 dark:text-green-300">Total Companies</span>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                                <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Companies</span>
                         </div>
-                        <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                             {monthDetails?.total_companies || monthData.total_companies}
                         </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Active customers</p>
                     </div>
                 </div>
 
