@@ -477,4 +477,200 @@ class RegionNkiController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Get parameter chart data (Target, Realisasi, Achievement) for specific region and period
+     */
+    public function getParameterChartData(Request $request, $regionId)
+    {
+        $request->validate([
+            'quarter' => 'required|integer|min:1|max:4',
+            'year' => 'required|integer|min:2020'
+        ]);
+
+        $quarter = $request->quarter;
+        $year = $request->year;
+        $quartalCode = "Q{$quarter}";
+
+        // Get region
+        $region = Region::findOrFail($regionId);
+
+        // Get AM NIKs in this region
+        $amNiks = DB::table('account_managers')
+            ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+            ->where('witels.region_id', $regionId)
+            ->pluck('account_managers.nik');
+
+        if ($amNiks->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No Account Managers found in this region'
+            ], 404);
+        }
+
+        // Get lini_waktu IDs for this region and period
+        $liniWaktuIds = DB::table('lini_waktu')
+            ->whereIn('nik_am', $amNiks)
+            ->where('tahun', $year)
+            ->where('quartal', $quartalCode)
+            ->pluck('id');
+
+        if ($liniWaktuIds->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No data found for this period'
+            ], 404);
+        }
+
+        // Get sample lini_waktu for bobot (percentage fields)
+        $sampleLiniWaktu = DB::table('lini_waktu')
+            ->whereIn('id', $liniWaktuIds)
+            ->first();
+
+        // Get all lini_waktu_target for these lini_waktu IDs
+        $liniWaktuTargets = DB::table('lini_waktu_target')
+            ->whereIn('lini_waktu_id', $liniWaktuIds)
+            ->pluck('target_id');
+
+        // Get all target_account_m records
+        $targets = DB::table('target_account_m')
+            ->whereIn('id', $liniWaktuTargets)
+            ->get();
+
+        // Get all realisasi from lini_waktu_target
+        $realisasi = DB::table('lini_waktu_target')
+            ->whereIn('lini_waktu_id', $liniWaktuIds)
+            ->get();
+
+        // Define parameters mapping
+        $parameters = [
+            [
+                'name' => 'Revenue',
+                'target_field' => 't_revenue',
+                'realisasi_field' => 'r_revenue',
+                'bobot_field' => 'percentage_revenue'
+            ],
+            [
+                'name' => 'Scaling',
+                'target_field' => 't_scalling',
+                'realisasi_field' => 'r_scalling',
+                'bobot_field' => 'percentage_scaling'
+            ],
+            [
+                'name' => 'Sales-Datin',
+                'target_field' => 't_datin',
+                'realisasi_field' => 'r_datin',
+                'bobot_field' => 'percentage_datin'
+            ],
+            [
+                'name' => 'Sales-HSI',
+                'target_field' => 't_hsi',
+                'realisasi_field' => 'r_hsi',
+                'bobot_field' => 'percentage_hsi'
+            ],
+            [
+                'name' => 'Sales-Wireline',
+                'target_field' => 't_wireline',
+                'realisasi_field' => 'r_wireline',
+                'bobot_field' => 'percentage_wireline'
+            ],
+            [
+                'name' => 'Sales-Wifi',
+                'target_field' => 't_wifi',
+                'realisasi_field' => 'r_wifi',
+                'bobot_field' => 'percentage_wifi'
+            ],
+            [
+                'name' => 'CYC',
+                'target_field' => 't_cyc',
+                'realisasi_field' => 'r_cyc',
+                'bobot_field' => 'percentage_cyc'
+            ],
+            [
+                'name' => 'CR',
+                'target_field' => 't_cr',
+                'realisasi_field' => 'r_cr',
+                'bobot_field' => 'percentage_cr'
+            ],
+            [
+                'name' => 'Profitability',
+                'target_field' => 't_profit',
+                'realisasi_field' => 'r_profit',
+                'bobot_field' => 'percentage_profit'
+            ],
+            [
+                'name' => 'Customer (NPS)',
+                'target_field' => 't_nps',
+                'realisasi_field' => 'r_nps',
+                'bobot_field' => 'percentage_customer'
+            ],
+            [
+                'name' => 'MAPS',
+                'target_field' => 't_maps',
+                'realisasi_field' => 'r_maps',
+                'bobot_field' => 'percentage_maps'
+            ],
+            [
+                'name' => 'Kecukupan LOP',
+                'target_field' => 't_lop',
+                'realisasi_field' => 'r_lop',
+                'bobot_field' => 'percentage_lop'
+            ],
+            [
+                'name' => 'Capability',
+                'target_field' => 't_capability',
+                'realisasi_field' => 'r_capability',
+                'bobot_field' => 'percentage_capability'
+            ],
+            [
+                'name' => 'Behavior',
+                'target_field' => 't_cc',
+                'realisasi_field' => 'r_cc',
+                'bobot_field' => 'percentage_cc'
+            ]
+        ];
+
+        $chartData = [];
+
+        foreach ($parameters as $param) {
+            // Calculate total target
+            $totalTarget = $targets->sum($param['target_field']);
+
+            // Calculate total realisasi
+            $totalRealisasi = $realisasi->sum($param['realisasi_field']);
+
+            // Get bobot from lini_waktu
+            $bobot = $sampleLiniWaktu->{$param['bobot_field']} ?? 0;
+
+            // Calculate achievement percentage
+            // Ach = (Realisasi / Target) * Bobot
+            $achPercentage = 0;
+            if ($totalTarget > 0) {
+                $achPercentage = ($totalRealisasi / $totalTarget) * $bobot;
+            }
+
+            $chartData[] = [
+                'parameter' => $param['name'],
+                'target' => round($totalTarget, 2),
+                'realisasi' => round($totalRealisasi, 2),
+                'bobot' => round($bobot, 2),
+                'ach' => round($achPercentage, 2)
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'region' => [
+                    'id' => $region->id,
+                    'name' => $region->name
+                ],
+                'period' => [
+                    'quarter' => $quarter,
+                    'year' => $year
+                ],
+                'parameters' => $chartData
+            ]
+        ]);
+    }
 }

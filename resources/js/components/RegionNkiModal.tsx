@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Target, Calendar, Users } from 'lucide-react';
 import axios from 'axios';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface RegionNkiModalProps {
     isOpen: boolean;
@@ -119,6 +119,7 @@ interface RegionNkiData {
 export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, quarter, year }: RegionNkiModalProps) {
     const [data, setData] = useState<RegionNkiData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [compareMode, setCompareMode] = useState(false);
     const [compareQuarter, setCompareQuarter] = useState(quarter > 1 ? quarter - 1 : 4);
@@ -127,6 +128,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
     const [availableYears, setAvailableYears] = useState<number[]>([]);
     const [availableQuarters, setAvailableQuarters] = useState<number[]>([1, 2, 3, 4]);
     const [quartersByYear, setQuartersByYear] = useState<Record<number, number[]>>({});
+    const [chartData, setChartData] = useState<any[]>([]);
 
     // Fetch available periods from API
     useEffect(() => {
@@ -182,8 +184,16 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
             setCompareQuarter(quarter > 1 ? quarter - 1 : 4);
             setCompareYear(quarter > 1 ? year : year - 1);
             fetchData();
+            fetchChartData();
         }
     }, [isOpen, regionId, quarter, year]);
+
+    // Refetch chart data when compare mode or compare period changes
+    useEffect(() => {
+        if (isOpen && regionId) {
+            fetchChartData();
+        }
+    }, [compareMode, compareQuarter, compareYear]);
 
     // Auto-correct compare selection if it matches current period
     useEffect(() => {
@@ -225,24 +235,96 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
         }
     };
 
-    const handleCompareToggle = () => {
-        const newMode = !compareMode;
-        setCompareMode(newMode);
-        
-        // If disabling compare, immediately refetch with forceDisableCompare flag
-        if (!newMode) {
-            fetchData(true); // forceDisableCompare = true, ignores compareMode state
+    const fetchChartData = async () => {
+        try {
+            // Fetch current period data
+            const response = await axios.get(`/api/dashboard/region-nki-chart/${regionId}`, {
+                params: { quarter, year }
+            });
+            
+            if (response.data.success) {
+                const currentData = response.data.data.parameters;
+                
+                // If compare mode is enabled, fetch comparison period data
+                if (compareMode && !(compareQuarter === quarter && compareYear === year)) {
+                    try {
+                        const compareResponse = await axios.get(`/api/dashboard/region-nki-chart/${regionId}`, {
+                            params: { quarter: compareQuarter, year: compareYear }
+                        });
+                        
+                        if (compareResponse.data.success) {
+                            const compareData = compareResponse.data.data.parameters;
+                            
+                            // Merge data: add comparison achievement to each parameter
+                            const mergedData = currentData.map((curr: any) => {
+                                const comp = compareData.find((c: any) => c.parameter === curr.parameter);
+                                return {
+                                    ...curr,
+                                    ach_current: curr.ach,
+                                    ach_compare: comp ? comp.ach : 0,
+                                    target_compare: comp ? comp.target : 0,
+                                    realisasi_compare: comp ? comp.realisasi : 0,
+                                    bobot_compare: comp ? comp.bobot : 0
+                                };
+                            });
+                            
+                            setChartData(mergedData);
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching comparison chart data:', error);
+                    }
+                }
+                
+                // No compare mode or error: show only current data
+                const dataWithCurrent = currentData.map((item: any) => ({
+                    ...item,
+                    ach_current: item.ach
+                }));
+                setChartData(dataWithCurrent);
+            }
+        } catch (error) {
+            console.error('Error fetching chart data:', error);
         }
     };
 
-    const handleApplyCompare = () => {
+    const handleCompareToggle = async () => {
+        const newMode = !compareMode;
+        
+        if (!newMode) {
+            // Disabling compare mode
+            setIsTransitioning(true);
+            setCompareMode(newMode);
+            setError(null);
+            
+            await Promise.all([
+                fetchData(true), // forceDisableCompare = true
+                fetchChartData()
+            ]);
+            
+            setIsTransitioning(false);
+        } else {
+            // Enabling compare mode
+            setCompareMode(newMode);
+        }
+    };
+
+    const handleApplyCompare = async () => {
         // Validate: Cannot compare with the same period
         if (compareQuarter === quarter && compareYear === year) {
             // Inline warning will be shown, no need to set error
             return;
         }
         
-        fetchData();
+        setIsTransitioning(true);
+        setError(null);
+        
+        await Promise.all([
+            fetchData(),
+            fetchChartData()
+        ]);
+        
+        setIsTransitioning(false);
     };
 
     const getCurrentSummary = () => {
@@ -343,52 +425,115 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
         return <span className="text-sm font-bold">{current.toFixed(2)}%</span>;
     };
 
-    // Prepare data for Stacked Bar Chart - Achievement by Segment
-    const prepareAchievementChartData = () => {
-        const segmentStats = getCurrentSegmentStats();
-        if (!segmentStats || segmentStats.length === 0) return [];
-
-        return segmentStats.map(stat => ({
-            segment: stat.segment || 'N/A',
-            'Result Ach': stat.result.ach,
-            'Result Not Ach': stat.result.not_ach,
-            'Proses Ach': stat.proses.ach,
-            'Proses Not Ach': stat.proses.not_ach,
-        }));
-    };
-
-    // Prepare data for Radar Chart - Parameter Performance
-    const prepareRadarChartData = () => {
-        const paramResult = getCurrentParameterResult();
-        const paramProses = getCurrentParameterProses();
-
-        if (!paramResult || !paramProses) return [];
-
-        // Combine both parameter lists
-        const allParameters = paramResult.parameters.map(p => p.parameter);
-
-        return allParameters.map(paramName => {
-            const resultParam = paramResult.parameters.find(p => p.parameter === paramName);
-            const prosesParam = paramProses.parameters.find(p => p.parameter === paramName);
-
-            const resultTotal = (resultParam?.ach || 0) + (resultParam?.not_ach || 0);
-            const prosesTotal = (prosesParam?.ach || 0) + (prosesParam?.not_ach || 0);
-
-            const resultPercentage = resultTotal > 0 ? ((resultParam?.ach || 0) / resultTotal * 100) : 0;
-            const prosesPercentage = prosesTotal > 0 ? ((prosesParam?.ach || 0) / prosesTotal * 100) : 0;
-
-            return {
-                parameter: paramName,
-                'Result': Math.round(resultPercentage),
-                'Proses': Math.round(prosesPercentage),
+    // Custom tooltip formatter for chart
+    const CustomTooltip = ({ active, payload }: any) => {
+        if (active && payload && payload.length) {
+            const data = payload[0].payload;
+            const isCompareMode = data.ach_compare !== undefined;
+            
+            // Format value based on parameter type
+            const formatValue = (value: number, parameter: string) => {
+                // Revenue and Scaling use special formatting
+                if (parameter === 'Revenue') {
+                    if (value >= 1000000000000) {
+                        return `Rp ${(value / 1000000000000).toFixed(2)}T`;
+                    } else {
+                        return `Rp ${(value / 1000000000).toFixed(2)}M`;
+                    }
+                } else if (parameter === 'Scaling') {
+                    if (value >= 1000000) {
+                        return `${(value / 1000000).toFixed(2)}M`;
+                    } else if (value >= 1000) {
+                        return `${(value / 1000).toFixed(2)}K`;
+                    } else {
+                        return value.toFixed(0);
+                    }
+                } else {
+                    // Other parameters use standard number formatting
+                    return value.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                }
             };
-        });
+            
+            return (
+                <div
+                    style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                        padding: '12px',
+                        color: '#374151'
+                    }}
+                >
+                    <p style={{ fontWeight: 600, marginBottom: '8px', color: '#374151' }}>
+                        {data.parameter}
+                    </p>
+                    
+                    {/* Current Period Data */}
+                    <div style={{ marginBottom: isCompareMode ? '8px' : '4px' }}>
+                        {isCompareMode && (
+                            <p style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>
+                                Q{quarter} {year}
+                            </p>
+                        )}
+                        <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
+                            Target: {formatValue(data.target, data.parameter)}
+                        </p>
+                        <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
+                            Realisasi: {formatValue(data.realisasi, data.parameter)}
+                        </p>
+                        <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
+                            Bobot: {data.bobot}%
+                        </p>
+                        <p style={{ margin: '4px 0', fontWeight: 600, color: '#2563eb', fontSize: '13px' }}>
+                            Achievement: {data.ach_current.toFixed(2)}%
+                        </p>
+                    </div>
+                    
+                    {/* Comparison Period Data (if enabled) */}
+                    {isCompareMode && (
+                        <>
+                            <div style={{ borderTop: '1px solid #e5e7eb', marginTop: '8px', paddingTop: '8px' }}>
+                                <p style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>
+                                    Q{compareQuarter} {compareYear}
+                                </p>
+                                <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
+                                    Target: {formatValue(data.target_compare, data.parameter)}
+                                </p>
+                                <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
+                                    Realisasi: {formatValue(data.realisasi_compare, data.parameter)}
+                                </p>
+                                <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
+                                    Bobot: {data.bobot_compare}%
+                                </p>
+                                <p style={{ margin: '4px 0', fontWeight: 600, color: '#10b981', fontSize: '13px' }}>
+                                    Achievement: {data.ach_compare.toFixed(2)}%
+                                </p>
+                            </div>
+                        </>
+                    )}
+                </div>
+            );
+        }
+        return null;
     };
 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="wide-modal max-w-[98vw] w-[98vw] max-h-[95vh] overflow-y-auto p-6 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+                {/* Transitioning Overlay */}
+                {isTransitioning && (
+                    <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Updating data...
+                            </p>
+                        </div>
+                    </div>
+                )}
+                
                 <DialogHeader className="pb-4">
                     <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
                         <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
@@ -566,18 +711,20 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                             </div>
                         </div>
 
-                        {/* Content: Table and Reserved Section */}
-                        <div className="grid grid-cols-1 lg:grid-cols-20 gap-6">
-                            {/* Left: Table - 65% (13 columns) */}
-                            <div className="lg:col-span-13 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-                                <div className="bg-white dark:bg-gray-900 px-5 py-4 border-b border-gray-200 dark:border-gray-800">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                        <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                        </svg>
-                                        Summary NKI AM {getCurrentPeriodLabel()}
-                                    </h3>
-                                </div>
+                        {/* Content: Table, Chart, and Parameter Section */}
+                        <div className="grid grid-cols-1 lg:grid-cols-20 gap-6 auto-rows-auto">
+                            {/* Left Column: Summary Table + Chart - 65% (13 columns) */}
+                            <div className="lg:col-span-13 space-y-6">
+                                {/* Summary NKI AM Table */}
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                                    <div className="bg-white dark:bg-gray-900 px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                            </svg>
+                                            Summary NKI AM {getCurrentPeriodLabel()}
+                                        </h3>
+                                    </div>
                                 
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
@@ -799,73 +946,77 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                         </tbody>
                                     </table>
                                 </div>
+                                </div>
 
-                                {/* Charts Section - Below Summary Table */}
-                                {getCurrentSegmentStats().length > 0 && (
-                                    <div className="p-5 space-y-6 bg-gray-50 dark:bg-gray-900">
-                                        {/* Stacked Bar Chart - Achievement by Segment */}
-                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border border-gray-200 dark:border-gray-700">
-                                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                                </svg>
-                                                Achievement by Segment
-                                            </h4>
-                                            <ResponsiveContainer width="100%" height={300}>
-                                                <BarChart data={prepareAchievementChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-                                                    <XAxis dataKey="segment" className="text-xs" stroke="#6B7280" />
-                                                    <YAxis className="text-xs" stroke="#6B7280" />
-                                                    <Tooltip 
-                                                        contentStyle={{ 
-                                                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                                                            border: '1px solid #E5E7EB',
-                                                            borderRadius: '8px',
-                                                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                                                        }}
-                                                    />
-                                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                                    <Bar dataKey="Result Ach" stackId="result" fill="#10B981" name="Result Ach" />
-                                                    <Bar dataKey="Result Not Ach" stackId="result" fill="#EF4444" name="Result Not Ach" />
-                                                    <Bar dataKey="Proses Ach" stackId="proses" fill="#3B82F6" name="Proses Ach" />
-                                                    <Bar dataKey="Proses Not Ach" stackId="proses" fill="#F59E0B" name="Proses Not Ach" />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
-
-                                        {/* Radar Chart - Parameter Performance */}
-                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border border-gray-200 dark:border-gray-700">
-                                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                {/* Parameter Performance Balance Chart */}
+                                {chartData.length > 0 && (
+                                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                                        <div className="bg-white dark:bg-gray-900 px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                                 <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                                 </svg>
                                                 Parameter Performance Balance
-                                            </h4>
-                                            <ResponsiveContainer width="100%" height={400}>
-                                                <RadarChart data={prepareRadarChartData()} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
-                                                    <PolarGrid className="stroke-gray-200 dark:stroke-gray-700" />
-                                                    <PolarAngleAxis dataKey="parameter" className="text-xs" stroke="#6B7280" />
-                                                    <PolarRadiusAxis angle={90} domain={[0, 100]} className="text-xs" stroke="#6B7280" />
-                                                    <Radar name="Result (%)" dataKey="Result" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} />
-                                                    <Radar name="Proses (%)" dataKey="Proses" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
-                                                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                                                    <Tooltip 
-                                                        contentStyle={{ 
-                                                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                                                            border: '1px solid #E5E7EB',
-                                                            borderRadius: '8px',
-                                                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                                                        }}
-                                                        formatter={(value: any) => `${value}%`}
-                                                    />
-                                                </RadarChart>
-                                            </ResponsiveContainer>
+                                            </h3>
+                                        </div>
+                                        <div className="pl-5 pr-5 pb-5 pt-5">
+                                            <div className="overflow-x-auto">
+                                                <div style={{ width: `${Math.max(chartData.length * (compareMode ? 100 : 80), 800)}px`, minHeight: '400px' }}>
+                                                    <ResponsiveContainer width="100%" height={400}>
+                                                        <BarChart data={chartData} barGap={4} barCategoryGap={10}>
+                                                            <XAxis 
+                                                                dataKey="parameter" 
+                                                                tick={{ fontSize: 12 }}
+                                                                angle={-45}
+                                                                textAnchor="end"
+                                                                height={120}
+                                                                interval={0}
+                                                                stroke="#6B7280"
+                                                            />
+                                                            <YAxis 
+                                                                tick={{ fontSize: 12 }}
+                                                                stroke="#6B7280"
+                                                                label={{ value: 'Achievement (%)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                                                            />
+                                                            <Tooltip content={<CustomTooltip />} />
+                                                            {compareMode && chartData.length > 0 && chartData[0].ach_compare !== undefined ? (
+                                                                <>
+                                                                    <Legend 
+                                                                        align="left"
+                                                                        verticalAlign="top"
+                                                                        wrapperStyle={{ paddingLeft: '60px', paddingBottom: '10px' }}
+                                                                    />
+                                                                    <Bar 
+                                                                        dataKey="ach_current" 
+                                                                        fill="#3B82F6" 
+                                                                        radius={[4, 4, 0, 0]}
+                                                                        name={`Q${quarter} ${year}`}
+                                                                    />
+                                                                    <Bar 
+                                                                        dataKey="ach_compare" 
+                                                                        fill="#10b981" 
+                                                                        radius={[4, 4, 0, 0]}
+                                                                        name={`Q${compareQuarter} ${compareYear}`}
+                                                                    />
+                                                                </>
+                                                            ) : (
+                                                                <Bar 
+                                                                    dataKey="ach_current" 
+                                                                    fill="#3B82F6" 
+                                                                    radius={[4, 4, 0, 0]}
+                                                                    name="Achievement %"
+                                                                />
+                                                            )}
+                                                        </BarChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Right: Parameter Section - 35% (7 columns) */}
+                            {/* Right: Parameter Section - 35% (7 columns) - Row Span 2 */}
                             <div className="lg:col-span-7 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
                                 <div className="bg-white dark:bg-gray-900 px-5 py-4 border-b border-gray-200 dark:border-gray-800">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
