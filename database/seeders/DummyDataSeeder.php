@@ -29,7 +29,7 @@ class DummyDataSeeder extends Seeder
             ['nip_nas' => 'NIP001', 'nama_perusahaan' => 'Universitas Syiah Kuala', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1001], // Aceh
             ['nip_nas' => 'NIP101', 'nama_perusahaan' => 'Universitas Sumatera Utara', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1002], // Medan
             ['nip_nas' => 'NIP102', 'nama_perusahaan' => 'Universitas Andalas', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1003], // Padang
-            ['nip_nas' => 'NIP103', 'nama_perusahaan' => 'Universitas Sriwijaya', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwitels' => 1004], // Palembang
+            ['nip_nas' => 'NIP103', 'nama_perusahaan' => 'Universitas Sriwijaya', 'subsegment' => 'PTN', 'source_data' => 'NGTMA', 'idwikelastels' => 1004], // Palembang
             // Hospital
             ['nip_nas' => 'NIP104', 'nama_perusahaan' => 'RSUP H. Adam Malik Medan', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 1002], // Medan
             ['nip_nas' => 'NIP105', 'nama_perusahaan' => 'RSUP Dr. M. Djamil Padang', 'subsegment' => 'Hospital', 'source_data' => 'SISKA', 'idwitels' => 1003], // Padang
