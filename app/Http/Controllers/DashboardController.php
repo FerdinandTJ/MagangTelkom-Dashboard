@@ -22,16 +22,53 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $currentYear = $request->input('year', date('Y'));
+        $comparisonYear = $request->input('comparison_year');
+        
+        // Get monthly revenue with optional comparison
+        $monthlyRevenue = $this->analyticsService->getMonthlyRevenue($currentYear);
+        
+        // If comparison year is provided, merge comparison data
+        if ($comparisonYear && $comparisonYear != $currentYear) {
+            $comparisonMonthlyRevenue = $this->analyticsService->getMonthlyRevenue($comparisonYear);
+            
+            // Create a map of comparison data by month
+            $comparisonMap = [];
+            foreach ($comparisonMonthlyRevenue as $compData) {
+                $comparisonMap[$compData['bulan']] = $compData;
+            }
+            
+            // Merge comparison data into current year data
+            foreach ($monthlyRevenue as &$monthData) {
+                $bulan = $monthData['bulan'];
+                if (isset($comparisonMap[$bulan])) {
+                    $compData = $comparisonMap[$bulan];
+                    $monthData['comparison_revenue'] = $compData['total_revenue'];
+                    $monthData['comparison_formatted_revenue'] = $compData['formatted_revenue'];
+                    
+                    // Calculate growth
+                    if ($compData['total_revenue'] > 0) {
+                        $growth = (($monthData['total_revenue'] - $compData['total_revenue']) / $compData['total_revenue']) * 100;
+                        $monthData['growth_percentage'] = round($growth, 1);
+                        $monthData['growth_amount'] = $monthData['total_revenue'] - $compData['total_revenue'];
+                    } else {
+                        $monthData['growth_percentage'] = 0;
+                        $monthData['growth_amount'] = $monthData['total_revenue'];
+                    }
+                }
+            }
+        }
         
         return Inertia::render('Dashboard', [
             'dashboardSummary' => $this->analyticsService->getDashboardSummary($currentYear),
             'yearlyRevenue' => $this->analyticsService->getYearlyRevenue(),
-            'monthlyRevenue' => $this->analyticsService->getMonthlyRevenue($currentYear),
+            'monthlyRevenue' => $monthlyRevenue,
             'ytdComparison' => $this->analyticsService->getYtdComparison($currentYear),
             'subsegmentRevenue' => $this->analyticsService->getSubsegmentRevenue($currentYear),
             'subsegmentRegionalData' => $this->analyticsService->getSubsegmentWithRegionalBreakdown($currentYear),
             'topCompanies' => $this->analyticsService->getTopCompanies($currentYear, 5),
             'currentYear' => (int)$currentYear,
+            'comparisonYear' => $comparisonYear ? (int)$comparisonYear : null,
+            'hasComparison' => !is_null($comparisonYear) && $comparisonYear != $currentYear,
         ]);
     }
 
