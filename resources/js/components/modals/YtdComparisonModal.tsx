@@ -251,22 +251,22 @@ const YtdBreakdownTree: React.FC<YtdBreakdownTreeProps> = ({ data, currentPeriod
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <table className="w-full border-collapse">
                     <thead>
-                        <tr className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-850 border-b-2 border-gray-300 dark:border-gray-600">
-                            <th className="text-left p-3 font-bold text-gray-800 dark:text-gray-200 text-xs uppercase tracking-wider">
+                        <tr className="bg-gray-100 dark:bg-gray-800">
+                            <th className="text-left px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-sm">
                                 Category
                             </th>
-                            <th className="text-right p-3 font-bold text-gray-800 dark:text-gray-200 text-xs uppercase tracking-wider w-32">
+                            <th className="text-right px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-sm w-40">
                                 {currentPeriod}
                             </th>
-                            <th className="text-right p-3 font-bold text-gray-800 dark:text-gray-200 text-xs uppercase tracking-wider w-32">
+                            <th className="text-right px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-sm w-40">
                                 {previousPeriod}
                             </th>
-                            <th className="text-right p-3 font-bold text-gray-800 dark:text-gray-200 text-xs uppercase tracking-wider w-24">
+                            <th className="text-right px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-sm w-32">
                                 Growth
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                         {filteredData.length > 0 ? (
                             filteredData.map((group) => (
                                 <YtdTreeNode 
@@ -337,44 +337,56 @@ const YtdTreeNode: React.FC<YtdTreeNodeProps> = ({
     };
 
     const getRowBackgroundColor = () => {
-        if (level === 0) return 'bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30';
-        if (level === 1) return 'bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30';
-        if (level === 2) return 'bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30';
-        if (level === 3) return 'bg-purple-50 dark:bg-purple-950/20 hover:bg-purple-100 dark:hover:bg-purple-900/30';
-        return 'hover:bg-gray-50 dark:hover:bg-gray-900/20';
+        if (level === 0) return 'bg-gray-50 dark:bg-gray-800/50';
+        if (level === 1) return 'bg-white dark:bg-gray-900';
+        if (level === 2) return 'bg-gray-50/50 dark:bg-gray-800/30';
+        return 'bg-white dark:bg-gray-900';
+    };
+
+    const getFontWeight = () => {
+        if (level === 0) return 'font-bold';
+        if (level === 1) return 'font-semibold';
+        if (level === 2) return 'font-medium';
+        return 'font-normal';
     };
 
     const getTextSize = () => {
         if (level === 0) return 'text-base';
         if (level === 1) return 'text-sm';
-        return 'text-xs';
+        return 'text-sm';
+    };
+
+    const getPadding = () => {
+        if (level === 0) return 'py-3';
+        if (level === 1) return 'py-2.5';
+        return 'py-2';
     };
 
     return (
         <>
-            <tr className={`border-b border-gray-200 dark:border-gray-700 ${getRowBackgroundColor()} transition-colors`}>
+            <tr className={`${getRowBackgroundColor()} transition-colors`}>
                 {/* Category Name */}
-                <td className="p-3 border-r border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 24}px` }}>
+                <td className={`px-4 ${getPadding()}`}>
+                    <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
                         {hasChildren ? (
                             <button
                                 onClick={() => onToggle(group.id)}
-                                className="flex-shrink-0 p-1 hover:bg-white/50 dark:hover:bg-black/30 rounded transition-colors"
+                                className="flex-shrink-0 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                             >
                                 {isExpanded ? (
-                                    <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                    <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                 ) : (
-                                    <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                    <ChevronRight className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                 )}
                             </button>
                         ) : (
-                            <div className="w-6 flex-shrink-0" />
+                            <div className="w-5 flex-shrink-0" />
                         )}
-                        <span className={`font-semibold text-gray-900 dark:text-gray-100 ${getTextSize()}`}>
+                        <span className={`${getFontWeight()} ${getTextSize()} text-gray-900 dark:text-gray-100`}>
                             {highlightText(group.name)}
                         </span>
                         {hasChildren && (
-                            <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
+                            <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                                 {group.children!.length}
                             </span>
                         )}
@@ -382,30 +394,30 @@ const YtdTreeNode: React.FC<YtdTreeNodeProps> = ({
                 </td>
 
                 {/* Current Revenue */}
-                <td className="p-3 text-right border-r border-gray-200 dark:border-gray-700">
-                    <span className={`font-semibold text-blue-700 dark:text-blue-400 ${getTextSize()}`}>
+                <td className={`px-4 ${getPadding()} text-right`}>
+                    <span className={`${getFontWeight()} ${getTextSize()} text-gray-800 dark:text-gray-200`}>
                         {group.formatted_current}
                     </span>
                 </td>
 
                 {/* Previous Revenue */}
-                <td className="p-3 text-right border-r border-gray-200 dark:border-gray-700">
-                    <span className={`font-semibold text-orange-700 dark:text-orange-400 ${getTextSize()}`}>
+                <td className={`px-4 ${getPadding()} text-right`}>
+                    <span className={`${getFontWeight()} ${getTextSize()} text-gray-600 dark:text-gray-400`}>
                         {group.formatted_previous}
                     </span>
                 </td>
 
                 {/* Growth */}
-                <td className="p-3 text-right">
-                    <div className={`inline-flex items-center gap-1 font-bold ${getTextSize()} ${
+                <td className={`px-4 ${getPadding()} text-right`}>
+                    <div className={`inline-flex items-center gap-1 ${getFontWeight()} ${getTextSize()} ${
                         group.is_positive 
                             ? 'text-green-600 dark:text-green-400' 
                             : 'text-red-600 dark:text-red-400'
                     }`}>
                         {group.is_positive ? (
-                            <TrendingUp className="h-3 w-3" />
+                            <TrendingUp className="h-3.5 w-3.5" />
                         ) : (
-                            <TrendingDown className="h-3 w-3" />
+                            <TrendingDown className="h-3.5 w-3.5" />
                         )}
                         <span>{group.growth_percentage > 0 ? '+' : ''}{group.growth_percentage}%</span>
                     </div>
@@ -557,11 +569,15 @@ const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
                 {/* Input Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     {/* Current Period */}
-                    <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900">
-                        <h3 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                            <TrendingUp className="h-5 w-5" />
-                            Current Period (YTD)
-                        </h3>
+                    <div className="space-y-4 p-5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-blue-50 dark:bg-blue-950 rounded">
+                                <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                                Current Period (YTD)
+                            </h3>
+                        </div>
                         {loadingPeriods ? (
                             <div className="flex justify-center py-4">
                                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
@@ -613,11 +629,15 @@ const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
                     </div>
 
                     {/* Previous Period */}
-                    <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-900">
-                        <h3 className="font-semibold text-orange-900 dark:text-orange-100 flex items-center gap-2">
-                            <TrendingDown className="h-5 w-5" />
-                            Comparison Period (PYTD)
-                        </h3>
+                    <div className="space-y-4 p-5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-orange-50 dark:bg-orange-950 rounded">
+                                <TrendingDown className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                            </div>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                                Comparison Period (PYTD)
+                            </h3>
+                        </div>
                         {loadingPeriods ? (
                             <div className="flex justify-center py-4">
                                 <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
@@ -700,50 +720,58 @@ const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
                         {/* Comparison Summary */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {/* Current YTD */}
-                            <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                                <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">
-                                    {comparisonData.current_month_name} {comparisonData.current_year} YTD
-                                </p>
-                                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                            <div className="p-5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="p-1.5 bg-blue-50 dark:bg-blue-950 rounded">
+                                        <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                        {comparisonData.current_month_name} {comparisonData.current_year} YTD
+                                    </p>
+                                </div>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                     {comparisonData.formatted_current_revenue}
                                 </p>
                             </div>
 
                             {/* Growth */}
-                            <div className={`p-4 rounded-lg border ${
-                                comparisonData.is_positive_growth
-                                    ? 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 border-green-200 dark:border-green-800'
-                                    : 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 border-red-200 dark:border-red-800'
-                            }`}>
-                                <p className={`text-sm mb-1 ${
-                                    comparisonData.is_positive_growth 
-                                        ? 'text-green-700 dark:text-green-300' 
-                                        : 'text-red-700 dark:text-red-300'
-                                }`}>
-                                    Growth
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    {comparisonData.is_positive_growth ? (
-                                        <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
-                                    ) : (
-                                        <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
-                                    )}
-                                    <p className={`text-2xl font-bold ${
-                                        comparisonData.is_positive_growth 
-                                            ? 'text-green-900 dark:text-green-100' 
-                                            : 'text-red-900 dark:text-red-100'
+                            <div className="p-5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className={`p-1.5 rounded ${
+                                        comparisonData.is_positive_growth
+                                            ? 'bg-green-50 dark:bg-green-950'
+                                            : 'bg-red-50 dark:bg-red-950'
                                     }`}>
-                                        {comparisonData.growth_percentage > 0 ? '+' : ''}{comparisonData.growth_percentage}%
+                                        {comparisonData.is_positive_growth ? (
+                                            <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                        ) : (
+                                            <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                        )}
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                        Growth
                                     </p>
                                 </div>
+                                <p className={`text-2xl font-bold ${
+                                    comparisonData.is_positive_growth 
+                                        ? 'text-green-600 dark:text-green-400' 
+                                        : 'text-red-600 dark:text-red-400'
+                                }`}>
+                                    {comparisonData.growth_percentage > 0 ? '+' : ''}{comparisonData.growth_percentage}%
+                                </p>
                             </div>
 
                             {/* Previous YTD */}
-                            <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-800">
-                                <p className="text-sm text-orange-700 dark:text-orange-300 mb-1">
-                                    {comparisonData.previous_month_name} {comparisonData.previous_year} YTD
-                                </p>
-                                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                            <div className="p-5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="p-1.5 bg-orange-50 dark:bg-orange-950 rounded">
+                                        <TrendingDown className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                        {comparisonData.previous_month_name} {comparisonData.previous_year} YTD
+                                    </p>
+                                </div>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                     {comparisonData.formatted_previous_revenue}
                                 </p>
                             </div>

@@ -152,28 +152,28 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                 </DialogHeader>
 
                 {/* Company Info Card */}
-                <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30 rounded-lg border border-red-100 dark:border-red-900 p-6 mb-6">
+                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6 mb-6 shadow-sm">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <Info className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                <span className="text-sm font-medium text-red-700 dark:text-red-300">NIP-NAS</span>
+                                <Info className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">NIP-NAS</span>
                             </div>
                             <p className="font-mono text-gray-900 dark:text-gray-100">{company.nip_nas || 'N/A'}</p>
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <Building2 className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                <span className="text-sm font-medium text-red-700 dark:text-red-300">Subsegment</span>
+                                <Building2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Subsegment</span>
                             </div>
                             <p className="font-semibold text-gray-900 dark:text-gray-100">{company.subsegment}</p>
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                                 </svg>
-                                <span className="text-sm font-medium text-red-700 dark:text-red-300">Region</span>
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Region</span>
                             </div>
                             <div className="flex flex-wrap gap-1 mt-1">
                                 {!loading && regions.length > 0 ? (
@@ -183,7 +183,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                             title={`${region.region_name}${region.witel_name ? ` - ${region.witel_name}` : ''}`}
                                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
                                                 region.is_primary 
-                                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800' 
+                                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800' 
                                                     : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
                                             }`}
                                         >
@@ -198,15 +198,15 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <User className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                <span className="text-sm font-medium text-red-700 dark:text-red-300">Account Manager</span>
+                                <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Account Manager</span>
                             </div>
                             <div className="flex flex-wrap gap-1 mt-1">
                                 {!loading && accountManagers.length > 0 ? (
                                     accountManagers.map((am, idx) => (
                                         <span 
                                             key={am.nik}
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
                                         >
                                             {am.nama}
                                         </span>
@@ -218,7 +218,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-medium text-red-700 dark:text-red-300">Data Source</span>
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Data Source</span>
                             </div>
                             <p className="text-gray-900 dark:text-gray-100">{company.source_data}</p>
                         </div>
@@ -251,22 +251,30 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                         {/* Summary Cards - Always show if we have summary data */}
                         {summary ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Revenue</span>
+                                {/* Total Revenue Card */}
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                                            <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</span>
                                     </div>
-                                    <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{summary.formatted_total_revenue || 'Rp 0'}</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{summary.formatted_total_revenue || 'Rp 0'}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Accumulated earnings</p>
                                 </div>
                                 
-                                <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 p-4 rounded-lg border border-purple-100 dark:border-purple-900">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Period</span>
+                                {/* Period Card */}
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                                            <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Reporting Period</span>
                                     </div>
-                                    <p className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                         {summary.period || 'All Time'}
                                     </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Analysis timeframe</p>
                                 </div>
                             </div>
                         ) : (
@@ -278,9 +286,17 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                         {/* Revenue Breakdown Section */}
                         {revenueBreakdown.length > 0 && (
                             <div className="mt-6">
-                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Source Breakdown</h3>
-                                    <RevenueBreakdownTree data={revenueBreakdown} />
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+                                    <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                            Revenue Source Breakdown
+                                        </h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Detailed breakdown by category and product</p>
+                                    </div>
+                                    <div className="p-5">
+                                        <RevenueBreakdownTree data={revenueBreakdown} />
+                                    </div>
                                 </div>
                             </div>
                         )}

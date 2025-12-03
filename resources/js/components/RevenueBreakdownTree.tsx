@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext } from 'react';
-import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { formatCurrencyFull } from '@/utils/currency';
 
 interface RevenueNode {
@@ -19,7 +19,6 @@ interface RevenueNode {
 
 interface RevenueBreakdownTreeProps {
     data: RevenueNode[];
-    level?: number;
 }
 
 const ExpandContext = createContext<{
@@ -30,71 +29,61 @@ const ExpandContext = createContext<{
     setExpandAll: () => {}
 });
 
-const RevenueBreakdownTree: React.FC<RevenueBreakdownTreeProps> = ({ data, level = 0 }) => {
+const RevenueBreakdownTree: React.FC<RevenueBreakdownTreeProps> = ({ data }) => {
     const [expandAll, setExpandAll] = useState<boolean | null>(null);
 
-    if (level === 0) {
-        // Root level - render table wrapper with controls
-        return (
-            <ExpandContext.Provider value={{ expandAll, setExpandAll }}>
-                <div className="space-y-3">
-                    {/* Control Buttons */}
-                    <div className="flex justify-end gap-2">
-                        <button
-                            onClick={() => setExpandAll(true)}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg border border-blue-200 dark:border-blue-800 transition-colors"
-                        >
-                            <ChevronsDown className="h-4 w-4" />
-                            Expand All
-                        </button>
-                        <button
-                            onClick={() => setExpandAll(false)}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors"
-                        >
-                            <ChevronsUp className="h-4 w-4" />
-                            Collapse All
-                        </button>
-                    </div>
-
-                    {/* Table */}
-                    <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-850 border-b-2 border-gray-300 dark:border-gray-600">
-                                    <th className="text-left p-4 font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wider">
-                                        Source Name
-                                    </th>
-                                    <th className="text-right p-4 font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wider w-64">
-                                        Revenue
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {data.map((node) => (
-                                    <TreeNode key={node.id} node={node} level={level} />
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </ExpandContext.Provider>
-        );
-    }
-
-    // Nested levels - just render rows
     return (
-        <>
-            {data.map((node) => (
-                <TreeNode key={node.id} node={node} level={level} />
-            ))}
-        </>
+        <ExpandContext.Provider value={{ expandAll, setExpandAll }}>
+            <div className="space-y-3">
+                {/* Expand/Collapse Buttons */}
+                <div className="flex justify-end gap-2">
+                    <button
+                        onClick={() => setExpandAll(true)}
+                        className="px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg border border-blue-200 dark:border-blue-800 transition-colors"
+                    >
+                        Expand All
+                    </button>
+                    <button
+                        onClick={() => setExpandAll(false)}
+                        className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors"
+                    >
+                        Collapse All
+                    </button>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <table className="w-full border-collapse">
+                        <thead>
+                            <tr className="bg-gray-100 dark:bg-gray-800">
+                                <th className="text-left px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-sm">
+                                    Revenue Source
+                                </th>
+                                <th className="text-right px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-sm w-48">
+                                    Revenue
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                            {data.map((node) => (
+                                <TreeNode key={node.id} node={node} level={0} />
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </ExpandContext.Provider>
     );
 };
 
+interface TreeNodeProps {
+    node: RevenueNode;
+    level: number;
+}
 
-const TreeNode: React.FC<{ node: RevenueNode; level: number }> = ({ node, level }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
     const { expandAll } = useContext(ExpandContext);
-    const [isExpanded, setIsExpanded] = useState(level < 2); // Auto-expand first 2 levels
+    const [isExpanded, setIsExpanded] = useState(level === 0);
     const hasChildren = node.children && node.children.length > 0;
 
     // React to expandAll changes
@@ -104,62 +93,94 @@ const TreeNode: React.FC<{ node: RevenueNode; level: number }> = ({ node, level 
         }
     }, [expandAll]);
 
-    const getRowBackgroundColor = () => {
-        if (level === 0) return 'bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30';
-        if (level === 1) return 'bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30';
-        if (level === 2) return 'bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30';
-        if (level === 3) return 'bg-purple-50 dark:bg-purple-950/20 hover:bg-purple-100 dark:hover:bg-purple-900/30';
-        return 'hover:bg-gray-50 dark:hover:bg-gray-900/20';
+    const getRowStyle = () => {
+        // Level 0: Bold, larger text, darker background
+        if (level === 0) return {
+            bg: 'bg-gray-50 dark:bg-gray-800/50',
+            textWeight: 'font-bold',
+            textSize: 'text-base',
+            textColor: 'text-gray-900 dark:text-gray-100',
+            revenueWeight: 'font-bold',
+            revenueSize: 'text-base',
+            revenueColor: 'text-gray-900 dark:text-gray-100',
+            py: 'py-3'
+        };
+        // Level 1: Semi-bold, medium background
+        if (level === 1) return {
+            bg: 'bg-white dark:bg-gray-900',
+            textWeight: 'font-semibold',
+            textSize: 'text-sm',
+            textColor: 'text-gray-800 dark:text-gray-200',
+            revenueWeight: 'font-semibold',
+            revenueSize: 'text-sm',
+            revenueColor: 'text-gray-800 dark:text-gray-200',
+            py: 'py-2.5'
+        };
+        // Level 2: Medium weight
+        if (level === 2) return {
+            bg: 'bg-gray-50/50 dark:bg-gray-800/30',
+            textWeight: 'font-medium',
+            textSize: 'text-sm',
+            textColor: 'text-gray-700 dark:text-gray-300',
+            revenueWeight: 'font-medium',
+            revenueSize: 'text-sm',
+            revenueColor: 'text-gray-700 dark:text-gray-300',
+            py: 'py-2'
+        };
+        // Level 3+: Normal weight
+        return {
+            bg: 'bg-white dark:bg-gray-900',
+            textWeight: 'font-normal',
+            textSize: 'text-sm',
+            textColor: 'text-gray-600 dark:text-gray-400',
+            revenueWeight: 'font-normal',
+            revenueSize: 'text-sm',
+            revenueColor: 'text-gray-600 dark:text-gray-400',
+            py: 'py-2'
+        };
     };
+
+    const style = getRowStyle();
 
     return (
         <>
-            <tr className={`border-b border-gray-200 dark:border-gray-700 ${getRowBackgroundColor()} transition-colors`}>
-                {/* Source Name with expand/collapse */}
-                <td className="p-4 border-r border-gray-200 dark:border-gray-700">
+            <tr className={`${style.bg} hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b border-gray-200 dark:border-gray-700`}>
+                <td className={`px-4 ${style.py}`}>
                     <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 24}px` }}>
                         {hasChildren ? (
                             <button
                                 onClick={() => setIsExpanded(!isExpanded)}
-                                className="flex-shrink-0 p-1 hover:bg-white/50 dark:hover:bg-black/30 rounded transition-colors"
+                                className="flex-shrink-0 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
                             >
                                 {isExpanded ? (
-                                    <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                    <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                 ) : (
-                                    <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                    <ChevronRight className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                 )}
                             </button>
                         ) : (
-                            <div className="w-6 flex-shrink-0" />
+                            <div className="w-5 flex-shrink-0" />
                         )}
-                        <span className={`font-semibold text-gray-900 dark:text-gray-100 ${
-                            level === 0 ? 'text-base' : level === 1 ? 'text-sm' : 'text-xs'
-                        }`}>
+                        <span className={`${style.textWeight} ${style.textSize} ${style.textColor}`}>
                             {node.name}
                         </span>
                         {hasChildren && (
-                            <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
-                                {node.children!.length}
+                            <span className="ml-1 text-xs text-gray-500 dark:text-gray-500">
+                                ({node.children!.length})
                             </span>
                         )}
                     </div>
                 </td>
-
-                {/* Revenue */}
-                <td className="p-4 text-right bg-blue-50/50 dark:bg-blue-950/20">
-                    <div className="flex flex-col items-end">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Revenue</span>
-                        <span className="font-bold text-blue-700 dark:text-blue-400 text-base">
-                            {formatCurrencyFull(node.revenue)}
-                        </span>
-                    </div>
+                <td className={`px-4 ${style.py} text-right`}>
+                    <span className={`${style.revenueWeight} ${style.revenueSize} ${style.revenueColor}`}>
+                        {formatCurrencyFull(node.revenue)}
+                    </span>
                 </td>
             </tr>
 
-            {/* Children Rows */}
-            {isExpanded && hasChildren && (
-                <RevenueBreakdownTree data={node.children!} level={level + 1} />
-            )}
+            {isExpanded && hasChildren && node.children!.map((child) => (
+                <TreeNode key={child.id} node={child} level={level + 1} />
+            ))}
         </>
     );
 };
