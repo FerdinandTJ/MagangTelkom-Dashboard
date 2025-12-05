@@ -1374,4 +1374,129 @@ class DashboardController extends Controller
             return 'Rp ' . number_format($value / 1000000000, $decimals) . 'M';
         }
     }
+
+    /**
+     * Get detailed region information for a specific subsegment
+     */
+    public function getRegionDetail(Request $request)
+    {
+        $request->validate([
+            'subsegment' => 'required|string',
+            'region_code' => 'required|string',
+            'year' => 'required|integer|min:2020|max:2030'
+        ]);
+
+        $subsegment = $request->input('subsegment');
+        $regionCode = $request->input('region_code');
+        $year = $request->input('year');
+
+        // Get companies in this region for the subsegment
+        $companies = DB::table('companies')
+            ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
+            ->join('regions', 'witels.region_id', '=', 'regions.id')
+            ->join('group1', 'companies.nip_nas', '=', 'group1.company_id')
+            ->join('group2', 'group1.idGroup1', '=', 'group2.group1_id')
+            ->join('group3', 'group2.idGroup2', '=', 'group3.group2_id')
+            ->join('group4 as p', 'group3.idGroup3', '=', 'p.group3_id')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->where('companies.subsegment', $subsegment)
+            ->where('regions.code', $regionCode)
+            ->where('r.tahun', $year)
+            ->select(
+                'companies.nip_nas',
+                'companies.nama_perusahaan',
+                'witels.nama_witels',
+                DB::raw('SUM(r.revenue_realisasi) as revenue'),
+                DB::raw('SUM(r.revenue_target) as target')
+            )
+            ->groupBy('companies.nip_nas', 'companies.nama_perusahaan', 'witels.nama_witels')
+            ->orderByDesc('revenue')
+            ->get();
+
+        // Get previous year data for YoY comparison
+        $previousYearData = DB::table('companies')
+            ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
+            ->join('regions', 'witels.region_id', '=', 'regions.id')
+            ->join('group1', 'companies.nip_nas', '=', 'group1.company_id')
+            ->join('group2', 'group1.idGroup1', '=', 'group2.group1_id')
+            ->join('group3', 'group2.idGroup2', '=', 'group3.group2_id')
+            ->join('group4 as p', 'group3.idGroup3', '=', 'p.group3_id')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->where('companies.subsegment', $subsegment)
+            ->where('regions.code', $regionCode)
+            ->where('r.tahun', $year - 1)
+            ->select(
+                'companies.nip_nas',
+                DB::raw('SUM(r.revenue_realisasi) as prev_revenue')
+            )
+            ->groupBy('companies.nip_nas')
+            ->get()
+            ->keyBy('nip_nas');
+
+        // Calculate totals and format company data
+        $totalRevenue = 0;
+        $totalTarget = 0;
+        $totalPrevRevenue = 0;
+        
+        $companiesData = $companies->map(function ($company) use ($previousYearData, &$totalRevenue, &$totalTarget, &$totalPrevRevenue) {
+            $revenue = (float) $company->revenue;
+            $target = (float) $company->target;
+            $achievement = $target > 0 ? round(($revenue / $target) * 100, 1) : 0;
+            
+            // Get previous year revenue for this company
+            $prevRevenue = 0;
+            if (isset($previousYearData[$company->nip_nas])) {
+                $prevRevenue = (float) $previousYearData[$company->nip_nas]->prev_revenue;
+            }
+            
+            // Calculate YoY growth
+            $yoyGrowth = 0;
+            if ($prevRevenue > 0) {
+                $yoyGrowth = round((($revenue - $prevRevenue) / $prevRevenue) * 100, 1);
+            } else if ($revenue > 0) {
+                $yoyGrowth = 100; // If no previous revenue but have current, it's 100% growth
+            }
+            
+            $totalRevenue += $revenue;
+            $totalTarget += $target;
+            $totalPrevRevenue += $prevRevenue;
+            
+            return [
+                'nip_nas' => $company->nip_nas,
+                'nama_perusahaan' => $company->nama_perusahaan,
+                'witel' => $company->nama_witels,
+                'revenue' => $revenue,
+                'target' => $target,
+                'achievement' => $achievement,
+                'yoy_growth' => $yoyGrowth,
+                'formatted_revenue' => 'Rp ' . number_format($revenue, 0, ',', '.'),
+                'formatted_target' => 'Rp ' . number_format($target, 0, ',', '.'),
+            ];
+        })->toArray();
+
+        // Calculate overall achievement and YoY growth
+        $overallAchievement = $totalTarget > 0 ? round(($totalRevenue / $totalTarget) * 100, 1) : 0;
+        $overallYoyGrowth = $totalPrevRevenue > 0 ? round((($totalRevenue - $totalPrevRevenue) / $totalPrevRevenue) * 100, 1) : 0;
+
+        $summary = [
+            'total_revenue' => $totalRevenue,
+            'total_target' => $totalTarget,
+            'achievement' => $overallAchievement,
+            'yoy_growth' => $overallYoyGrowth,
+            'company_count' => count($companiesData),
+            'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'),
+            'formatted_total_target' => 'Rp ' . number_format($totalTarget, 0, ',', '.'),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'summary' => $summary,
+                'companies' => $companiesData,
+                'subsegment' => $subsegment,
+                'region_code' => $regionCode,
+                'year' => $year
+            ]
+        ]);
+    }
 }

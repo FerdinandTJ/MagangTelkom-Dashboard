@@ -6,6 +6,7 @@ import MonthDetailModal from '@/components/modals/MonthDetailModal';
 import SubsegmentDetailModal from '@/components/modals/SubsegmentDetailModal';
 import CompanyDetailModal from '@/components/modals/CompanyDetailModal';
 import YtdComparisonModal from '@/components/modals/YtdComparisonModal';
+import RegionDetailModal from '@/components/modals/RegionDetailModal';
 import SubsegmentRegionalTable from '@/components/SubsegmentRegionalTable';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
@@ -115,10 +116,12 @@ export default function Dashboard({
     const [selectedMonth, setSelectedMonth] = useState<any>(null);
     const [selectedSubsegment, setSelectedSubsegment] = useState<string | null>(null);
     const [selectedCompany, setSelectedCompany] = useState<any>(null);
+    const [selectedRegion, setSelectedRegion] = useState<{ subsegment: string; code: string; name: string } | null>(null);
     const [monthModalOpen, setMonthModalOpen] = useState(false);
     const [subsegmentModalOpen, setSubsegmentModalOpen] = useState(false);
     const [companyModalOpen, setCompanyModalOpen] = useState(false);
     const [ytdModalOpen, setYtdModalOpen] = useState(false);
+    const [regionModalOpen, setRegionModalOpen] = useState(false);
     
     // Tab states
     const [revenueViewTab, setRevenueViewTab] = useState<'chart' | 'subsegment'>('chart');
@@ -244,6 +247,11 @@ export default function Dashboard({
     const handleTopCompanyClick = (company: any) => {
         setSelectedCompany(company);
         setCompanyModalOpen(true);
+    };
+
+    const handleRegionClick = (subsegment: string, regionCode: string, regionName: string) => {
+        setSelectedRegion({ subsegment, code: regionCode, name: regionName });
+        setRegionModalOpen(true);
     };
 
     return (
@@ -477,6 +485,7 @@ export default function Dashboard({
                                     <SubsegmentRegionalTable 
                                         data={subsegmentRegionalData} 
                                         onSubsegmentClick={handleSubsegmentClick}
+                                        onRegionClick={handleRegionClick}
                                     />
                                 )}
                             </div>
@@ -618,6 +627,15 @@ export default function Dashboard({
                 <YtdComparisonModal
                     isOpen={ytdModalOpen}
                     onClose={() => setYtdModalOpen(false)}
+                />
+
+                <RegionDetailModal
+                    isOpen={regionModalOpen}
+                    onClose={() => setRegionModalOpen(false)}
+                    subsegment={selectedRegion?.subsegment || null}
+                    regionCode={selectedRegion?.code || null}
+                    regionName={selectedRegion?.name || null}
+                    year={selectedYear}
                 />
             </div>
         </AppLayout>
