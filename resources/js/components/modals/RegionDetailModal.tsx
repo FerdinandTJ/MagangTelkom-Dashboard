@@ -99,7 +99,7 @@ const RegionDetailModal: React.FC<RegionDetailModalProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="medium-modal max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="wide-modal max-w-5xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         <MapPin className="h-6 w-6 text-red-600 dark:text-red-400" />
