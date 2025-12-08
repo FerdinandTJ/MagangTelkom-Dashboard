@@ -123,7 +123,6 @@ const SubsegmentDetailModal: React.FC<SubsegmentDetailModalProps> = ({
             percentage: region.percentage,
             color: REGIONAL_COLORS[index % REGIONAL_COLORS.length]
         }));
-        console.log('Regional chart data computed:', data);
         return data;
     }, [regionalBreakdown]);
 

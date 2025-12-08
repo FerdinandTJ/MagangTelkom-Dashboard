@@ -217,8 +217,6 @@ export default function PerformanceAM({
 
     // Handler untuk click pada pie chart region
     const handlePieClick = (data: any) => {
-        console.log('Pie clicked:', data);
-        
         // Hanya buka modal untuk HQ TREG2
         // HQ TREG2 memiliki code "HQ TREG2" atau "Headquarters TREG2"
         if (data && data.region_id) {
@@ -229,16 +227,9 @@ export default function PerformanceAM({
             const isHqTreg2 = regionCode.includes('HQ') || regionName.includes('Headquarters');
             
             if (isHqTreg2) {
-                console.log('Opening NKI modal for HQ TREG2:', {
-                    region_id: data.region_id,
-                    region_name: regionName,
-                    region_code: regionCode
-                });
                 setSelectedRegionId(data.region_id);
                 setSelectedRegionName(regionName || regionCode);
                 setIsRegionNkiModalOpen(true);
-            } else {
-                console.log('Modal only available for HQ TREG2. Clicked:', regionCode);
             }
         }
     };

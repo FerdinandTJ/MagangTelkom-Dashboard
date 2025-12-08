@@ -82,8 +82,6 @@ const RegionDetailModal: React.FC<RegionDetailModalProps> = ({
 
             const response = await axios.get('/api/dashboard/region-detail', { params });
 
-            console.log('Region Detail Response:', response.data);
-
             if (response.data.success) {
                 setData(response.data.data);
             } else {
@@ -91,7 +89,6 @@ const RegionDetailModal: React.FC<RegionDetailModalProps> = ({
             }
         } catch (err) {
             setError('Error loading region data');
-            console.error('Region Detail Error:', err);
         } finally {
             setLoading(false);
         }
