@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Target, Calendar, Users } from 'lucide-react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import WitelNkiDetailModal from './modals/WitelNkiDetailModal';
 
 interface RegionNkiModalProps {
     isOpen: boolean;
@@ -129,6 +130,9 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
     const [availableQuarters, setAvailableQuarters] = useState<number[]>([1, 2, 3, 4]);
     const [quartersByYear, setQuartersByYear] = useState<Record<number, number[]>>({});
     const [chartData, setChartData] = useState<any[]>([]);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedSegment, setSelectedSegment] = useState<string>('');
+    const [selectedWitelId, setSelectedWitelId] = useState<number | undefined>(undefined);
 
     // Fetch available periods from API
     useEffect(() => {
@@ -353,6 +357,13 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
             return data.current_period.data.parameter_proses;
         }
         return data?.parameter_proses;
+    };
+
+    const handleSegmentRowClick = (segment: string) => {
+        if (!data?.compare_enabled) {
+            setSelectedSegment(segment);
+            setShowDetailModal(true);
+        }
     };
 
     const getCurrentPeriodLabel = () => {
@@ -885,7 +896,11 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                     <>
                                                         {/* Default Mode: Show segments only */}
                                                         {getCurrentSegmentStats().map((stat, index) => (
-                                                            <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-850 transition-colors">
+                                                            <tr 
+                                                                key={index} 
+                                                                onClick={() => handleSegmentRowClick(stat.segment)}
+                                                                className="hover:bg-gray-50 dark:hover:bg-gray-850 transition-colors cursor-pointer"
+                                                            >
                                                                 <td className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-800 sticky left-0 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-850">
                                                                     <div className="flex items-center gap-2">
                                                                         <div className="w-2 h-2 rounded-full bg-red-500"></div>
@@ -1274,6 +1289,17 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                     </Button>
                 </div>
             </DialogContent>
+
+            {/* Witel NKI Detail Modal */}
+            <WitelNkiDetailModal
+                isOpen={showDetailModal}
+                onClose={() => setShowDetailModal(false)}
+                regionId={regionId}
+                quarter={quarter}
+                year={year}
+                segment={selectedSegment}
+                witelId={selectedWitelId}
+            />
         </Dialog>
     );
 }
