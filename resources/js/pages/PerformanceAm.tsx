@@ -543,9 +543,9 @@ export default function PerformanceAM({
                                     <table className="w-full text-sm border-collapse">
                                         <thead>
                                             <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
-                                                <th className="text-left p-4 font-bold text-gray-800 uppercase tracking-wide text-xs">Regional</th>
-                                                <th className="text-left p-4 font-bold text-gray-800 uppercase tracking-wide text-xs">Top Account Manager</th>
-                                                <th className="text-right p-4 font-bold text-gray-800 uppercase tracking-wide text-xs">Revenue</th>
+                                                <th className="text-left p-4 font-bold text-gray-800 uppercase tracking-wide text-xs border-r border-gray-300">Regional</th>
+                                                <th className="text-left p-4 font-bold text-gray-800 uppercase tracking-wide text-xs border-r border-gray-300">Top Account Manager</th>
+                                                <th className="text-right p-4 font-bold text-gray-800 uppercase tracking-wide text-xs border-r border-gray-300">Revenue</th>
                                                 <th className="text-right p-4 font-bold text-gray-800 uppercase tracking-wide text-xs">Achievement</th>
                                             </tr>
                                         </thead>
@@ -562,7 +562,7 @@ export default function PerformanceAM({
                                                             }`}
                                                         >
                                                             {idx === 0 ? (
-                                                                <td className="p-4 align-top bg-gray-50/50" rowSpan={region.top_ams.length}>
+                                                                <td className="p-4 align-top bg-gray-50/50 border-r border-gray-300 pointer-events-none" rowSpan={region.top_ams.length}>
                                                                     <div className="space-y-3">
                                                                         <div className="flex items-center gap-2">
                                                                             <div className="w-1 h-8 bg-red-600 rounded-full"></div>
@@ -590,7 +590,7 @@ export default function PerformanceAM({
                                                                     </div>
                                                                 </td>
                                                             ) : null}
-                                                            <td className="pl-4">
+                                                            <td className="pl-4 border-r border-gray-300">
                                                                 <div className="flex items-center gap-3">
                                                                     <div className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 text-xs font-bold text-white rounded-full shadow-sm ${
                                                                         idx === 0 ? 'bg-yellow-500' : idx === 1 ? 'bg-gray-400' : 'bg-orange-600'
@@ -600,7 +600,7 @@ export default function PerformanceAM({
                                                                     <span className="font-medium text-gray-900">{am.am_name}</span>
                                                                 </div>
                                                             </td>
-                                                            <td className="p-4 text-right">
+                                                            <td className="p-4 text-right border-r border-gray-300">
                                                                 <span className="font-semibold text-gray-900">{am.formatted_revenue}</span>
                                                             </td>
                                                             <td className="p-4 text-right">

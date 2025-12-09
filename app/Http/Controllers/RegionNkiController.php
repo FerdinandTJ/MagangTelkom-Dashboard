@@ -673,4 +673,476 @@ class RegionNkiController extends Controller
             ]
         ]);
     }
+
+    public function getWitelNkiDetail(Request $request)
+    {
+        $request->validate([
+            'region_id' => 'required|integer',
+            'quarter' => 'required|integer|min:1|max:4',
+            'year' => 'required|integer|min:2020',
+            'segment' => 'required|string',
+            'witel_id' => 'nullable|integer'
+        ]);
+
+        $regionId = $request->region_id;
+        $quarter = $request->quarter;
+        $year = $request->year;
+        $segment = $request->segment;
+        $witelId = $request->witel_id;
+
+        \Log::info('Witel NKI Detail Request:', [
+            'region_id' => $regionId,
+            'quarter' => $quarter,
+            'year' => $year,
+            'segment' => $segment,
+            'witel_id' => $witelId
+        ]);
+
+        // Get region info
+        $region = Region::findOrFail($regionId);
+
+        // Get all account managers in the region for the specified segment
+        $amQuery = DB::table('account_managers as am')
+            ->join('witels as w', 'am.idwitels', '=', 'w.idwitels')
+            ->join('account_manager_company as amc', 'am.nik', '=', 'amc.nik_am')
+            ->where('w.region_id', $regionId)
+            ->where('amc.segment', $segment);
+
+        if ($witelId) {
+            $amQuery->where('am.idwitels', $witelId);
+        }
+
+        $accountManagers = $amQuery
+            ->select('am.nik', 'am.nama', 'w.idwitels as witel_id', 'w.nama_witels as witel_name')
+            ->distinct()
+            ->get();
+
+        \Log::info('Account Managers found:', ['count' => $accountManagers->count()]);
+
+        if ($accountManagers->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'witel_info' => [
+                        'witel_id' => $witelId,
+                        'witel_name' => 'N/A',
+                        'region_code' => $region->name,
+                        'segment' => $segment
+                    ],
+                    'period' => [
+                        'quarter' => $quarter,
+                        'year' => $year,
+                        'period_display' => "Q{$quarter} {$year}"
+                    ],
+                    'summary' => [
+                        'total_am' => 0,
+                        'total_target_revenue' => 0,
+                        'formatted_total_target_revenue' => 'Rp 0',
+                        'total_realisasi_revenue' => 0,
+                        'formatted_total_realisasi_revenue' => 'Rp 0',
+                        'avg_nki' => 0
+                    ],
+                    'am_list' => [],
+                    'parameter_result' => ['percentage_result' => 60, 'parameters' => []],
+                    'parameter_proses' => ['percentage_proses' => 40, 'parameters' => []]
+                ]
+            ]);
+        }
+
+        $amNiks = $accountManagers->pluck('nik')->toArray();
+
+        \Log::info('AM NIKs:', ['niks' => $amNiks]);
+
+        // Get lini_waktu for these AMs in the specified period
+        $liniWaktuData = LiniWaktu::whereIn('nik_am', $amNiks)
+            ->where('quartal', 'Q' . $quarter)
+            ->where('tahun', $year)
+            ->get()
+            ->keyBy('nik_am');
+
+        \Log::info('Lini Waktu found:', ['count' => $liniWaktuData->count()]);
+
+        if ($liniWaktuData->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'witel_info' => [
+                        'witel_id' => $witelId,
+                        'witel_name' => $accountManagers->first()->witel_name ?? 'N/A',
+                        'region_code' => $region->name,
+                        'segment' => $segment
+                    ],
+                    'period' => [
+                        'quarter' => $quarter,
+                        'year' => $year,
+                        'period_display' => "Q{$quarter} {$year}"
+                    ],
+                    'summary' => [
+                        'total_am' => $accountManagers->count(),
+                        'total_target_revenue' => 0,
+                        'formatted_total_target_revenue' => 'Rp 0',
+                        'total_realisasi_revenue' => 0,
+                        'formatted_total_realisasi_revenue' => 'Rp 0',
+                        'avg_nki' => 0
+                    ],
+                    'am_list' => [],
+                    'parameter_result' => ['percentage_result' => 60, 'parameters' => []],
+                    'parameter_proses' => ['percentage_proses' => 40, 'parameters' => []]
+                ]
+            ]);
+        }
+
+        $liniWaktuIds = $liniWaktuData->pluck('id')->toArray();
+
+        // Get AM list with their performance data
+        $amList = [];
+        $totalTargetRevenue = 0;
+        $totalRealisasiRevenue = 0;
+        $totalNki = 0;
+        $nkiCount = 0;
+
+        // Parameter aggregation
+        $parameterStats = [
+            'result' => [
+                'Revenue' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'Scaling' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'Sales Datin' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'HSI' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'Wireline' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'WiFi' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'CYC' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'CR' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'Profit' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'NPS' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0]
+            ],
+            'proses' => [
+                'MAPS' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'LOP' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'Capability' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0],
+                'CC' => ['ach' => 0, 'not_ach' => 0, 'total_ach' => 0, 'bobot' => 0]
+            ]
+        ];
+
+        foreach ($accountManagers as $am) {
+            $liniWaktu = $liniWaktuData->get($am->nik);
+            
+            if (!$liniWaktu) {
+                \Log::info("No lini_waktu for AM: {$am->nik}");
+                continue;
+            }
+
+            // Get all targets for this AM's companies in this segment
+            $amCompanyIds = DB::table('account_manager_company as amc')
+                ->where('amc.nik_am', $am->nik)
+                ->where('amc.segment', $segment)
+                ->pluck('amc.id')
+                ->toArray();
+
+            \Log::info("AM {$am->nik} company IDs:", ['count' => count($amCompanyIds), 'ids' => $amCompanyIds]);
+
+            if (empty($amCompanyIds)) {
+                \Log::info("No companies for AM: {$am->nik} with segment: {$segment}");
+                continue;
+            }
+
+            $targets = TargetAccountM::whereIn('account_manager_company_id', $amCompanyIds)->get();
+            $targetIds = $targets->pluck('id')->toArray();
+
+            \Log::info("AM {$am->nik} target IDs:", ['count' => count($targetIds)]);
+
+            if (empty($targetIds)) {
+                \Log::info("No targets for AM: {$am->nik}");
+                continue;
+            }
+
+            // Get pivot data (realisasi and achievements)
+            $pivotData = DB::table('lini_waktu_target')
+                ->where('lini_waktu_id', $liniWaktu->id)
+                ->whereIn('target_id', $targetIds)
+                ->get();
+
+            \Log::info("AM {$am->nik} pivot data:", ['count' => $pivotData->count()]);
+
+            if ($pivotData->isEmpty()) {
+                \Log::info("No pivot data for AM: {$am->nik}");
+                continue;
+            }
+
+            // Aggregate targets and realisasi for this AM
+            $amTargetRevenue = $targets->sum('t_revenue');
+            $amRealisasiRevenue = $pivotData->sum('r_revenue');
+            $amTargetScaling = $targets->sum('t_scalling');
+            $amRealisasiScaling = $pivotData->sum('r_scalling');
+            $amTargetDatin = $targets->sum('t_datin');
+            $amRealisasiDatin = $pivotData->sum('r_datin');
+            $amTargetHsi = $targets->sum('t_hsi');
+            $amRealisasiHsi = $pivotData->sum('r_hsi');
+            $amTargetWireline = $targets->sum('t_wireline');
+            $amRealisasiWireline = $pivotData->sum('r_wireline');
+            $amTargetWifi = $targets->sum('t_wifi');
+            $amRealisasiWifi = $pivotData->sum('r_wifi');
+            $amTargetCyc = $targets->sum('t_cyc');
+            $amRealisasiCyc = $pivotData->sum('r_cyc');
+            $amTargetCr = $targets->sum('t_cr');
+            $amRealisasiCr = $pivotData->sum('r_cr');
+            $amTargetProfit = $targets->sum('t_profit');
+            $amRealisasiProfit = $pivotData->sum('r_profit');
+            $amTargetNps = $targets->sum('t_nps');
+            $amRealisasiNps = $pivotData->sum('r_nps');
+            $amTargetMaps = $targets->sum('t_maps');
+            $amRealisasiMaps = $pivotData->sum('r_maps');
+            $amTargetLop = $targets->sum('t_lop');
+            $amRealisasiLop = $pivotData->sum('r_lop');
+            $amTargetCapability = $targets->sum('t_capability');
+            $amRealisasiCapability = $pivotData->sum('r_capability');
+            $amTargetCc = $targets->sum('t_cc');
+            $amRealisasiCc = $pivotData->sum('r_cc');
+
+            // Calculate achievements
+            $achRevenue = $amTargetRevenue > 0 ? ($amRealisasiRevenue / $amTargetRevenue) * 100 : 0;
+            $achScaling = $amTargetScaling > 0 ? ($amRealisasiScaling / $amTargetScaling) * 100 : 0;
+            $achDatin = $amTargetDatin > 0 ? ($amRealisasiDatin / $amTargetDatin) * 100 : 0;
+            $achHsi = $amTargetHsi > 0 ? ($amRealisasiHsi / $amTargetHsi) * 100 : 0;
+            $achWireline = $amTargetWireline > 0 ? ($amRealisasiWireline / $amTargetWireline) * 100 : 0;
+            $achWifi = $amTargetWifi > 0 ? ($amRealisasiWifi / $amTargetWifi) * 100 : 0;
+            $achCyc = $amTargetCyc > 0 ? ($amRealisasiCyc / $amTargetCyc) * 100 : 0;
+            $achCr = $amTargetCr > 0 ? ($amRealisasiCr / $amTargetCr) * 100 : 0;
+            $achProfit = $amTargetProfit > 0 ? ($amRealisasiProfit / $amTargetProfit) * 100 : 0;
+            $achNps = $amTargetNps > 0 ? ($amRealisasiNps / $amTargetNps) * 100 : 0;
+            $achMaps = $amTargetMaps > 0 ? ($amRealisasiMaps / $amTargetMaps) * 100 : 0;
+            $achLop = $amTargetLop > 0 ? ($amRealisasiLop / $amTargetLop) * 100 : 0;
+            $achCapability = $amTargetCapability > 0 ? ($amRealisasiCapability / $amTargetCapability) * 100 : 0;
+            $achCc = $amTargetCc > 0 ? ($amRealisasiCc / $amTargetCc) * 100 : 0;
+
+            // Get ach_result, ach_proses, nki_adjustment from pivot
+            $achResult = $pivotData->avg('ach_result') ?? 0;
+            $achProses = $pivotData->avg('ach_proses') ?? 0;
+            $nkiAdjustment = $pivotData->avg('nki_adjustment') ?? 0;
+
+            $totalTargetRevenue += $amTargetRevenue;
+            $totalRealisasiRevenue += $amRealisasiRevenue;
+            $totalNki += $nkiAdjustment;
+            $nkiCount++;
+
+            // Format currency
+            $formattedTargetRevenue = $this->formatCurrency($amTargetRevenue);
+            $formattedRealisasiRevenue = $this->formatCurrency($amRealisasiRevenue);
+            $formattedTargetScaling = $this->formatCurrency($amTargetScaling);
+            $formattedRealisasiScaling = $this->formatCurrency($amRealisasiScaling);
+            $formattedTargetLop = $this->formatCurrency($amTargetLop);
+            $formattedRealisasiLop = $this->formatCurrency($amRealisasiLop);
+
+            $amList[] = [
+                'nik_am' => $am->nik,
+                'nama_am' => $am->nama,
+                't_revenue' => $amTargetRevenue,
+                'r_revenue' => $amRealisasiRevenue,
+                'ach_revenue_plan' => $achRevenue,
+                't_scaling' => $amTargetScaling,
+                'r_scaling' => $amRealisasiScaling,
+                'ach_scaling' => $achScaling,
+                't_sales_datin' => $amTargetDatin,
+                'r_sales_datin' => $amRealisasiDatin,
+                'ach_sales_datin' => $achDatin,
+                't_hsi' => $amTargetHsi,
+                'r_hsi' => $amRealisasiHsi,
+                'ach_hsi' => $achHsi,
+                't_wireline' => $amTargetWireline,
+                'r_wireline' => $amRealisasiWireline,
+                'ach_wireline' => $achWireline,
+                't_wifi' => $amTargetWifi,
+                'r_wifi' => $amRealisasiWifi,
+                'ach_wifi' => $achWifi,
+                't_cyc' => $amTargetCyc,
+                'r_cyc' => $amRealisasiCyc,
+                'ach_cyc' => $achCyc,
+                't_cr' => $amTargetCr,
+                'r_cr' => $amRealisasiCr,
+                'ach_cr' => $achCr,
+                't_profit' => $amTargetProfit,
+                'r_profit' => $amRealisasiProfit,
+                'ach_profit' => $achProfit,
+                't_nps' => $amTargetNps,
+                'r_nps' => $amRealisasiNps,
+                'ach_nps' => $achNps,
+                't_maps' => $amTargetMaps,
+                'r_maps' => $amRealisasiMaps,
+                'ach_maps' => $achMaps,
+                't_lop' => $amTargetLop,
+                'r_lop' => $amRealisasiLop,
+                'ach_lop' => $achLop,
+                't_capability' => $amTargetCapability,
+                'r_capability' => $amRealisasiCapability,
+                'ach_capability' => $achCapability,
+                't_cc' => $amTargetCc,
+                'r_cc' => $amRealisasiCc,
+                'ach_cc' => $achCc,
+                'ach_result' => $achResult,
+                'ach_proses' => $achProses,
+                'nki_adjustment' => $nkiAdjustment,
+                'formatted_t_revenue' => $formattedTargetRevenue,
+                'formatted_r_revenue' => $formattedRealisasiRevenue,
+                'formatted_t_scaling' => $formattedTargetScaling,
+                'formatted_r_scaling' => $formattedRealisasiScaling,
+                'formatted_t_lop' => $formattedTargetLop,
+                'formatted_r_lop' => $formattedRealisasiLop
+            ];
+
+            // Aggregate parameter stats
+            $bobotRevenue = $liniWaktu->percentage_revenue ?? 0;
+            $bobotScaling = $liniWaktu->percentage_scaling ?? 0;
+            $bobotDatin = $liniWaktu->percentage_datin ?? 0;
+            $bobotHsi = $liniWaktu->percentage_hsi ?? 0;
+            $bobotWireline = $liniWaktu->percentage_wireline ?? 0;
+            $bobotWifi = $liniWaktu->percentage_wifi ?? 0;
+            $bobotCyc = $liniWaktu->percentage_cyc ?? 0;
+            $bobotCr = $liniWaktu->percentage_cr ?? 0;
+            $bobotProfit = $liniWaktu->percentage_profit ?? 0;
+            $bobotNps = $liniWaktu->percentage_customer ?? 0;
+            $bobotMaps = $liniWaktu->percentage_maps ?? 0;
+            $bobotLop = $liniWaktu->percentage_lop ?? 0;
+            $bobotCapability = $liniWaktu->percentage_capability ?? 0;
+            $bobotCc = $liniWaktu->percentage_cc ?? 0;
+
+            // Result parameters
+            $parameterStats['result']['Revenue']['ach'] += $achRevenue >= 100 ? 1 : 0;
+            $parameterStats['result']['Revenue']['not_ach'] += $achRevenue < 100 ? 1 : 0;
+            $parameterStats['result']['Revenue']['total_ach'] += $achRevenue;
+            $parameterStats['result']['Revenue']['bobot'] = $bobotRevenue;
+
+            $parameterStats['result']['Scaling']['ach'] += $achScaling >= 100 ? 1 : 0;
+            $parameterStats['result']['Scaling']['not_ach'] += $achScaling < 100 ? 1 : 0;
+            $parameterStats['result']['Scaling']['total_ach'] += $achScaling;
+            $parameterStats['result']['Scaling']['bobot'] = $bobotScaling;
+
+            $parameterStats['result']['Sales Datin']['ach'] += $achDatin >= 100 ? 1 : 0;
+            $parameterStats['result']['Sales Datin']['not_ach'] += $achDatin < 100 ? 1 : 0;
+            $parameterStats['result']['Sales Datin']['total_ach'] += $achDatin;
+            $parameterStats['result']['Sales Datin']['bobot'] = $bobotDatin;
+
+            $parameterStats['result']['HSI']['ach'] += $achHsi >= 100 ? 1 : 0;
+            $parameterStats['result']['HSI']['not_ach'] += $achHsi < 100 ? 1 : 0;
+            $parameterStats['result']['HSI']['total_ach'] += $achHsi;
+            $parameterStats['result']['HSI']['bobot'] = $bobotHsi;
+
+            $parameterStats['result']['Wireline']['ach'] += $achWireline >= 100 ? 1 : 0;
+            $parameterStats['result']['Wireline']['not_ach'] += $achWireline < 100 ? 1 : 0;
+            $parameterStats['result']['Wireline']['total_ach'] += $achWireline;
+            $parameterStats['result']['Wireline']['bobot'] = $bobotWireline;
+
+            $parameterStats['result']['WiFi']['ach'] += $achWifi >= 100 ? 1 : 0;
+            $parameterStats['result']['WiFi']['not_ach'] += $achWifi < 100 ? 1 : 0;
+            $parameterStats['result']['WiFi']['total_ach'] += $achWifi;
+            $parameterStats['result']['WiFi']['bobot'] = $bobotWifi;
+
+            $parameterStats['result']['CYC']['ach'] += $achCyc >= 100 ? 1 : 0;
+            $parameterStats['result']['CYC']['not_ach'] += $achCyc < 100 ? 1 : 0;
+            $parameterStats['result']['CYC']['total_ach'] += $achCyc;
+            $parameterStats['result']['CYC']['bobot'] = $bobotCyc;
+
+            $parameterStats['result']['CR']['ach'] += $achCr >= 100 ? 1 : 0;
+            $parameterStats['result']['CR']['not_ach'] += $achCr < 100 ? 1 : 0;
+            $parameterStats['result']['CR']['total_ach'] += $achCr;
+            $parameterStats['result']['CR']['bobot'] = $bobotCr;
+
+            $parameterStats['result']['Profit']['ach'] += $achProfit >= 100 ? 1 : 0;
+            $parameterStats['result']['Profit']['not_ach'] += $achProfit < 100 ? 1 : 0;
+            $parameterStats['result']['Profit']['total_ach'] += $achProfit;
+            $parameterStats['result']['Profit']['bobot'] = $bobotProfit;
+
+            $parameterStats['result']['NPS']['ach'] += $achNps >= 100 ? 1 : 0;
+            $parameterStats['result']['NPS']['not_ach'] += $achNps < 100 ? 1 : 0;
+            $parameterStats['result']['NPS']['total_ach'] += $achNps;
+            $parameterStats['result']['NPS']['bobot'] = $bobotNps;
+
+            // Process parameters
+            $parameterStats['proses']['MAPS']['ach'] += $achMaps >= 100 ? 1 : 0;
+            $parameterStats['proses']['MAPS']['not_ach'] += $achMaps < 100 ? 1 : 0;
+            $parameterStats['proses']['MAPS']['total_ach'] += $achMaps;
+            $parameterStats['proses']['MAPS']['bobot'] = $bobotMaps;
+
+            $parameterStats['proses']['LOP']['ach'] += $achLop >= 100 ? 1 : 0;
+            $parameterStats['proses']['LOP']['not_ach'] += $achLop < 100 ? 1 : 0;
+            $parameterStats['proses']['LOP']['total_ach'] += $achLop;
+            $parameterStats['proses']['LOP']['bobot'] = $bobotLop;
+
+            $parameterStats['proses']['Capability']['ach'] += $achCapability >= 100 ? 1 : 0;
+            $parameterStats['proses']['Capability']['not_ach'] += $achCapability < 100 ? 1 : 0;
+            $parameterStats['proses']['Capability']['total_ach'] += $achCapability;
+            $parameterStats['proses']['Capability']['bobot'] = $bobotCapability;
+
+            $parameterStats['proses']['CC']['ach'] += $achCc >= 100 ? 1 : 0;
+            $parameterStats['proses']['CC']['not_ach'] += $achCc < 100 ? 1 : 0;
+            $parameterStats['proses']['CC']['total_ach'] += $achCc;
+            $parameterStats['proses']['CC']['bobot'] = $bobotCc;
+        }
+
+        $avgNki = $nkiCount > 0 ? $totalNki / $nkiCount : 0;
+
+        // Format parameter data
+        $resultParameters = [];
+        foreach ($parameterStats['result'] as $name => $stats) {
+            $totalAm = $stats['ach'] + $stats['not_ach'];
+            $avgAch = $totalAm > 0 ? $stats['total_ach'] / $totalAm : 0;
+            
+            $resultParameters[] = [
+                'parameter' => $name,
+                'bobot' => $stats['bobot'],
+                'ach_count' => $stats['ach'],
+                'not_ach_count' => $stats['not_ach'],
+                'avg_achievement' => $avgAch
+            ];
+        }
+
+        $prosesParameters = [];
+        foreach ($parameterStats['proses'] as $name => $stats) {
+            $totalAm = $stats['ach'] + $stats['not_ach'];
+            $avgAch = $totalAm > 0 ? $stats['total_ach'] / $totalAm : 0;
+            
+            $prosesParameters[] = [
+                'parameter' => $name,
+                'bobot' => $stats['bobot'],
+                'ach_count' => $stats['ach'],
+                'not_ach_count' => $stats['not_ach'],
+                'avg_achievement' => $avgAch
+            ];
+        }
+
+        \Log::info('Final AM List count:', ['count' => count($amList)]);
+        \Log::info('Sample AM data:', ['first_am' => $amList[0] ?? 'No AM data']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'witel_info' => [
+                    'witel_id' => $witelId,
+                    'witel_name' => $accountManagers->first()->witel_name ?? 'N/A',
+                    'region_code' => $region->name,
+                    'segment' => $segment
+                ],
+                'period' => [
+                    'quarter' => $quarter,
+                    'year' => $year,
+                    'period_display' => "Q{$quarter} {$year}"
+                ],
+                'summary' => [
+                    'total_am' => count($amList),
+                    'total_target_revenue' => $totalTargetRevenue,
+                    'formatted_total_target_revenue' => $this->formatCurrency($totalTargetRevenue),
+                    'total_realisasi_revenue' => $totalRealisasiRevenue,
+                    'formatted_total_realisasi_revenue' => $this->formatCurrency($totalRealisasiRevenue),
+                    'avg_nki' => $avgNki
+                ],
+                'am_list' => $amList,
+                'parameter_result' => [
+                    'percentage_result' => 60,
+                    'parameters' => $resultParameters
+                ],
+                'parameter_proses' => [
+                    'percentage_proses' => 40,
+                    'parameters' => $prosesParameters
+                ]
+            ]
+        ]);
+    }
 }
