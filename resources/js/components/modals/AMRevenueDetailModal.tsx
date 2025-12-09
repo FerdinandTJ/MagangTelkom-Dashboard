@@ -437,54 +437,55 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                     </div>
                                 )
                             ) : (
-                                // Target Breakdown Bar Chart
+                                // Target Breakdown Horizontal Bar Chart
                                 data.companies && data.companies.length > 0 ? (
-                                    <div className="overflow-x-auto">
-                                        <div style={{ width: `${Math.max(data.companies.length * 40, 500)}px`, minHeight: '320px' }}>
-                                            <ResponsiveContainer width="100%" height={320}>
-                                                <BarChart data={data.companies}>
-                                                    <XAxis 
-                                                        dataKey="nama_perusahaan" 
-                                                        tick={{ fontSize: 14, fill: isDarkMode ? '#9ca3af' : '#6b7280' }}
-                                                        angle={0}
-                                                        textAnchor="middle"
-                                                        height={30}
-                                                        interval={0}
-                                                    />
-                                                    <YAxis 
-                                                        tick={{ fontSize: 11, fill: isDarkMode ? '#9ca3af' : '#6b7280' }}
-                                                        tickFormatter={(value) => {
-                                                            if (value >= 1000000000) {
-                                                                return `${(value / 1000000000).toFixed(0)}M`;
-                                                            }
-                                                            return `${(value / 1000000).toFixed(0)}Jt`;
-                                                        }}
-                                                    />
-                                                    <Tooltip 
-                                                        formatter={(value: any) => formatCurrency(value, 2)}
-                                                        contentStyle={{
-                                                            backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                                                            border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
-                                                            borderRadius: '8px',
-                                                            color: isDarkMode ? '#e5e7eb' : '#111827'
-                                                        }}
-                                                    />
-                                                    <Legend 
-                                                        verticalAlign="bottom" 
-                                                        align="left" 
-                                                        height={20} 
-                                                        iconType="rect" 
-                                                        layout="horizontal" 
-                                                        wrapperStyle={{
-                                                            paddingLeft: '60px',
-                                                        }}
-                                                    />
-                                                    <Bar dataKey="t_sustain" fill="#3b82f6" name="Sustain" radius={[4, 4, 0, 0]} />
-                                                    <Bar dataKey="t_scalling" fill="#22c55e" name="Scaling" radius={[4, 4, 0, 0]} />
-                                                    <Bar dataKey="t_ngtma" fill="#a855f7" name="NGTMA" radius={[4, 4, 0, 0]} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
+                                    <div style={{ width: '100%', height: `${Math.max(data.companies.length * 100 + 50, 370)}px`, overflowY: 'auto' }}>
+                                        <ResponsiveContainer width="100%" height={Math.max(data.companies.length * 100, 320)}>
+                                            <BarChart 
+                                                data={data.companies} 
+                                                layout="vertical"
+                                                margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
+                                                barSize={20}
+                                                barGap={2}
+                                            >
+                                                <XAxis 
+                                                    type="number"
+                                                    tick={{ fontSize: 11, fill: isDarkMode ? '#9ca3af' : '#6b7280' }}
+                                                    tickFormatter={(value) => {
+                                                        if (value >= 1000000000) {
+                                                            return `${(value / 1000000000).toFixed(0)}M`;
+                                                        }
+                                                        return `${(value / 1000000).toFixed(0)}Jt`;
+                                                    }}
+                                                />
+                                                <YAxis 
+                                                    type="category"
+                                                    dataKey="nama_perusahaan" 
+                                                    tick={{ fontSize: 14, fill: isDarkMode ? '#9ca3af' : '#6b7280' }}
+                                                    width={150}
+                                                />
+                                                <Tooltip 
+                                                    formatter={(value: any) => formatCurrency(value, 2)}
+                                                    contentStyle={{
+                                                        backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                                        border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                                                        borderRadius: '8px',
+                                                        color: isDarkMode ? '#e5e7eb' : '#111827'
+                                                    }}
+                                                />
+                                                <Legend 
+                                                    verticalAlign="top" 
+                                                    align="left" 
+                                                    height={25} 
+                                                    iconType="rect" 
+                                                    layout="horizontal"
+                                                    wrapperStyle={{ paddingLeft: '160px' }}
+                                                />
+                                                <Bar dataKey="t_sustain" fill="#3b82f6" name="Sustain" radius={[0, 4, 4, 0]} />
+                                                <Bar dataKey="t_scalling" fill="#22c55e" name="Scaling" radius={[0, 4, 4, 0]} />
+                                                <Bar dataKey="t_ngtma" fill="#a855f7" name="NGTMA" radius={[0, 4, 4, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-center h-[320px] text-gray-500 dark:text-gray-400">
@@ -501,7 +502,10 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                     Company Details
                                 </h3>
                                 
-                                <div className="space-y-2 max-h-[320px] overflow-y-auto">
+                                <div 
+                                    className="space-y-2 overflow-y-auto"
+                                    style={{ maxHeight: `${Math.max(data.companies.length * 100 + 50, 370)}px` }}
+                                >
                                     {data.companies && data.companies.length > 0 ? (
                                         data.companies.map((company) => {
                                             const isExpanded = expandedCompanies.has(company.nip_nas);
