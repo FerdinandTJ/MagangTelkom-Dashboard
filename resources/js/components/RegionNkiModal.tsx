@@ -271,10 +271,15 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                     }
                 }
                 
-                // No compare mode or error: show only current data
+                // No compare mode or error: show only current data (clean data without compare fields)
                 const dataWithCurrent = currentData.map((item: any) => ({
-                    ...item,
+                    parameter: item.parameter,
+                    target: item.target,
+                    realisasi: item.realisasi,
+                    bobot: item.bobot,
+                    ach: item.ach,
                     ach_current: item.ach
+                    // Explicitly not including ach_compare, target_compare, etc.
                 }));
                 setChartData(dataWithCurrent);
             }
@@ -424,7 +429,8 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
-            const isCompareMode = data.ach_compare !== undefined;
+            // Use compareMode state instead of checking data property
+            const isCompareMode = compareMode && data.ach_compare !== undefined;
             
             // Format value based on parameter type
             const formatValue = (value: number, parameter: string) => {
