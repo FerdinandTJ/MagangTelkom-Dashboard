@@ -73,7 +73,6 @@ const MonthDetailModal: React.FC<MonthDetailModalProps> = ({
             }
         } catch (err) {
             setError('Error loading subsegment data');
-            console.error('Error fetching subsegment details:', err);
         } finally {
             setLoading(false);
         }

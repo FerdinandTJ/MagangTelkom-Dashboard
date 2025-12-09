@@ -33,6 +33,7 @@ interface SubsegmentData {
 interface SubsegmentRegionalTableProps {
     data: SubsegmentData[];
     onSubsegmentClick?: (subsegment: string) => void;
+    onRegionClick?: (subsegment: string, regionCode: string, regionName: string) => void;
 }
 
 const SUBSEGMENT_ICONS: { [key: string]: string } = {
@@ -49,7 +50,8 @@ const SUBSEGMENT_ICONS: { [key: string]: string } = {
 
 const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
     data,
-    onSubsegmentClick
+    onSubsegmentClick,
+    onRegionClick
 }) => {
     const [expandedSubsegments, setExpandedSubsegments] = useState<Set<string>>(new Set());
     const [isDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
@@ -198,7 +200,11 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
                                             </thead>
                                             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                                                 {subsegment.regional_breakdown.map((region) => (
-                                                    <tr key={region.region_code} className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                                                    <tr 
+                                                        key={region.region_code} 
+                                                        className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer"
+                                                        onClick={() => onRegionClick?.(subsegment.subsegment, region.region_code, region.region_name)}
+                                                    >
                                                         <td className="px-4 py-3">
                                                             <div>
                                                                 <p className="font-bold text-gray-900 dark:text-gray-100">{region.region_code}</p>

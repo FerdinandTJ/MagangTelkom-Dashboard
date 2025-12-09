@@ -24,36 +24,38 @@ const StatCard: React.FC<StatCardProps> = ({
     tooltip
 }) => {
     return (
-        <div className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 p-6 ${className}`}>
-            <div className="flex items-start justify-between">
-                <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</p>
-                    <p 
-                        className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1 group relative cursor-help"
-                        title={tooltip}
-                    >
-                        {value}
-                        {tooltip && (
-                            <span className="invisible group-hover:visible absolute left-0 top-full mt-2 w-max max-w-xs bg-gray-900 dark:bg-gray-700 text-white text-sm px-3 py-2 rounded-lg shadow-lg z-10 whitespace-nowrap">
-                                {tooltip}
-                            </span>
+        <div className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 ${className}`}>
+            <div className="pb-1 pt-4 px-4">
+                <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</p>
+                        <p 
+                            className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1 group relative cursor-help"
+                            title={tooltip}
+                        >
+                            {value}
+                            {tooltip && (
+                                <span className="invisible group-hover:visible absolute left-0 top-full mt-2 w-max max-w-xs bg-gray-900 dark:bg-gray-700 text-white text-xs px-2 py-1.5 rounded shadow-lg z-10 whitespace-nowrap">
+                                    {tooltip}
+                                </span>
+                            )}
+                        </p>
+                        {subtitle && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
                         )}
-                    </p>
-                    {subtitle && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
+                    </div>
+                    {icon && (
+                        <div className="flex-shrink-0 ml-4">
+                            <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                                {icon}
+                            </div>
+                        </div>
                     )}
                 </div>
-                {icon && (
-                    <div className="flex-shrink-0 ml-4">
-                        <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                            {icon}
-                        </div>
-                    </div>
-                )}
             </div>
             
             {trend && (
-                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <div className="px-4 pb-1 pt-3 border-t border-gray-100 dark:border-gray-800">
                     <div className="flex items-center">
                         <span className={`inline-flex items-center text-sm font-medium ${
                             trend.isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'

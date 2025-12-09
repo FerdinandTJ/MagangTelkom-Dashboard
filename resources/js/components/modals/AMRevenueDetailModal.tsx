@@ -125,7 +125,6 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
             }
         } catch (err) {
             setError('Error loading AM data');
-            console.error('Error fetching AM details:', err);
         } finally {
             setLoading(false);
         }

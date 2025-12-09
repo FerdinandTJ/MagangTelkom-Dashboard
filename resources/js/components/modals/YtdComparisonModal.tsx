@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -59,15 +59,25 @@ interface YtdBreakdownTreeProps {
 const YtdBreakdownTree: React.FC<YtdBreakdownTreeProps> = ({ data, currentPeriod, previousPeriod }) => {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
     const [matchCount, setMatchCount] = useState<number>(0);
 
-    // Filter and search logic
+    // Debounce search query with 300ms delay
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Filter and search logic - use debounced query
     const { filteredData, matchedIds } = useMemo(() => {
-        if (!searchQuery.trim()) {
+        if (!debouncedSearchQuery.trim()) {
             return { filteredData: data, matchedIds: new Set<string>() };
         }
 
-        const query = searchQuery.toLowerCase();
+        const query = debouncedSearchQuery.toLowerCase();
         const matched = new Set<string>();
         const ancestorIds = new Set<string>();
 
@@ -123,11 +133,11 @@ const YtdBreakdownTree: React.FC<YtdBreakdownTreeProps> = ({ data, currentPeriod
             matchedIds: matched,
             ancestorIds
         };
-    }, [data, searchQuery]);
+    }, [data, debouncedSearchQuery]);
 
     // Auto-expand matched nodes and their ancestors when searching
     useEffect(() => {
-        if (searchQuery.trim() && matchedIds.size > 0) {
+        if (debouncedSearchQuery.trim() && matchedIds.size > 0) {
             const newExpanded = new Set(expandedItems);
             
             // Expand all ancestor nodes to show matches
@@ -149,7 +159,7 @@ const YtdBreakdownTree: React.FC<YtdBreakdownTreeProps> = ({ data, currentPeriod
         } else {
             setMatchCount(0);
         }
-    }, [searchQuery, matchedIds, filteredData]);
+    }, [debouncedSearchQuery, matchedIds, filteredData]);
 
     const toggleExpand = (id: string) => {
         const newExpanded = new Set(expandedItems);
@@ -502,7 +512,7 @@ const YtdComparisonModal: React.FC<YtdComparisonModalProps> = ({
                     }
                 }
             } catch (err) {
-                console.error('Error fetching available periods:', err);
+                // Silent error handling - no console log in production
             } finally {
                 setLoadingPeriods(false);
             }

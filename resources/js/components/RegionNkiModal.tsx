@@ -151,7 +151,6 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                     }
                 }
             } catch (err) {
-                console.error('Failed to fetch available periods:', err);
                 // Fallback to default values
                 setAvailableYears([year, year - 1, year - 2, year - 3, year - 4, year - 5]);
                 setAvailableQuarters([1, 2, 3, 4]);
@@ -212,7 +211,6 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
         setLoading(true);
         setError(null);
         try {
-            console.log('Fetching region NKI data:', { regionId, quarter, year, compareMode, forceDisableCompare });
             const params: any = { quarter, year };
             
             // Only add compare params if compareMode is true AND not forcing disable
@@ -223,12 +221,9 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
             }
             
             const response = await axios.get(`/api/dashboard/region-nki/${regionId}`, { params });
-            console.log('Response data:', response.data);
             
             setData(response.data);
         } catch (error: any) {
-            console.error('Error fetching region NKI data:', error);
-            console.error('Error response:', error.response?.data);
             setError(error.response?.data?.message || 'Failed to load data');
         } finally {
             setLoading(false);
@@ -272,7 +267,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                             return;
                         }
                     } catch (error) {
-                        console.error('Error fetching comparison chart data:', error);
+                        // Silent error handling
                     }
                 }
                 
@@ -284,7 +279,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                 setChartData(dataWithCurrent);
             }
         } catch (error) {
-            console.error('Error fetching chart data:', error);
+            // Silent error handling
         }
     };
 

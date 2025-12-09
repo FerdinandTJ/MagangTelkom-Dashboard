@@ -6,12 +6,13 @@ import MonthDetailModal from '@/components/modals/MonthDetailModal';
 import SubsegmentDetailModal from '@/components/modals/SubsegmentDetailModal';
 import CompanyDetailModal from '@/components/modals/CompanyDetailModal';
 import YtdComparisonModal from '@/components/modals/YtdComparisonModal';
+import RegionDetailModal from '@/components/modals/RegionDetailModal';
 import SubsegmentRegionalTable from '@/components/SubsegmentRegionalTable';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { formatCurrencyFull } from '@/utils/currency';
 import { Button } from '@/components/ui/button';
@@ -51,7 +52,13 @@ interface DashboardProps {
         formatted_revenue: string;
         formatted_target: string;
         achievement_percentage: number;
+        comparison_revenue?: number;
+        comparison_formatted_revenue?: string;
+        growth_percentage?: number;
+        growth_amount?: number;
     }>;
+    comparisonYear?: number;
+    hasComparison?: boolean;
     ytdComparison: {
         current_year: number;
         previous_year: number;
@@ -93,15 +100,28 @@ export default function Dashboard({
     subsegmentRevenue,
     subsegmentRegionalData,
     topCompanies,
-    currentYear
+    currentYear,
+    comparisonYear: initialComparisonYear,
+    hasComparison = false
 }: DashboardProps) {
+    // Initialize comparison year from props if available
+    const [comparisonYearState, setComparisonYearState] = useState<number>(initialComparisonYear || currentYear - 1);
+    
+    // Sync comparison year state with props
+    useEffect(() => {
+        if (initialComparisonYear) {
+            setComparisonYearState(initialComparisonYear);
+        }
+    }, [initialComparisonYear]);
     const [selectedMonth, setSelectedMonth] = useState<any>(null);
     const [selectedSubsegment, setSelectedSubsegment] = useState<string | null>(null);
     const [selectedCompany, setSelectedCompany] = useState<any>(null);
+    const [selectedRegion, setSelectedRegion] = useState<{ subsegment: string; code: string; name: string } | null>(null);
     const [monthModalOpen, setMonthModalOpen] = useState(false);
     const [subsegmentModalOpen, setSubsegmentModalOpen] = useState(false);
     const [companyModalOpen, setCompanyModalOpen] = useState(false);
     const [ytdModalOpen, setYtdModalOpen] = useState(false);
+    const [regionModalOpen, setRegionModalOpen] = useState(false);
     
     // Tab states
     const [revenueViewTab, setRevenueViewTab] = useState<'chart' | 'subsegment'>('chart');
@@ -109,6 +129,10 @@ export default function Dashboard({
     // Filter states
     const [monthlySortOrder, setMonthlySortOrder] = useState<'chronological' | 'asc' | 'desc'>('chronological');
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+    
+    // Comparison states
+    const [comparisonMode, setComparisonMode] = useState<boolean>(false);
+    const [comparisonYear, setComparisonYear] = useState<number>(currentYear - 1);
     
     // Get current month name and year (always actual current date)
     const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long' });
@@ -118,6 +142,16 @@ export default function Dashboard({
     const availableYears = useMemo(() => {
         return yearlyRevenue.map(y => y.tahun).sort((a, b) => b - a);
     }, [yearlyRevenue]);
+
+    // Auto-adjust comparisonYear if it conflicts with selectedYear
+    useEffect(() => {
+        if (comparisonYear === selectedYear && availableYears.length > 1) {
+            const otherYears = availableYears.filter(y => y !== selectedYear);
+            if (otherYears.length > 0) {
+                setComparisonYear(otherYears[0]);
+            }
+        }
+    }, [selectedYear, comparisonYear, availableYears]);
 
     // Filtered and sorted data
     const sortedMonthlyRevenue = useMemo(() => {
@@ -141,10 +175,57 @@ export default function Dashboard({
     const handleYearChange = (year: number) => {
         setSelectedYear(year);
 
-        router.get(dashboard().url, { year }, { 
+        const params: any = { year };
+        if (comparisonMode) {
+            params.comparison_year = comparisonYear;
+        }
+
+        router.get(dashboard().url, params, { 
             preserveState: true,
             preserveScroll: true 
         });
+    };
+
+    const handleComparisonModeToggle = () => {
+        const newMode = !comparisonMode;
+        setComparisonMode(newMode);
+
+        const params: any = { year: selectedYear };
+        if (newMode) {
+            // Ensure comparison year is different from selected year
+            let validComparisonYear = comparisonYear;
+            if (comparisonYear === selectedYear) {
+                // Find first available year that's different
+                const otherYears = availableYears.filter(y => y !== selectedYear);
+                validComparisonYear = otherYears.length > 0 ? otherYears[0] : selectedYear - 1;
+                setComparisonYear(validComparisonYear);
+            }
+            params.comparison_year = validComparisonYear;
+        }
+
+        router.get(dashboard().url, params, { 
+            preserveState: true,
+            preserveScroll: true 
+        });
+    };
+
+    const handleComparisonYearChange = (year: number) => {
+        // Prevent selecting the same year
+        if (year === selectedYear) {
+            return;
+        }
+        
+        setComparisonYear(year);
+
+        if (comparisonMode) {
+            router.get(dashboard().url, { 
+                year: selectedYear,
+                comparison_year: year 
+            }, { 
+                preserveState: true,
+                preserveScroll: true 
+            });
+        }
     };
 
     const handleSubsegmentClick = (subsegmentData: any) => {
@@ -166,6 +247,11 @@ export default function Dashboard({
     const handleTopCompanyClick = (company: any) => {
         setSelectedCompany(company);
         setCompanyModalOpen(true);
+    };
+
+    const handleRegionClick = (subsegment: string, regionCode: string, regionName: string) => {
+        setSelectedRegion({ subsegment, code: regionCode, name: regionName });
+        setRegionModalOpen(true);
     };
 
     return (
@@ -225,16 +311,16 @@ export default function Dashboard({
                                 {/* Custom YTD Comparison Button */}
                                 <button 
                                     onClick={() => setYtdModalOpen(true)}
-                                    className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-1.5 bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 text-white rounded-lg hover:from-red-600 hover:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
+                                    className="w-full mt-5.5 flex items-center justify-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 text-white rounded-md hover:from-red-600 hover:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 transition-all duration-200 font-medium text-xs shadow-sm hover:shadow-md"
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
-                                    Custom YTD Comparison
+                                    Custom YTD
                                 </button>
                             </div>
                             <div className="flex-shrink-0 ml-4">
-                                <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                                <div className="p-1 bg-red-50 dark:bg-red-950 rounded-lg">
                                     <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
@@ -304,19 +390,58 @@ export default function Dashboard({
                                     </div>
                                 </div>
 
-                                {/* Sort Order Filter - Only show in chart view */}
+                                {/* Filters - Only show in chart view */}
                                 {revenueViewTab === 'chart' && (
-                                    <div className="relative">
-                                        <select
-                                            value={monthlySortOrder}
-                                            onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
-                                            className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                        >
-                                            <option value="chronological">Original</option>
-                                            <option value="desc">Revenue: High to Low</option>
-                                            <option value="asc">Revenue: Low to High</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                    <div className="flex items-center gap-3">
+                                        {/* Comparison Toggle */}
+                                        <label className={`flex items-center gap-2 ${availableYears.length > 1 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={comparisonMode}
+                                                onChange={handleComparisonModeToggle}
+                                                disabled={availableYears.length <= 1}
+                                                className="w-4 h-4 text-red-600 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-red-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            />
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Compare Years</span>
+                                        </label>
+
+                                        {/* Comparison Year Selector */}
+                                        {comparisonMode && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">vs</span>
+                                                <div className="relative">
+                                                    <select
+                                                        value={comparisonYear === selectedYear ? '' : comparisonYear}
+                                                        onChange={(e) => handleComparisonYearChange(Number(e.target.value))}
+                                                        className="appearance-none bg-blue-50 dark:bg-blue-950 border border-blue-300 dark:border-blue-700 rounded-md px-3 py-2 pr-8 text-sm font-medium text-blue-900 dark:text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    >
+                                                        {availableYears
+                                                            .filter(year => Number(year) !== Number(selectedYear))
+                                                            .map(year => (
+                                                                <option key={year} value={year}>
+                                                                    {year}
+                                                                </option>
+                                                            ))
+                                                        }
+                                                    </select>
+                                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-600 dark:text-blue-400 pointer-events-none" />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Sort Order Filter */}
+                                        <div className="relative">
+                                            <select
+                                                value={monthlySortOrder}
+                                                onChange={(e) => setMonthlySortOrder(e.target.value as 'chronological' | 'asc' | 'desc')}
+                                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                            >
+                                                <option value="chronological">Original</option>
+                                                <option value="desc">Revenue: High to Low</option>
+                                                <option value="asc">Revenue: Low to High</option>
+                                            </select>
+                                            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -350,6 +475,9 @@ export default function Dashboard({
                                             data={sortedMonthlyRevenue} 
                                             height={450}
                                             onBarClick={handleMonthClick}
+                                            comparisonMode={comparisonMode}
+                                            selectedYear={selectedYear}
+                                            comparisonYear={comparisonYear}
                                         />
                                     </div>
                                 ) : (
@@ -357,6 +485,7 @@ export default function Dashboard({
                                     <SubsegmentRegionalTable 
                                         data={subsegmentRegionalData} 
                                         onSubsegmentClick={handleSubsegmentClick}
+                                        onRegionClick={handleRegionClick}
                                     />
                                 )}
                             </div>
@@ -498,6 +627,15 @@ export default function Dashboard({
                 <YtdComparisonModal
                     isOpen={ytdModalOpen}
                     onClose={() => setYtdModalOpen(false)}
+                />
+
+                <RegionDetailModal
+                    isOpen={regionModalOpen}
+                    onClose={() => setRegionModalOpen(false)}
+                    subsegment={selectedRegion?.subsegment || null}
+                    regionCode={selectedRegion?.code || null}
+                    regionName={selectedRegion?.name || null}
+                    year={selectedYear}
                 />
             </div>
         </AppLayout>
