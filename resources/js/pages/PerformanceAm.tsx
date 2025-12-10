@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,7 +104,7 @@ export default function PerformanceAM({
     const [selectedRegion, setSelectedRegion] = useState<string>(currentRegion);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAMNik, setSelectedAMNik] = useState<string | null>(null);
-    const [activeRevenueTab, setActiveRevenueTab] = useState<'chart' | 'regional'>('chart');
+    const [activeRevenueTab, setActiveRevenueTab] = useState<'chart' | 'regional'>('regional');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
 
@@ -112,6 +112,31 @@ export default function PerformanceAM({
     const [isRegionNkiModalOpen, setIsRegionNkiModalOpen] = useState(false);
     const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
     const [selectedRegionName, setSelectedRegionName] = useState<string>('');
+
+    // Ref untuk menghitung tinggi kolom kanan
+    const rightColumnRef = useRef<HTMLDivElement>(null);
+    const [rightColumnHeight, setRightColumnHeight] = useState<number>(0);
+
+    // Calculate right column height dynamically
+    useEffect(() => {
+        const calculateHeight = () => {
+            if (rightColumnRef.current) {
+                const height = rightColumnRef.current.offsetHeight;
+                setRightColumnHeight(height);
+            }
+        };
+
+        calculateHeight();
+        window.addEventListener('resize', calculateHeight);
+        
+        // Delay calculation to ensure content is rendered
+        const timer = setTimeout(calculateHeight, 100);
+
+        return () => {
+            window.removeEventListener('resize', calculateHeight);
+            clearTimeout(timer);
+        };
+    }, [activeRevenueTab, bestPerformance]);
 
     // Parse quartal to determine if YTD and base quartal
     const isYearToDate = selectedQuartal.includes('YTD');
@@ -392,21 +417,24 @@ export default function PerformanceAM({
                 </div>
 
                 {/* Charts Section - Fungsi ini untuk menampilkan visualisasi data dalam bentuk chart */}
-                <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 mb-8">
+                <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 mb-8 items-start">
                     {/* Target Revenue AM Chart - Chart dengan lebar 70% (7 kolom dari 10) */}
                     <div className="lg:col-span-7 flex flex-col gap-6">
-                        <Card className="flex-1">
+                        <Card 
+                            className="flex flex-col"
+                            style={activeRevenueTab === 'regional' && rightColumnHeight > 0 ? { height: `${rightColumnHeight}px` } : undefined}
+                        >
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             <Target className="h-5 w-5 text-red-600" />
-                                            {activeRevenueTab === 'chart' ? 'Target Revenue AM' : 'Performance AM'}
+                                            {activeRevenueTab === 'regional' ? 'Performance AM' : 'Target Revenue AM'}
                                         </CardTitle>
                                         <CardDescription>
-                                            {activeRevenueTab === 'chart' 
-                                                ? 'Total target revenue per Account Manager'
-                                                : 'Regional performance with top Account Managers'
+                                            {activeRevenueTab === 'regional' 
+                                                ? 'Regional performance with top Account Managers'
+                                                : 'Total target revenue per Account Manager'
                                             }
                                         </CardDescription>
                                     </div>
@@ -430,14 +458,6 @@ export default function PerformanceAM({
                                 {/* Tab Switcher */}
                                 <div className="flex gap-2 mt-4">
                                     <Button
-                                        variant={activeRevenueTab === 'chart' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => setActiveRevenueTab('chart')}
-                                        className={activeRevenueTab === 'chart' ? 'bg-red-600 hover:bg-red-700' : ''}
-                                    >
-                                        Chart View
-                                    </Button>
-                                    <Button
                                         variant={activeRevenueTab === 'regional' ? 'default' : 'outline'}
                                         size="sm"
                                         onClick={() => setActiveRevenueTab('regional')}
@@ -445,10 +465,98 @@ export default function PerformanceAM({
                                     >
                                         Regional Performance
                                     </Button>
+                                    <Button
+                                        variant={activeRevenueTab === 'chart' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setActiveRevenueTab('chart')}
+                                        className={activeRevenueTab === 'chart' ? 'bg-red-600 hover:bg-red-700' : ''}
+                                    >
+                                        Chart View
+                                    </Button>
                                 </div>
                             </CardHeader>
-                        <CardContent>
-                            {activeRevenueTab === 'chart' ? (
+                        <CardContent className={activeRevenueTab === 'regional' ? 'flex-1 overflow-hidden' : ''}>
+                            {activeRevenueTab === 'regional' ? (
+                                /* Regional Performance Table with dynamic height */
+                                <div className="overflow-auto h-full">
+                                    <table className="w-full text-sm border-collapse">
+                                        <thead>
+                                            <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
+                                                <th className="text-left p-4 font-bold text-gray-800 uppercase tracking-wide text-xs border-r border-gray-300">Regional</th>
+                                                <th className="text-left p-4 font-bold text-gray-800 uppercase tracking-wide text-xs border-r border-gray-300">Top Account Manager</th>
+                                                <th className="text-right p-4 font-bold text-gray-800 uppercase tracking-wide text-xs border-r border-gray-300">Revenue</th>
+                                                <th className="text-right p-4 font-bold text-gray-800 uppercase tracking-wide text-xs">Achievement</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredRegionalPerformance.map((region, regionIdx) => (
+                                                <React.Fragment key={region.region_code}>
+                                                    {region.top_ams.map((am, idx) => (
+                                                        <tr 
+                                                            key={`${region.region_code}-${am.nik}`} 
+                                                            className={`border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150 ${
+                                                                idx === region.top_ams.length - 1 && regionIdx < filteredRegionalPerformance.length - 1 
+                                                                    ? 'border-b-2 border-gray-300' 
+                                                                    : ''
+                                                            }`}
+                                                        >
+                                                            {idx === 0 ? (
+                                                                <td className="p-4 align-top bg-gray-50/50 border-r border-gray-300 pointer-events-none" rowSpan={region.top_ams.length}>
+                                                                    <div className="space-y-3">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-1 h-8 bg-red-600 rounded-full"></div>
+                                                                            <span className="font-bold text-lg text-gray-900">{region.region_code}</span>
+                                                                        </div>
+                                                                        <div className="pl-3 space-y-2 text-sm border-l-2 border-gray-200">
+                                                                            <div className="flex items-center justify-between">
+                                                                                <span className="text-gray-600 font-medium min-w-[60px]">Revenue:</span>
+                                                                                <span className="text-gray-900 font-bold">{region.formatted_revenue}</span>
+                                                                            </div>
+                                                                            <div className="flex items-center justify-between">
+                                                                                <span className="text-gray-600 font-medium min-w-[60px]">Growth:</span>
+                                                                                <span className={`font-bold flex items-center gap-1 ${
+                                                                                    region.growth >= 0 ? 'text-green-600' : 'text-red-600'
+                                                                                }`}>
+                                                                                    {region.growth >= 0 ? '↗' : '↘'}
+                                                                                    {region.formatted_growth}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex items-center justify-between">
+                                                                                <span className="text-gray-600 font-medium min-w-[60px]">CC:</span>
+                                                                                <span className="text-gray-900 font-bold">{region.company_count} companies</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            ) : null}
+                                                            <td className="pl-4 border-r border-gray-300">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 text-xs font-bold text-white rounded-full shadow-sm ${
+                                                                        idx === 0 ? 'bg-yellow-500' : idx === 1 ? 'bg-gray-400' : 'bg-orange-600'
+                                                                    }`}>
+                                                                        {idx + 1}
+                                                                    </div>
+                                                                    <span className="font-medium text-gray-900">{am.am_name}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-4 text-right border-r border-gray-300">
+                                                                <span className="font-semibold text-gray-900">{am.formatted_revenue}</span>
+                                                            </td>
+                                                            <td className="p-4 text-right">
+                                                                <span className={`font-bold text-sm ${
+                                                                    am.achievement >= 100 ? 'text-green-600' : 'text-gray-700'
+                                                                }`}>
+                                                                    {am.formatted_achievement}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </React.Fragment>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
                                 /* Chart View */
                                 <div className="overflow-x-auto">
                                     <div style={{ width: `${Math.max(filteredAmRevenueRanking.length * 100, 800)}px`, minHeight: '400px' }}>
@@ -537,93 +645,13 @@ export default function PerformanceAM({
                                         </ResponsiveContainer>
                                     </div>
                                 </div>
-                            ) : (
-                                /* Regional Performance Table */
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm border-collapse">
-                                        <thead>
-                                            <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
-                                                <th className="text-left p-4 font-bold text-gray-800 uppercase tracking-wide text-xs border-r border-gray-300">Regional</th>
-                                                <th className="text-left p-4 font-bold text-gray-800 uppercase tracking-wide text-xs border-r border-gray-300">Top Account Manager</th>
-                                                <th className="text-right p-4 font-bold text-gray-800 uppercase tracking-wide text-xs border-r border-gray-300">Revenue</th>
-                                                <th className="text-right p-4 font-bold text-gray-800 uppercase tracking-wide text-xs">Achievement</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredRegionalPerformance.map((region, regionIdx) => (
-                                                <React.Fragment key={region.region_code}>
-                                                    {region.top_ams.map((am, idx) => (
-                                                        <tr 
-                                                            key={`${region.region_code}-${am.nik}`} 
-                                                            className={`border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150 ${
-                                                                idx === region.top_ams.length - 1 && regionIdx < filteredRegionalPerformance.length - 1 
-                                                                    ? 'border-b-2 border-gray-300' 
-                                                                    : ''
-                                                            }`}
-                                                        >
-                                                            {idx === 0 ? (
-                                                                <td className="p-4 align-top bg-gray-50/50 border-r border-gray-300 pointer-events-none" rowSpan={region.top_ams.length}>
-                                                                    <div className="space-y-3">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-1 h-8 bg-red-600 rounded-full"></div>
-                                                                            <span className="font-bold text-lg text-gray-900">{region.region_code}</span>
-                                                                        </div>
-                                                                        <div className="pl-3 space-y-2 text-sm border-l-2 border-gray-200">
-                                                                            <div className="flex items-center justify-between">
-                                                                                <span className="text-gray-600 font-medium min-w-[60px]">Revenue:</span>
-                                                                                <span className="text-gray-900 font-bold">{region.formatted_revenue}</span>
-                                                                            </div>
-                                                                            <div className="flex items-center justify-between">
-                                                                                <span className="text-gray-600 font-medium min-w-[60px]">Growth:</span>
-                                                                                <span className={`font-bold flex items-center gap-1 ${
-                                                                                    region.growth >= 0 ? 'text-green-600' : 'text-red-600'
-                                                                                }`}>
-                                                                                    {region.growth >= 0 ? '↗' : '↘'}
-                                                                                    {region.formatted_growth}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="flex items-center justify-between">
-                                                                                <span className="text-gray-600 font-medium min-w-[60px]">CC:</span>
-                                                                                <span className="text-gray-900 font-bold">{region.company_count} companies</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                            ) : null}
-                                                            <td className="pl-4 border-r border-gray-300">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 text-xs font-bold text-white rounded-full shadow-sm ${
-                                                                        idx === 0 ? 'bg-yellow-500' : idx === 1 ? 'bg-gray-400' : 'bg-orange-600'
-                                                                    }`}>
-                                                                        {idx + 1}
-                                                                    </div>
-                                                                    <span className="font-medium text-gray-900">{am.am_name}</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="p-4 text-right border-r border-gray-300">
-                                                                <span className="font-semibold text-gray-900">{am.formatted_revenue}</span>
-                                                            </td>
-                                                            <td className="p-4 text-right">
-                                                                <span className={`font-bold text-sm ${
-                                                                    am.achievement >= 100 ? 'text-green-600' : 'text-gray-700'
-                                                                }`}>
-                                                                    {am.formatted_achievement}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </React.Fragment>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
                             )}
                         </CardContent>
                         </Card>
                     </div>
 
                     {/* Right Column - Region Distribution and Best Performance */}
-                    <div className="lg:col-span-3 flex flex-col gap-6">
+                    <div ref={rightColumnRef} className="lg:col-span-3 flex flex-col gap-6">
                         {/* Region Distribution Chart */}
                         <Card>
                             <CardHeader>

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Target, Calendar, Users } from 'lucide-react';
 import axios from 'axios';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ScatterChart, ZAxis, Cell, Line, ComposedChart } from 'recharts';
 import WitelNkiDetailModal from './modals/WitelNkiDetailModal';
 
 interface RegionNkiModalProps {
@@ -267,6 +267,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                 };
                             });
                             
+                            console.log('Merged chart data with compare:', mergedData);
                             setChartData(mergedData);
                             return;
                         }
@@ -977,53 +978,208 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                         </div>
                                         <div className="pl-5 pr-5 pb-5 pt-5">
                                             <div className="overflow-x-auto">
-                                                <div style={{ width: `${Math.max(chartData.length * (compareMode ? 100 : 80), 800)}px`, minHeight: '400px' }}>
-                                                    <ResponsiveContainer width="100%" height={400}>
-                                                        <BarChart data={chartData} barGap={4} barCategoryGap={10}>
+                                                <div style={{ width: '100%', minHeight: `${Math.max(chartData.length * 40, 400)}px` }}>
+                                                    <ResponsiveContainer width="100%" height={Math.max(chartData.length * 40, 400)}>
+                                                        <ComposedChart 
+                                                            data={chartData} 
+                                                            layout="vertical"
+                                                            margin={{ top: 60, right: 80, bottom: 30, left: 120 }}
+                                                        >
                                                             <XAxis 
-                                                                dataKey="parameter" 
+                                                                type="number"
                                                                 tick={{ fontSize: 12 }}
-                                                                angle={-45}
-                                                                textAnchor="end"
-                                                                height={120}
-                                                                interval={0}
                                                                 stroke="#6B7280"
+                                                                label={{ value: 'Achievement (%)', position: 'insideBottom', offset: -10, style: { fontSize: 12 } }}
+                                                                domain={[0, 'auto']}
+                                                                tickCount={10}
                                                             />
                                                             <YAxis 
+                                                                type="category"
+                                                                dataKey="parameter"
                                                                 tick={{ fontSize: 12 }}
                                                                 stroke="#6B7280"
-                                                                label={{ value: 'Achievement (%)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                                                                width={110}
+                                                                padding={{ top: 20, bottom: 20 }}
                                                             />
                                                             <Tooltip content={<CustomTooltip />} />
-                                                            {compareMode && chartData.length > 0 && chartData[0].ach_compare !== undefined ? (
+                                                            {(() => {
+                                                                const hasCompareData = compareMode && chartData.length > 0 && chartData[0].ach_compare !== undefined;
+                                                                console.log('Chart render check:', {
+                                                                    compareMode,
+                                                                    chartDataLength: chartData.length,
+                                                                    firstItem: chartData[0],
+                                                                    hasAchCompare: chartData[0]?.ach_compare,
+                                                                    hasCompareData
+                                                                });
+                                                                
+                                                                return hasCompareData ? (
                                                                 <>
                                                                     <Legend 
-                                                                        align="left"
+                                                                        align="center"
                                                                         verticalAlign="top"
-                                                                        wrapperStyle={{ paddingLeft: '60px', paddingBottom: '10px' }}
+                                                                        wrapperStyle={{ 
+                                                                            paddingTop: '5px',
+                                                                            paddingBottom: '10px'
+                                                                        }}
+                                                                        content={(props: any) => {
+                                                                            const { payload } = props;
+                                                                            return (
+                                                                                <div style={{
+                                                                                    display: 'flex',
+                                                                                    justifyContent: 'center',
+                                                                                    gap: '20px',
+                                                                                    padding: '8px 16px',
+                                                                                    backgroundColor: '#ffffff',
+                                                                                    border: '1px solid #d1d5db',
+                                                                                    borderRadius: '6px',
+                                                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                                                                    margin: '0 auto',
+                                                                                    width: 'fit-content'
+                                                                                }}>
+                                                                                    {payload.map((entry: any, index: number) => (
+                                                                                        <div key={`legend-${index}`} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                                            <div style={{
+                                                                                                width: '12px',
+                                                                                                height: '12px',
+                                                                                                borderRadius: '50%',
+                                                                                                backgroundColor: entry.color,
+                                                                                                border: '2px solid #fff',
+                                                                                                boxShadow: '0 0 0 1px #d1d5db'
+                                                                                            }} />
+                                                                                            <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>
+                                                                                                {entry.value}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            );
+                                                                        }}
                                                                     />
-                                                                    <Bar 
+                                                                    
+                                                                    {/* Dumbbell chart: dots with connecting lines */}
+                                                                    <Scatter 
                                                                         dataKey="ach_current" 
-                                                                        fill="#3B82F6" 
-                                                                        radius={[4, 4, 0, 0]}
+                                                                        fill="#3B82F6"
                                                                         name={`Q${quarter} ${year}`}
+                                                                        shape={(props: any) => {
+                                                                            const { cx, cy, payload, xAxis } = props;
+                                                                            
+                                                                            // Check if we have compare data and xAxis scale
+                                                                            if (payload && payload.ach_compare !== undefined && xAxis && xAxis.scale) {
+                                                                                const cx2 = xAxis.scale(payload.ach_compare);
+                                                                                
+                                                                                return (
+                                                                                    <g>
+                                                                                        {/* Connecting line */}
+                                                                                        <line 
+                                                                                            x1={cx} 
+                                                                                            y1={cy} 
+                                                                                            x2={cx2} 
+                                                                                            y2={cy} 
+                                                                                            stroke="#9CA3AF" 
+                                                                                            strokeWidth={2}
+                                                                                        />
+                                                                                        {/* Current period dot (blue) */}
+                                                                                        <circle 
+                                                                                            cx={cx} 
+                                                                                            cy={cy} 
+                                                                                            r={6} 
+                                                                                            fill="#3B82F6" 
+                                                                                            stroke="#fff" 
+                                                                                            strokeWidth={2}
+                                                                                        />
+                                                                                        {/* Compare period dot (green) */}
+                                                                                        <circle 
+                                                                                            cx={cx2} 
+                                                                                            cy={cy} 
+                                                                                            r={6} 
+                                                                                            fill="#10b981" 
+                                                                                            stroke="#fff" 
+                                                                                            strokeWidth={2}
+                                                                                        />
+                                                                                    </g>
+                                                                                );
+                                                                            }
+                                                                            
+                                                                            // Fallback: just blue dot if no compare data
+                                                                            return (
+                                                                                <circle 
+                                                                                    cx={cx} 
+                                                                                    cy={cy} 
+                                                                                    r={6} 
+                                                                                    fill="#3B82F6" 
+                                                                                    stroke="#fff" 
+                                                                                    strokeWidth={2}
+                                                                                />
+                                                                            );
+                                                                        }}
                                                                     />
-                                                                    <Bar 
+                                                                    
+                                                                    {/* Hidden scatter for legend entry (green dot) */}
+                                                                    <Scatter 
                                                                         dataKey="ach_compare" 
-                                                                        fill="#10b981" 
-                                                                        radius={[4, 4, 0, 0]}
+                                                                        fill="#10b981"
                                                                         name={`Q${compareQuarter} ${compareYear}`}
+                                                                        shape={() => null}
                                                                     />
                                                                 </>
                                                             ) : (
-                                                                <Bar 
-                                                                    dataKey="ach_current" 
-                                                                    fill="#3B82F6" 
-                                                                    radius={[4, 4, 0, 0]}
-                                                                    name="Achievement %"
-                                                                />
-                                                            )}
-                                                        </BarChart>
+                                                                <>
+                                                                    <Legend 
+                                                                        align="center"
+                                                                        verticalAlign="top"
+                                                                        wrapperStyle={{ 
+                                                                            paddingTop: '5px',
+                                                                            paddingBottom: '10px'
+                                                                        }}
+                                                                        content={(props: any) => {
+                                                                            const { payload } = props;
+                                                                            return (
+                                                                                <div style={{
+                                                                                    display: 'flex',
+                                                                                    justifyContent: 'center',
+                                                                                    gap: '20px',
+                                                                                    padding: '8px 16px',
+                                                                                    backgroundColor: '#ffffff',
+                                                                                    border: '1px solid #d1d5db',
+                                                                                    borderRadius: '6px',
+                                                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                                                                    margin: '0 auto',
+                                                                                    width: 'fit-content'
+                                                                                }}>
+                                                                                    {payload.map((entry: any, index: number) => (
+                                                                                        <div key={`legend-${index}`} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                                            <div style={{
+                                                                                                width: '12px',
+                                                                                                height: '12px',
+                                                                                                borderRadius: '50%',
+                                                                                                backgroundColor: entry.color,
+                                                                                                border: '2px solid #fff',
+                                                                                                boxShadow: '0 0 0 1px #d1d5db'
+                                                                                            }} />
+                                                                                            <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>
+                                                                                                {entry.value}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                    {/* Single dots for non-compare mode */}
+                                                                    <Scatter 
+                                                                        dataKey="ach_current" 
+                                                                        fill="#3B82F6"
+                                                                        name="Achievement %"
+                                                                    >
+                                                                        {chartData.map((entry, index) => (
+                                                                            <Cell key={`cell-${index}`} fill="#3B82F6" />
+                                                                        ))}
+                                                                    </Scatter>
+                                                                </>
+                                                            );
+                                                            })()}
+                                                        </ComposedChart>
                                                     </ResponsiveContainer>
                                                 </div>
                                             </div>

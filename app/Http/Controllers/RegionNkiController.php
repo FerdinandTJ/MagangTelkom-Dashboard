@@ -167,19 +167,25 @@ class RegionNkiController extends Controller
             return null;
         }
 
-        // Get pivot data with realizations for this period
+        // Get pivot data with realizations for this period, with proporsi from account_manager_company
         $pivotData = DB::table('lini_waktu_target as lwt')
             ->join('target_account_m as t', 'lwt.target_id', '=', 't.id')
+            ->join('account_manager_company as amc', 't.account_manager_company_id', '=', 'amc.id')
             ->whereIn('lwt.target_id', $targets->pluck('id'))
             ->whereIn('lwt.lini_waktu_id', $liniWaktuIds)
-            ->select('lwt.*', 't.t_revenue')
+            ->select('lwt.*', 't.t_revenue', 'amc.proporsi')
             ->get();
 
         \Log::info('Pivot data found:', ['pivot_count' => $pivotData->count()]);
 
         // Calculate summary metrics from pivot data (target from target_account_m, realisasi from pivot)
-        $targetRevenue = $pivotData->sum('t_revenue');
-        $realisasiRevenue = $pivotData->sum('r_revenue');
+        // Apply proporsi to avoid double-counting when companies are shared between AMs
+        $targetRevenue = $pivotData->sum(function($row) {
+            return $row->t_revenue * ($row->proporsi / 100);
+        });
+        $realisasiRevenue = $pivotData->sum(function($row) {
+            return $row->r_revenue * ($row->proporsi / 100);
+        });
         
         // Count unique AMs in the region
         $totalAm = DB::table('account_manager_company')
@@ -215,12 +221,13 @@ class RegionNkiController extends Controller
         foreach ($segmentData as $segment => $targets) {
             $targetIds = $targets->pluck('target_id');
 
-            // Get pivot records for calculation with target revenue
+            // Get pivot records for calculation with target revenue and proporsi
             $segmentPivots = DB::table('lini_waktu_target as lwt')
                 ->join('target_account_m as t', 'lwt.target_id', '=', 't.id')
+                ->join('account_manager_company as amc', 't.account_manager_company_id', '=', 'amc.id')
                 ->whereIn('lwt.target_id', $targetIds)
                 ->whereIn('lwt.lini_waktu_id', $liniWaktuIds)
-                ->select('lwt.*', 't.t_revenue')
+                ->select('lwt.*', 't.t_revenue', 'amc.proporsi')
                 ->get();
 
             \Log::info("Segment '{$segment}' pivots:", ['count' => $segmentPivots->count()]);
