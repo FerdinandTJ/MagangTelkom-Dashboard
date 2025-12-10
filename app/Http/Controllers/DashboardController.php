@@ -1405,11 +1405,12 @@ class DashboardController extends Controller
             ->select(
                 'companies.nip_nas',
                 'companies.nama_perusahaan',
+                'companies.source_data',
                 'witels.nama_witels',
                 DB::raw('SUM(r.revenue_realisasi) as revenue'),
                 DB::raw('SUM(r.revenue_target) as target')
             )
-            ->groupBy('companies.nip_nas', 'companies.nama_perusahaan', 'witels.nama_witels')
+            ->groupBy('companies.nip_nas', 'companies.nama_perusahaan', 'companies.source_data', 'witels.nama_witels')
             ->orderByDesc('revenue')
             ->get();
 
@@ -1465,6 +1466,7 @@ class DashboardController extends Controller
                 'nip_nas' => $company->nip_nas,
                 'nama_perusahaan' => $company->nama_perusahaan,
                 'witel' => $company->nama_witels,
+                'source_data' => $company->source_data,
                 'revenue' => $revenue,
                 'target' => $target,
                 'achievement' => $achievement,

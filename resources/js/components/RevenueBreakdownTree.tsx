@@ -19,6 +19,8 @@ interface RevenueNode {
 
 interface RevenueBreakdownTreeProps {
     data: RevenueNode[];
+    selectedCategory?: string | null;
+    onCategoryCleared?: () => void;
 }
 
 const ExpandContext = createContext<{
@@ -29,7 +31,7 @@ const ExpandContext = createContext<{
     setExpandAll: () => {}
 });
 
-const RevenueBreakdownTree: React.FC<RevenueBreakdownTreeProps> = ({ data }) => {
+const RevenueBreakdownTree: React.FC<RevenueBreakdownTreeProps> = ({ data, selectedCategory, onCategoryCleared }) => {
     const [expandAll, setExpandAll] = useState<boolean | null>(null);
 
     return (
@@ -66,7 +68,13 @@ const RevenueBreakdownTree: React.FC<RevenueBreakdownTreeProps> = ({ data }) => 
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                             {data.map((node) => (
-                                <TreeNode key={node.id} node={node} level={0} />
+                                <TreeNode 
+                                    key={node.id} 
+                                    node={node} 
+                                    level={0}
+                                    selectedCategory={selectedCategory}
+                                    onCategoryCleared={onCategoryCleared}
+                                />
                             ))}
                         </tbody>
                     </table>
@@ -79,19 +87,52 @@ const RevenueBreakdownTree: React.FC<RevenueBreakdownTreeProps> = ({ data }) => 
 interface TreeNodeProps {
     node: RevenueNode;
     level: number;
+    selectedCategory?: string | null;
+    onCategoryCleared?: () => void;
+    expandFromCategory?: boolean;
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, level, selectedCategory, onCategoryCleared, expandFromCategory = false }) => {
     const { expandAll } = useContext(ExpandContext);
-    const [isExpanded, setIsExpanded] = useState(level === 0);
+    const [isExpanded, setIsExpanded] = useState(false);
     const hasChildren = node.children && node.children.length > 0;
+    const nodeRef = React.useRef<HTMLTableRowElement>(null);
 
-    // React to expandAll changes
+    // Determine if this node should be expanded from category selection
+    const isSelectedCategory = selectedCategory && level === 0 && 
+        node.name.toUpperCase() === selectedCategory.toUpperCase();
+    const shouldAutoExpand = isSelectedCategory || (expandFromCategory && hasChildren);
+
+    // React to expandAll changes - this takes priority over category expansion
     React.useEffect(() => {
         if (expandAll !== null) {
             setIsExpanded(expandAll);
         }
     }, [expandAll]);
+
+    // Auto-expand if this node matches the selected category or is descendant of selected category
+    React.useEffect(() => {
+        if (shouldAutoExpand && expandAll === null) {
+            setIsExpanded(true);
+            
+            // Only scroll for the top-level category node
+            if (isSelectedCategory) {
+                setTimeout(() => {
+                    nodeRef.current?.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    
+                    // Clear selection after scrolling
+                    if (onCategoryCleared) {
+                        setTimeout(() => {
+                            onCategoryCleared();
+                        }, 1000);
+                    }
+                }, 100);
+            }
+        }
+    }, [shouldAutoExpand, isSelectedCategory, onCategoryCleared, expandAll]);
 
     const getRowStyle = () => {
         // Level 0: Bold, larger text, darker background
@@ -144,7 +185,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
 
     return (
         <>
-            <tr className={`${style.bg} hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b border-gray-200 dark:border-gray-700`}>
+            <tr 
+                ref={nodeRef}
+                className={`${style.bg} hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b border-gray-200 dark:border-gray-700`}
+            >
                 <td className={`px-4 ${style.py}`}>
                     <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 24}px` }}>
                         {hasChildren ? (
@@ -179,7 +223,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
             </tr>
 
             {isExpanded && hasChildren && node.children!.map((child) => (
-                <TreeNode key={child.id} node={child} level={level + 1} />
+                <TreeNode 
+                    key={child.id} 
+                    node={child} 
+                    level={level + 1}
+                    selectedCategory={selectedCategory}
+                    onCategoryCleared={onCategoryCleared}
+                    expandFromCategory={shouldAutoExpand}
+                />
             ))}
         </>
     );

@@ -18,6 +18,7 @@ interface RegionDetailModalProps {
     regionCode: string | null;
     regionName: string | null;
     year?: number;
+    onCompanyClick?: (nipNas: string, companyName: string, sourceData: string) => void;
 }
 
 interface CompanyData {
@@ -30,6 +31,7 @@ interface CompanyData {
     yoy_growth: number;
     target: number;
     formatted_target: string;
+    source_data: string;
 }
 
 interface RegionDetail {
@@ -54,7 +56,8 @@ const RegionDetailModal: React.FC<RegionDetailModalProps> = ({
     subsegment,
     regionCode,
     regionName,
-    year
+    year,
+    onCompanyClick
 }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -173,7 +176,7 @@ const RegionDetailModal: React.FC<RegionDetailModalProps> = ({
                         <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
                             <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                    Companies in {regionName}
+                                    {subsegment} Companies in {regionName}
                                 </h3>
                             </div>
                             <div className="overflow-x-auto">
@@ -201,7 +204,8 @@ const RegionDetailModal: React.FC<RegionDetailModalProps> = ({
                                         {data.companies.map((company, idx) => (
                                             <tr 
                                                 key={company.nip_nas}
-                                                className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                                onClick={() => onCompanyClick?.(company.nip_nas, company.nama_perusahaan, company.source_data)}
+                                                className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                                             >
                                                 <td className="px-6 py-4">
                                                     <div>

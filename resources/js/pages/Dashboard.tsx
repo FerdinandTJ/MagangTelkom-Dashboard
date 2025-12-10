@@ -2,8 +2,6 @@ import RevenueBarChart from '@/components/charts/RevenueBarChart';
 // import SubsegmentPieChart from '@/components/charts/SubsegmentPieChart';
 import YearlyLineChart from '@/components/charts/YearlyLineChart';
 import StatCard from '@/components/StatCard';
-import MonthDetailModal from '@/components/modals/MonthDetailModal';
-import SubsegmentDetailModal from '@/components/modals/SubsegmentDetailModal';
 import CompanyDetailModal from '@/components/modals/CompanyDetailModal';
 import YtdComparisonModal from '@/components/modals/YtdComparisonModal';
 import RegionDetailModal from '@/components/modals/RegionDetailModal';
@@ -113,22 +111,25 @@ export default function Dashboard({
             setComparisonYearState(initialComparisonYear);
         }
     }, [initialComparisonYear]);
-    const [selectedMonth, setSelectedMonth] = useState<any>(null);
-    const [selectedSubsegment, setSelectedSubsegment] = useState<string | null>(null);
     const [selectedCompany, setSelectedCompany] = useState<any>(null);
     const [selectedRegion, setSelectedRegion] = useState<{ subsegment: string; code: string; name: string } | null>(null);
-    const [monthModalOpen, setMonthModalOpen] = useState(false);
-    const [subsegmentModalOpen, setSubsegmentModalOpen] = useState(false);
     const [companyModalOpen, setCompanyModalOpen] = useState(false);
     const [ytdModalOpen, setYtdModalOpen] = useState(false);
     const [regionModalOpen, setRegionModalOpen] = useState(false);
     
     // Tab states
-    const [revenueViewTab, setRevenueViewTab] = useState<'chart' | 'subsegment'>('chart');
+    const [revenueViewTab, setRevenueViewTab] = useState<'chart' | 'subsegment'>('subsegment');
     
     // Filter states
     const [monthlySortOrder, setMonthlySortOrder] = useState<'chronological' | 'asc' | 'desc'>('chronological');
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+    
+    // Sync selectedYear with currentYear from backend (query parameter)
+    useEffect(() => {
+        if (currentYear && currentYear !== selectedYear) {
+            setSelectedYear(currentYear);
+        }
+    }, [currentYear]);
     
     // Comparison states
     const [comparisonMode, setComparisonMode] = useState<boolean>(false);
@@ -166,11 +167,6 @@ export default function Dashboard({
             }
         });
     }, [monthlyRevenue, monthlySortOrder]);
-
-    const handleMonthClick = (monthData: any) => {
-        setSelectedMonth(monthData);
-        setMonthModalOpen(true);
-    };
 
     const handleYearChange = (year: number) => {
         setSelectedYear(year);
@@ -228,19 +224,14 @@ export default function Dashboard({
         }
     };
 
-    const handleSubsegmentClick = (subsegmentData: any) => {
-        setSelectedSubsegment(subsegmentData.subsegment);
-        setSubsegmentModalOpen(true);
-    };
-
-    const handleSubsegmentClickFromMonth = (subsegment: string) => {
-        setSelectedSubsegment(subsegment);
-        // Keep MonthDetailModal open in background
-        setSubsegmentModalOpen(true);
-    };
-
-    const handleCompanyClick = (company: any) => {
-        setSelectedCompany(company);
+    const handleCompanyClickFromRegion = (nipNas: string, companyName: string, sourceData: string) => {
+        setSelectedCompany({
+            nip_nas: nipNas,
+            nama_perusahaan: companyName,
+            id: nipNas,
+            subsegment: selectedRegion?.subsegment || '',
+            source_data: sourceData
+        });
         setCompanyModalOpen(true);
     };
 
@@ -449,20 +440,20 @@ export default function Dashboard({
                             {/* Tab Navigation - Moved below title */}
                             <div className="flex gap-2 mb-6">
                                 <Button
-                                    variant={revenueViewTab === 'chart' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setRevenueViewTab('chart')}
-                                    className={revenueViewTab === 'chart' ? 'bg-red-600 hover:bg-red-700' : ''}
-                                >
-                                    Chart View
-                                </Button>
-                                <Button
                                     variant={revenueViewTab === 'subsegment' ? 'default' : 'outline'}
                                     size="sm"
                                     onClick={() => setRevenueViewTab('subsegment')}
                                     className={revenueViewTab === 'subsegment' ? 'bg-red-600 hover:bg-red-700' : ''}
                                 >
                                     Regional Performance
+                                </Button>
+                                <Button
+                                    variant={revenueViewTab === 'chart' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setRevenueViewTab('chart')}
+                                    className={revenueViewTab === 'chart' ? 'bg-red-600 hover:bg-red-700' : ''}
+                                >
+                                    Chart View
                                 </Button>
                             </div>
 
@@ -474,7 +465,6 @@ export default function Dashboard({
                                         <RevenueBarChart 
                                             data={sortedMonthlyRevenue} 
                                             height={450}
-                                            onBarClick={handleMonthClick}
                                             comparisonMode={comparisonMode}
                                             selectedYear={selectedYear}
                                             comparisonYear={comparisonYear}
@@ -484,7 +474,6 @@ export default function Dashboard({
                                     // Subsegment Regional Performance View
                                     <SubsegmentRegionalTable 
                                         data={subsegmentRegionalData} 
-                                        onSubsegmentClick={handleSubsegmentClick}
                                         onRegionClick={handleRegionClick}
                                     />
                                 )}
@@ -597,31 +586,13 @@ export default function Dashboard({
                 </div>
 
                 {/* Drill-down Modals */}
-                <MonthDetailModal
-                    isOpen={monthModalOpen}
-                    onClose={() => setMonthModalOpen(false)}
-                    monthData={selectedMonth}
-                    year={currentYear}
-                    onSubsegmentClick={handleSubsegmentClickFromMonth}
-                />
-
-                <SubsegmentDetailModal
-                    isOpen={subsegmentModalOpen}
-                    onClose={() => setSubsegmentModalOpen(false)}
-                    subsegment={selectedSubsegment}
-                    year={currentYear}
-                    month={selectedMonth?.bulan}
-                    onCompanyClick={handleCompanyClick}
-                />
-
                 <CompanyDetailModal
                     isOpen={companyModalOpen}
                     onClose={() => setCompanyModalOpen(false)}
                     company={selectedCompany}
                     currentMonth={currentMonthName}
                     currentYear={currentYear}
-                    year={selectedYear}
-                    month={selectedMonth?.bulan}
+                    defaultYear={selectedYear}
                 />
 
                 <YtdComparisonModal
@@ -636,6 +607,7 @@ export default function Dashboard({
                     regionCode={selectedRegion?.code || null}
                     regionName={selectedRegion?.name || null}
                     year={selectedYear}
+                    onCompanyClick={handleCompanyClickFromRegion}
                 />
             </div>
         </AppLayout>
