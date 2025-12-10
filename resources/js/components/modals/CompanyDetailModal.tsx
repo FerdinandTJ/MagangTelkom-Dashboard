@@ -7,11 +7,24 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building2, TrendingUp, Calendar, BarChart3, Info, User } from 'lucide-react';
+import { Loader2, Building2, TrendingUp, Calendar, BarChart3, Info, User, ChevronDown } from 'lucide-react';
 import { CompanyData, MonthlyRevenue, YearlyRevenue } from '@/types/dashboard';
 import axios from '@/lib/axios';
 import { formatCurrency, formatCurrencyShort } from '@/utils/currency';
 import RevenueBreakdownTree from '@/components/RevenueBreakdownTree';
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    Legend
+} from 'recharts';
 
 interface AccountManagerData {
     nik: string;
@@ -31,8 +44,7 @@ interface CompanyDetailModalProps {
     company: CompanyData | null;
     currentMonth?: string;
     currentYear?: number;
-    year?: number;  // Filter year
-    month?: number; // Filter month
+    defaultYear?: number;
 }
 
 const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
@@ -41,8 +53,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     company,
     currentMonth,
     currentYear,
-    year,
-    month
+    defaultYear
 }) => {
     const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
     const [yearlyData, setYearlyData] = useState<YearlyRevenue[]>([]);
@@ -53,7 +64,28 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [summary, setSummary] = useState<any>(null);
     
+    // Filter states
+    const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState<number>(defaultYear || currentYear || new Date().getFullYear());
+    const [availableYears, setAvailableYears] = useState<number[]>([]);
+    const [availableMonths, setAvailableMonths] = useState<number[]>([]);
+    
     const [isDarkMode, setIsDarkMode] = useState(false);
+
+    const monthLabels: { [key: number]: string } = {
+        1: 'Januari',
+        2: 'Februari',
+        3: 'Maret',
+        4: 'April',
+        5: 'Mei',
+        6: 'Juni',
+        7: 'Juli',
+        8: 'Agustus',
+        9: 'September',
+        10: 'Oktober',
+        11: 'November',
+        12: 'Desember'
+    };
 
     useEffect(() => {
         const checkDarkMode = () => {
@@ -71,11 +103,53 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
         return () => observer.disconnect();
     }, []);
 
+    // Reset filter to defaultYear when modal opens or defaultYear changes
+    useEffect(() => {
+        if (isOpen && defaultYear) {
+            setSelectedYear(defaultYear);
+        }
+    }, [isOpen, defaultYear]);
+
     useEffect(() => {
         if (isOpen && company) {
             fetchCompanyDetails();
         }
-    }, [isOpen, company, year, month]);
+    }, [isOpen, company, selectedYear, selectedMonth]);
+
+    // Separate effect to update available months when year changes OR modal opens
+    useEffect(() => {
+        if (isOpen && company && selectedYear) {
+            fetchAvailableMonths();
+        }
+    }, [selectedYear, isOpen]);
+
+    const fetchAvailableMonths = async () => {
+        if (!company) return;
+        
+        try {
+            const monthsParams: any = {
+                company_id: company.nip_nas || company.id,
+                year: selectedYear
+            };
+            
+            const monthsResponse = await axios.get(`/api/dashboard/individual-company-details`, {
+                params: monthsParams
+            });
+            
+            if (monthsResponse.data.success) {
+                const monthly = monthsResponse.data.data.monthly_data || [];
+                const months = ([...new Set(monthly.map((m: any) => m.bulan))] as number[]).sort((a: number, b: number) => a - b);
+                setAvailableMonths(months);
+                
+                // Set initial month if not available in selected year
+                if (months.length > 0 && !months.includes(selectedMonth)) {
+                    setSelectedMonth(months[0]);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching available months:', err);
+        }
+    };
 
     const fetchCompanyDetails = async () => {
         if (!company) return;
@@ -89,11 +163,11 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
             };
             
             // Add filters if provided
-            if (year) {
-                params.year = year;
+            if (selectedYear) {
+                params.year = selectedYear;
             }
-            if (month) {
-                params.month = month;
+            if (selectedMonth) {
+                params.month = selectedMonth;
             }
             
             const response = await axios.get(`/api/dashboard/individual-company-details`, {
@@ -102,7 +176,6 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
             
             if (response.data.success) {
                 setMonthlyData(response.data.data.monthly_data);
-                setYearlyData(response.data.data.yearly_data);
                 setAccountManagers(response.data.data.account_managers || []);
                 setRegions(response.data.data.regions || []);
                 setSummary(response.data.data.summary);
@@ -110,16 +183,35 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                 setError('Failed to fetch company details');
             }
 
+            // Fetch yearly data separately WITHOUT filters for historical chart
+            const yearlyParams: any = {
+                company_id: company.nip_nas || company.id
+            };
+            // No year or month filters - we want ALL yearly data
+            
+            const yearlyResponse = await axios.get(`/api/dashboard/individual-company-details`, {
+                params: yearlyParams
+            });
+            
+            if (yearlyResponse.data.success) {
+                const yearly = yearlyResponse.data.data.yearly_data;
+                setYearlyData(yearly);
+                
+                // Extract available years from yearly data
+                const years = yearly.map((y: any) => y.tahun).sort((a: number, b: number) => b - a);
+                setAvailableYears(years);
+            }
+
             // Fetch revenue breakdown data from database (production endpoint)
             const companyIdentifier = company.nip_nas || company.id;
             const breakdownParams: any = {};
             
             // Apply same filters as company details
-            if (year) {
-                breakdownParams.tahun = year;
+            if (selectedYear) {
+                breakdownParams.tahun = selectedYear;
             }
-            if (month) {
-                breakdownParams.bulan = month;
+            if (selectedMonth) {
+                breakdownParams.bulan = selectedMonth;
             }
             
             const breakdownResponse = await axios.get(`/api/dashboard/revenue-breakdown/${companyIdentifier}`, {
@@ -150,6 +242,55 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                         Detailed revenue analysis and performance metrics
                     </DialogDescription>
                 </DialogHeader>
+
+                {/* Filter Section */}
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 mb-6">
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter Periode:</span>
+                        
+                        {/* Year Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                disabled={availableYears.length === 0}
+                            >
+                                {availableYears.length > 0 ? (
+                                    availableYears.map(year => (
+                                        <option key={year} value={year}>
+                                            {year}
+                                        </option>
+                                    ))
+                                ) : (
+                                    <option value="">No data available</option>
+                                )}
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                        </div>
+
+                        {/* Month Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                disabled={availableMonths.length === 0}
+                            >
+                                {availableMonths.length > 0 ? (
+                                    availableMonths.map(month => (
+                                        <option key={month} value={month}>
+                                            {monthLabels[month]}
+                                        </option>
+                                    ))
+                                ) : (
+                                    <option value="">No data available</option>
+                                )}
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                        </div>
+                    </div>
+                </div>
 
                 {/* Company Info Card */}
                 <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6 mb-6 shadow-sm">
@@ -283,6 +424,75 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                             </div>
                         )}
 
+                        {/* Historical Revenue Chart - Yearly Data */}
+                        {yearlyData.length > 0 && (
+                            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm mb-6">
+                                <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                        Historical Revenue (Yearly)
+                                    </h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Total revenue per year</p>
+                                </div>
+                                <div className="p-5">
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <BarChart data={yearlyData}>
+                                            <CartesianGrid 
+                                                strokeDasharray="3 3" 
+                                                stroke={isDarkMode ? '#374151' : '#e5e7eb'} 
+                                                className="opacity-30" 
+                                            />
+                                            <XAxis 
+                                                dataKey="tahun" 
+                                                tick={{ fontSize: 12, fill: isDarkMode ? '#ffffff' : '#374151' }}
+                                                stroke={isDarkMode ? '#ffffff' : '#374151'}
+                                            />
+                                            <YAxis 
+                                                tickFormatter={formatCurrencyShort}
+                                                tick={{ fontSize: 12, fill: isDarkMode ? '#ffffff' : '#374151' }}
+                                                stroke={isDarkMode ? '#ffffff' : '#374151'}
+                                            />
+                                            <Tooltip
+                                                content={({ active, payload }) => {
+                                                    if (active && payload && payload.length) {
+                                                        const data = payload[0].payload;
+                                                        return (
+                                                            <div
+                                                                style={{
+                                                                    backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                                                                    border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+                                                                    borderRadius: '8px',
+                                                                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                                                    padding: '12px',
+                                                                    minWidth: '200px'
+                                                                }}
+                                                            >
+                                                                <p style={{ fontWeight: 600, marginBottom: '8px', color: isDarkMode ? '#ffffff' : '#374151' }}>
+                                                                    Year {data.tahun}
+                                                                </p>
+                                                                <p style={{ margin: '4px 0', color: isDarkMode ? '#ffffff' : '#374151' }}>
+                                                                    Revenue: {formatCurrency(data.total_revenue, 2)}
+                                                                </p>
+                                                                <p style={{ margin: '4px 0', fontSize: '12px', color: '#6b7280' }}>
+                                                                    {data.months_count} month{data.months_count > 1 ? 's' : ''}
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
+                                            />
+                                            <Bar 
+                                                dataKey="total_revenue" 
+                                                fill="#dc2626" 
+                                                radius={[4, 4, 0, 0]}
+                                            />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Revenue Breakdown Section */}
                         {revenueBreakdown.length > 0 && (
                             <div className="mt-6">
@@ -295,7 +505,107 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Detailed breakdown by category and product</p>
                                     </div>
                                     <div className="p-5">
-                                        <RevenueBreakdownTree data={revenueBreakdown} />
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                            {/* Tree View - Takes 2 columns with scroll */}
+                                            <div className="lg:col-span-2 max-h-[600px] overflow-y-auto pr-2">
+                                                <RevenueBreakdownTree data={revenueBreakdown} />
+                                            </div>
+                                            
+                                            {/* Pie Chart - Takes 1 column */}
+                                            <div className="flex flex-col items-center justify-center">
+                                                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Category Distribution</h4>
+                                                <ResponsiveContainer width="100%" height={300}>
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={(() => {
+                                                                // Calculate total and percentage for each category
+                                                                const categoryTotals: { [key: string]: number } = {};
+                                                                let grandTotal = 0;
+                                                                
+                                                                // Check structure and aggregate by category name
+                                                                revenueBreakdown.forEach(item => {
+                                                                    // Try different possible field names for category
+                                                                    const category = item.name || item.group1_name || item.category || 'Unknown';
+                                                                    const revenue = parseFloat(item.revenue || item.total_revenue || 0);
+                                                                    
+                                                                    categoryTotals[category] = (categoryTotals[category] || 0) + revenue;
+                                                                    grandTotal += revenue;
+                                                                });
+                                                                
+                                                                // Define colors for each category
+                                                                const categoryColors: { [key: string]: string } = {
+                                                                    'CONNECTIVITY': '#60a5fa', // Light blue
+                                                                    'LEGACY': '#1e3a8a', // Dark blue
+                                                                    'PLATFORM': '#3b82f6', // Blue
+                                                                    'SERVICE': '#f59e0b', // Orange/Amber
+                                                                };
+                                                                
+                                                                const result = Object.entries(categoryTotals)
+                                                                    .filter(([_, value]) => value > 0)
+                                                                    .map(([name, value]) => ({
+                                                                        name,
+                                                                        value,
+                                                                        percentage: grandTotal > 0 ? ((value / grandTotal) * 100).toFixed(1) : '0',
+                                                                        fill: categoryColors[name.toUpperCase()] || '#94a3b8'
+                                                                    }));
+                                                                
+                                                                return result;
+                                                            })()}
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            labelLine={false}
+                                                            label={({ percentage }) => `${percentage}%`}
+                                                            outerRadius={80}
+                                                            dataKey="value"
+                                                        />
+                                                        <Tooltip
+                                                            content={({ active, payload }) => {
+                                                                if (active && payload && payload.length) {
+                                                                    const data = payload[0].payload;
+                                                                    return (
+                                                                        <div
+                                                                            style={{
+                                                                                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                                                                                border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+                                                                                borderRadius: '8px',
+                                                                                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                                                                padding: '12px',
+                                                                                minWidth: '200px'
+                                                                            }}
+                                                                        >
+                                                                            <p style={{ fontWeight: 600, marginBottom: '4px', color: isDarkMode ? '#ffffff' : '#374151' }}>
+                                                                                {data.name}
+                                                                            </p>
+                                                                            <p style={{ margin: '4px 0', color: isDarkMode ? '#ffffff' : '#374151', fontSize: '14px' }}>
+                                                                                Rp {data.value.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                            </p>
+                                                                            <p style={{ margin: '4px 0', fontSize: '12px', color: '#6b7280' }}>
+                                                                                {data.percentage}% of total
+                                                                            </p>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            }}
+                                                        />
+                                                        <Legend 
+                                                            verticalAlign="bottom" 
+                                                            height={36}
+                                                            formatter={(value, entry: any) => {
+                                                                return (
+                                                                    <span style={{ 
+                                                                        color: isDarkMode ? '#d1d5db' : '#374151',
+                                                                        fontSize: '12px'
+                                                                    }}>
+                                                                        {value} ({entry.payload.percentage}%)
+                                                                    </span>
+                                                                );
+                                                            }}
+                                                        />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

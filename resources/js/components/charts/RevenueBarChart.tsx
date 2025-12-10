@@ -217,16 +217,16 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
                                 name="Target Revenue"
                                 radius={[4, 4, 0, 0]}
                                 opacity={0.8}
-                                onClick={handleBarClick}
-                                className="cursor-pointer hover:opacity-90 transition-opacity"
+                                // onClick={handleBarClick}
+                                // className="cursor-pointer hover:opacity-90 transition-opacity"
                             />
                             <Bar 
                                 dataKey="total_revenue" 
                                 fill="#dc2626" 
                                 name="Revenue Realisasi"
                                 radius={[4, 4, 0, 0]}
-                                onClick={handleBarClick}
-                                className="cursor-pointer hover:opacity-80 transition-opacity"
+                                // onClick={handleBarClick}
+                                // className="cursor-pointer hover:opacity-80 transition-opacity"
                             />
                         </>
                     ) : (
@@ -236,16 +236,16 @@ const RevenueBarChart: React.FC<RevenueBarChartProps> = ({
                                 fill="#dc2626" 
                                 name={`${selectedYear || 'Current'} Revenue`}
                                 radius={[4, 4, 0, 0]}
-                                onClick={handleBarClick}
-                                className="cursor-pointer hover:opacity-80 transition-opacity"
+                                // onClick={handleBarClick}
+                                // className="cursor-pointer hover:opacity-80 transition-opacity"
                             />
                             <Bar 
                                 dataKey="comparison_revenue" 
                                 fill="#2563eb" 
                                 name={`${comparisonYear || 'Comparison'} Revenue`}
                                 radius={[4, 4, 0, 0]}
-                                onClick={handleBarClick}
-                                className="cursor-pointer hover:opacity-80 transition-opacity"
+                                // onClick={handleBarClick}
+                                // className="cursor-pointer hover:opacity-80 transition-opacity"
                             />
                         </>
                     )}
