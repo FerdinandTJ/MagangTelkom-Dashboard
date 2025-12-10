@@ -70,6 +70,9 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     const [availableYears, setAvailableYears] = useState<number[]>([]);
     const [availableMonths, setAvailableMonths] = useState<number[]>([]);
     
+    // Selected category from pie chart click
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    
     const [isDarkMode, setIsDarkMode] = useState(false);
 
     const monthLabels: { [key: number]: string } = {
@@ -228,12 +231,17 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
         }
     };
 
+    // Handle pie chart slice click to expand tree
+    const handlePieSliceClick = (data: any) => {
+        setSelectedCategory(data.name);
+    };
+
     if (!company) return null;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="wide-modal max-w-[98vw] w-[98vw] max-h-[95vh] overflow-y-auto p-6 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-                <DialogHeader className="pb-4">
+                <DialogHeader className="pb-2">
                     <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
                         <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
                         <span className="truncate">{company.nama_perusahaan}</span>
@@ -244,7 +252,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                 </DialogHeader>
 
                 {/* Filter Section */}
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 mb-6">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-3 mb-3">
                     <div className="flex items-center gap-4 flex-wrap">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter Periode:</span>
                         
@@ -293,7 +301,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                 </div>
 
                 {/* Company Info Card */}
-                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6 mb-6 shadow-sm">
+                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 mb-3 shadow-sm">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -391,9 +399,8 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                     <>
                         {/* Summary Cards - Always show if we have summary data */}
                         {summary ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                {/* Total Revenue Card */}
-                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">{/* Total Revenue Card */}
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                                             <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -405,7 +412,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                 </div>
                                 
                                 {/* Period Card */}
-                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
                                             <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -424,9 +431,133 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                             </div>
                         )}
 
+                        {/* Revenue Breakdown Section */}
+                        {revenueBreakdown.length > 0 && (
+                            <div className="mt-1">
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+                                    <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                            Revenue Source Breakdown
+                                        </h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Detailed breakdown by category and product</p>
+                                    </div>
+                                    <div className="p-5">
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                            {/* Tree View - Takes 2 columns with scroll */}
+                                            <div className="lg:col-span-2 max-h-[600px] overflow-y-auto pr-2">
+                                                <RevenueBreakdownTree 
+                                                    data={revenueBreakdown}
+                                                    selectedCategory={selectedCategory}
+                                                    onCategoryCleared={() => setSelectedCategory(null)}
+                                                />
+                                            </div>
+                                            
+                                            {/* Pie Chart - Takes 1 column */}
+                                            <div className="flex flex-col items-center justify-center">
+                                                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Category Distribution</h4>
+                                                <ResponsiveContainer width="100%" height={300}>
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={(() => {
+                                                                // Calculate total and percentage for each category
+                                                                const categoryTotals: { [key: string]: number } = {};
+                                                                let grandTotal = 0;
+                                                                
+                                                                // Check structure and aggregate by category name
+                                                                revenueBreakdown.forEach(item => {
+                                                                    // Try different possible field names for category
+                                                                    const category = item.name || item.group1_name || item.category || 'Unknown';
+                                                                    const revenue = parseFloat(item.revenue || item.total_revenue || 0);
+                                                                    
+                                                                    categoryTotals[category] = (categoryTotals[category] || 0) + revenue;
+                                                                    grandTotal += revenue;
+                                                                });
+                                                                
+                                                                // Define colors for each category
+                                                                const categoryColors: { [key: string]: string } = {
+                                                                    'CONNECTIVITY': '#60a5fa', // Light blue
+                                                                    'LEGACY': '#1e3a8a', // Dark blue
+                                                                    'PLATFORM': '#3b82f6', // Blue
+                                                                    'SERVICE': '#f59e0b', // Orange/Amber
+                                                                };
+                                                                
+                                                                const result = Object.entries(categoryTotals)
+                                                                    .filter(([_, value]) => value > 0)
+                                                                    .map(([name, value]) => ({
+                                                                        name,
+                                                                        value,
+                                                                        percentage: grandTotal > 0 ? ((value / grandTotal) * 100).toFixed(1) : '0',
+                                                                        fill: categoryColors[name.toUpperCase()] || '#94a3b8'
+                                                                    }));
+                                                                
+                                                                return result;
+                                                            })()}
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            labelLine={false}
+                                                            label={({ percentage }) => `${percentage}%`}
+                                                            outerRadius={80}
+                                                            dataKey="value"
+                                                            onClick={handlePieSliceClick}
+                                                            cursor="pointer"
+                                                        />
+                                                        <Tooltip
+                                                            content={({ active, payload }) => {
+                                                                if (active && payload && payload.length) {
+                                                                    const data = payload[0].payload;
+                                                                    return (
+                                                                        <div
+                                                                            style={{
+                                                                                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                                                                                border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+                                                                                borderRadius: '8px',
+                                                                                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                                                                padding: '12px',
+                                                                                minWidth: '200px'
+                                                                            }}
+                                                                        >
+                                                                            <p style={{ fontWeight: 600, marginBottom: '4px', color: isDarkMode ? '#ffffff' : '#374151' }}>
+                                                                                {data.name}
+                                                                            </p>
+                                                                            <p style={{ margin: '4px 0', color: isDarkMode ? '#ffffff' : '#374151', fontSize: '14px' }}>
+                                                                                Rp {data.value.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                            </p>
+                                                                            <p style={{ margin: '4px 0', fontSize: '12px', color: '#6b7280' }}>
+                                                                                {data.percentage}% of total
+                                                                            </p>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            }}
+                                                        />
+                                                        <Legend 
+                                                            verticalAlign="bottom" 
+                                                            height={36}
+                                                            formatter={(value, entry: any) => {
+                                                                return (
+                                                                    <span style={{ 
+                                                                        color: isDarkMode ? '#d1d5db' : '#374151',
+                                                                        fontSize: '12px'
+                                                                    }}>
+                                                                        {value} ({entry.payload.percentage}%)
+                                                                    </span>
+                                                                );
+                                                            }}
+                                                        />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Historical Revenue Chart - Yearly Data */}
                         {yearlyData.length > 0 && (
-                            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm mb-6">
+                            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm mt-6">
                                 <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                         <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -489,124 +620,6 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                             />
                                         </BarChart>
                                     </ResponsiveContainer>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Revenue Breakdown Section */}
-                        {revenueBreakdown.length > 0 && (
-                            <div className="mt-6">
-                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
-                                    <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                            <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                            Revenue Source Breakdown
-                                        </h3>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Detailed breakdown by category and product</p>
-                                    </div>
-                                    <div className="p-5">
-                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                            {/* Tree View - Takes 2 columns with scroll */}
-                                            <div className="lg:col-span-2 max-h-[600px] overflow-y-auto pr-2">
-                                                <RevenueBreakdownTree data={revenueBreakdown} />
-                                            </div>
-                                            
-                                            {/* Pie Chart - Takes 1 column */}
-                                            <div className="flex flex-col items-center justify-center">
-                                                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Category Distribution</h4>
-                                                <ResponsiveContainer width="100%" height={300}>
-                                                    <PieChart>
-                                                        <Pie
-                                                            data={(() => {
-                                                                // Calculate total and percentage for each category
-                                                                const categoryTotals: { [key: string]: number } = {};
-                                                                let grandTotal = 0;
-                                                                
-                                                                // Check structure and aggregate by category name
-                                                                revenueBreakdown.forEach(item => {
-                                                                    // Try different possible field names for category
-                                                                    const category = item.name || item.group1_name || item.category || 'Unknown';
-                                                                    const revenue = parseFloat(item.revenue || item.total_revenue || 0);
-                                                                    
-                                                                    categoryTotals[category] = (categoryTotals[category] || 0) + revenue;
-                                                                    grandTotal += revenue;
-                                                                });
-                                                                
-                                                                // Define colors for each category
-                                                                const categoryColors: { [key: string]: string } = {
-                                                                    'CONNECTIVITY': '#60a5fa', // Light blue
-                                                                    'LEGACY': '#1e3a8a', // Dark blue
-                                                                    'PLATFORM': '#3b82f6', // Blue
-                                                                    'SERVICE': '#f59e0b', // Orange/Amber
-                                                                };
-                                                                
-                                                                const result = Object.entries(categoryTotals)
-                                                                    .filter(([_, value]) => value > 0)
-                                                                    .map(([name, value]) => ({
-                                                                        name,
-                                                                        value,
-                                                                        percentage: grandTotal > 0 ? ((value / grandTotal) * 100).toFixed(1) : '0',
-                                                                        fill: categoryColors[name.toUpperCase()] || '#94a3b8'
-                                                                    }));
-                                                                
-                                                                return result;
-                                                            })()}
-                                                            cx="50%"
-                                                            cy="50%"
-                                                            labelLine={false}
-                                                            label={({ percentage }) => `${percentage}%`}
-                                                            outerRadius={80}
-                                                            dataKey="value"
-                                                        />
-                                                        <Tooltip
-                                                            content={({ active, payload }) => {
-                                                                if (active && payload && payload.length) {
-                                                                    const data = payload[0].payload;
-                                                                    return (
-                                                                        <div
-                                                                            style={{
-                                                                                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-                                                                                border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                                                                                borderRadius: '8px',
-                                                                                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                                                                                padding: '12px',
-                                                                                minWidth: '200px'
-                                                                            }}
-                                                                        >
-                                                                            <p style={{ fontWeight: 600, marginBottom: '4px', color: isDarkMode ? '#ffffff' : '#374151' }}>
-                                                                                {data.name}
-                                                                            </p>
-                                                                            <p style={{ margin: '4px 0', color: isDarkMode ? '#ffffff' : '#374151', fontSize: '14px' }}>
-                                                                                Rp {data.value.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                            </p>
-                                                                            <p style={{ margin: '4px 0', fontSize: '12px', color: '#6b7280' }}>
-                                                                                {data.percentage}% of total
-                                                                            </p>
-                                                                        </div>
-                                                                    );
-                                                                }
-                                                                return null;
-                                                            }}
-                                                        />
-                                                        <Legend 
-                                                            verticalAlign="bottom" 
-                                                            height={36}
-                                                            formatter={(value, entry: any) => {
-                                                                return (
-                                                                    <span style={{ 
-                                                                        color: isDarkMode ? '#d1d5db' : '#374151',
-                                                                        fontSize: '12px'
-                                                                    }}>
-                                                                        {value} ({entry.payload.percentage}%)
-                                                                    </span>
-                                                                );
-                                                            }}
-                                                        />
-                                                    </PieChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         )}
