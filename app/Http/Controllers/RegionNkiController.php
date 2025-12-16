@@ -25,13 +25,6 @@ class RegionNkiController extends Controller
         $year = $request->year;
         $enableCompare = $request->boolean('compare', false) && $request->has('compare_quarter') && $request->has('compare_year');
 
-        \Log::info('Region NKI Request:', [
-            'region_id' => $regionId,
-            'quarter' => $quarter,
-            'year' => $year,
-            'compare' => $enableCompare
-        ]);
-
         // Validate: Cannot compare with the same period
         if ($enableCompare) {
             $compareQuarter = $request->compare_quarter;
@@ -130,7 +123,7 @@ class RegionNkiController extends Controller
         \Log::info('AM Company IDs in region:', ['count' => $amCompanyIds->count(), 'ids' => $amCompanyIds->toArray()]);
 
         if ($amCompanyIds->isEmpty()) {
-            \Log::warning('No AM companies found in region');
+
             return null;
         }
 
@@ -140,7 +133,7 @@ class RegionNkiController extends Controller
         \Log::info('Targets found:', ['target_count' => $targets->count(), 'target_ids' => $targets->pluck('id')->toArray()]);
 
         if ($targets->isEmpty()) {
-            \Log::warning('No targets found for AM companies');
+
             return null;
         }
 
@@ -439,8 +432,7 @@ class RegionNkiController extends Controller
             // Miliar
             $formatted = 'Rp ' . number_format($value / 1000000000, $decimals, '.', ',') . 'M';
         }
-        
-        \Log::info('Format currency:', ['value' => $value, 'formatted' => $formatted]);
+
         return $formatted;
     }
 
@@ -697,14 +689,6 @@ class RegionNkiController extends Controller
         $segment = $request->segment;
         $witelId = $request->witel_id;
 
-        \Log::info('Witel NKI Detail Request:', [
-            'region_id' => $regionId,
-            'quarter' => $quarter,
-            'year' => $year,
-            'segment' => $segment,
-            'witel_id' => $witelId
-        ]);
-
         // Get region info
         $region = Region::findOrFail($regionId);
 
@@ -750,15 +734,13 @@ class RegionNkiController extends Controller
                         'avg_nki' => 0
                     ],
                     'am_list' => [],
-                    'parameter_result' => ['percentage_result' => 60, 'parameters' => []],
-                    'parameter_proses' => ['percentage_proses' => 40, 'parameters' => []]
+                    'parameter_result' => ['percentage_result' => 75, 'parameters' => []],
+                    'parameter_proses' => ['percentage_proses' => 25, 'parameters' => []]
                 ]
             ]);
         }
 
         $amNiks = $accountManagers->pluck('nik')->toArray();
-
-        \Log::info('AM NIKs:', ['niks' => $amNiks]);
 
         // Get lini_waktu for these AMs in the specified period
         $liniWaktuData = LiniWaktu::whereIn('nik_am', $amNiks)
@@ -793,8 +775,8 @@ class RegionNkiController extends Controller
                         'avg_nki' => 0
                     ],
                     'am_list' => [],
-                    'parameter_result' => ['percentage_result' => 60, 'parameters' => []],
-                    'parameter_proses' => ['percentage_proses' => 40, 'parameters' => []]
+                    'parameter_result' => ['percentage_result' => 75, 'parameters' => []],
+                    'parameter_proses' => ['percentage_proses' => 25, 'parameters' => []]
                 ]
             ]);
         }
@@ -834,7 +816,7 @@ class RegionNkiController extends Controller
             $liniWaktu = $liniWaktuData->get($am->nik);
             
             if (!$liniWaktu) {
-                \Log::info("No lini_waktu for AM: {$am->nik}");
+
                 continue;
             }
 
@@ -848,7 +830,7 @@ class RegionNkiController extends Controller
             \Log::info("AM {$am->nik} company IDs:", ['count' => count($amCompanyIds), 'ids' => $amCompanyIds]);
 
             if (empty($amCompanyIds)) {
-                \Log::info("No companies for AM: {$am->nik} with segment: {$segment}");
+
                 continue;
             }
 
@@ -858,7 +840,7 @@ class RegionNkiController extends Controller
             \Log::info("AM {$am->nik} target IDs:", ['count' => count($targetIds)]);
 
             if (empty($targetIds)) {
-                \Log::info("No targets for AM: {$am->nik}");
+
                 continue;
             }
 
@@ -871,7 +853,7 @@ class RegionNkiController extends Controller
             \Log::info("AM {$am->nik} pivot data:", ['count' => $pivotData->count()]);
 
             if ($pivotData->isEmpty()) {
-                \Log::info("No pivot data for AM: {$am->nik}");
+
                 continue;
             }
 
@@ -1116,7 +1098,11 @@ class RegionNkiController extends Controller
         }
 
         \Log::info('Final AM List count:', ['count' => count($amList)]);
-        \Log::info('Sample AM data:', ['first_am' => $amList[0] ?? 'No AM data']);
+
+        // Get percentage_result and percentage_proses from lini_waktu
+        $sampleLiniWaktu = $liniWaktuData->first();
+        $percentageResult = $sampleLiniWaktu ? $sampleLiniWaktu->percentage_result : 75;
+        $percentageProses = $sampleLiniWaktu ? $sampleLiniWaktu->percentage_proses : 25;
 
         return response()->json([
             'success' => true,
@@ -1142,14 +1128,15 @@ class RegionNkiController extends Controller
                 ],
                 'am_list' => $amList,
                 'parameter_result' => [
-                    'percentage_result' => 60,
+                    'percentage_result' => $percentageResult,
                     'parameters' => $resultParameters
                 ],
                 'parameter_proses' => [
-                    'percentage_proses' => 40,
+                    'percentage_proses' => $percentageProses,
                     'parameters' => $prosesParameters
                 ]
             ]
         ]);
     }
 }
+

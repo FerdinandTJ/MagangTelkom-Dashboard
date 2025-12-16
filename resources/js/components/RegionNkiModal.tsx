@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Target, Calendar, Users } from 'lucide-react';
 import axios from 'axios';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ScatterChart, ZAxis, Cell, Line, ComposedChart } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ScatterChart, ZAxis, Cell, Line, ComposedChart, ReferenceLine } from 'recharts';
 import WitelNkiDetailModal from './modals/WitelNkiDetailModal';
 
 interface RegionNkiModalProps {
@@ -258,7 +258,11 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                             const mergedData = currentData.map((curr: any) => {
                                 const comp = compareData.find((c: any) => c.parameter === curr.parameter);
                                 return {
-                                    ...curr,
+                                    parameter: curr.parameter,
+                                    target: curr.target,
+                                    realisasi: curr.realisasi,
+                                    bobot: curr.bobot,
+                                    ach: curr.ach,
                                     ach_current: curr.ach,
                                     ach_compare: comp ? comp.ach : 0,
                                     target_compare: comp ? comp.target : 0,
@@ -267,7 +271,6 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                 };
                             });
                             
-                            console.log('Merged chart data with compare:', mergedData);
                             setChartData(mergedData);
                             return;
                         }
@@ -978,204 +981,308 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                         </div>
                                         <div className="pl-5 pr-5 pb-5 pt-5">
                                             <div className="overflow-x-auto">
-                                                <div style={{ width: '100%', minHeight: `${Math.max(chartData.length * 40, 400)}px` }}>
-                                                    <ResponsiveContainer width="100%" height={Math.max(chartData.length * 40, 400)}>
+                                                <div style={{ width: '100%', minHeight: `${Math.max(chartData.length * 50, 450)}px` }}>
+                                                    <ResponsiveContainer width="100%" height={Math.max(chartData.length * 50, 450)}>
                                                         <ComposedChart 
                                                             data={chartData} 
                                                             layout="vertical"
-                                                            margin={{ top: 60, right: 80, bottom: 30, left: 120 }}
+                                                            margin={{ top: 0, right: 50, bottom: 20, left: 5 }}
                                                         >
                                                             <XAxis 
                                                                 type="number"
-                                                                tick={{ fontSize: 12 }}
+                                                                tick={{ fontSize: 10 }}
                                                                 stroke="#6B7280"
-                                                                label={{ value: 'Achievement (%)', position: 'insideBottom', offset: -10, style: { fontSize: 12 } }}
-                                                                domain={[0, 'auto']}
-                                                                tickCount={10}
+                                                                label={{ value: 'Achievement (%)', position: 'insideBottom', offset: -5, style: { fontSize: 11 } }}
+                                                                domain={[
+                                                                    0, 
+                                                                    (dataMax: number) => {
+                                                                        const maxValue = Math.max(...chartData.map((d: any) => 
+                                                                            Math.max(d.ach_current || 0, d.ach_compare || 0)
+                                                                        ));
+                                                                        return Math.ceil(maxValue) + 10;
+                                                                    }
+                                                                ]}
+                                                                tickCount={30}
                                                             />
                                                             <YAxis 
                                                                 type="category"
                                                                 dataKey="parameter"
                                                                 tick={{ fontSize: 12 }}
                                                                 stroke="#6B7280"
-                                                                width={110}
-                                                                padding={{ top: 20, bottom: 20 }}
+                                                                width={100}
+                                                                padding={{ top: 15, bottom: 15 }}
                                                             />
                                                             <Tooltip content={<CustomTooltip />} />
                                                             {(() => {
-                                                                const hasCompareData = compareMode && chartData.length > 0 && chartData[0].ach_compare !== undefined;
-                                                                console.log('Chart render check:', {
-                                                                    compareMode,
-                                                                    chartDataLength: chartData.length,
-                                                                    firstItem: chartData[0],
-                                                                    hasAchCompare: chartData[0]?.ach_compare,
-                                                                    hasCompareData
-                                                                });
+                                                                const hasCompareData = compareMode && chartData.length > 0 && 
+                                                                    chartData[0] && typeof chartData[0].ach_compare === 'number';
                                                                 
                                                                 return hasCompareData ? (
                                                                 <>
                                                                     <Legend 
-                                                                        align="center"
+                                                                        align="left"
                                                                         verticalAlign="top"
                                                                         wrapperStyle={{ 
-                                                                            paddingTop: '5px',
-                                                                            paddingBottom: '10px'
+                                                                            paddingBottom: '5px',
+                                                                            paddingLeft: '120px'
                                                                         }}
                                                                         content={(props: any) => {
                                                                             const { payload } = props;
+                                                                            
+                                                                            // Calculate comparison stats
+                                                                            const improved = chartData.filter((d: any) => 
+                                                                                (d.ach_current || 0) > (d.ach_compare || 0) + 0.5
+                                                                            ).length;
+                                                                            const declined = chartData.filter((d: any) => 
+                                                                                (d.ach_current || 0) < (d.ach_compare || 0) - 0.5
+                                                                            ).length;
+                                                                            const stable = chartData.length - improved - declined;
+                                                                            
                                                                             return (
-                                                                                <div style={{
-                                                                                    display: 'flex',
-                                                                                    justifyContent: 'center',
+                                                                                <div style={{ 
+                                                                                    display: 'inline-flex',
+                                                                                    alignItems: 'center',
                                                                                     gap: '20px',
                                                                                     padding: '8px 16px',
-                                                                                    backgroundColor: '#ffffff',
-                                                                                    border: '1px solid #d1d5db',
-                                                                                    borderRadius: '6px',
-                                                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                                                                    margin: '0 auto',
-                                                                                    width: 'fit-content'
+                                                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                                                    border: '2px solid #000000',
+                                                                                    borderRadius: '8px',
+                                                                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
                                                                                 }}>
-                                                                                    {payload.map((entry: any, index: number) => (
-                                                                                        <div key={`legend-${index}`} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                                            <div style={{
-                                                                                                width: '12px',
-                                                                                                height: '12px',
-                                                                                                borderRadius: '50%',
-                                                                                                backgroundColor: entry.color,
-                                                                                                border: '2px solid #fff',
-                                                                                                boxShadow: '0 0 0 1px #d1d5db'
-                                                                                            }} />
-                                                                                            <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>
-                                                                                                {entry.value}
-                                                                                            </span>
+                                                                                    {/* Period Indicators */}
+                                                                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', paddingRight: '20px', borderRight: '1px solid #e5e7eb' }}>
+                                                                                        {payload.map((entry: any, index: number) => (
+                                                                                            <div key={`legend-${index}`} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                                                <div style={{
+                                                                                                    width: '12px',
+                                                                                                    height: '12px',
+                                                                                                    borderRadius: '50%',
+                                                                                                    backgroundColor: entry.color,
+                                                                                                    border: '2px solid #fff',
+                                                                                                    boxShadow: `0 0 0 1px ${entry.color}60`
+                                                                                                }} />
+                                                                                                <span style={{ fontSize: '12px', color: '#1f2937', fontWeight: 600 }}>
+                                                                                                    {entry.value}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                    
+                                                                                    {/* Trend Summary - Horizontal */}
+                                                                                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                                            <svg width="14" height="14" viewBox="0 0 16 16" style={{ color: '#10b981' }}>
+                                                                                                <path fill="currentColor" d="M8 3l3 5H5l3-5z"/>
+                                                                                            </svg>
+                                                                                            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 700 }}>{improved}</span>
+                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Improved</span>
                                                                                         </div>
-                                                                                    ))}
+                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                                            <svg width="14" height="14" viewBox="0 0 16 16" style={{ color: '#ef4444' }}>
+                                                                                                <path fill="currentColor" d="M8 13l-3-5h6l-3 5z"/>
+                                                                                            </svg>
+                                                                                            <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700 }}>{declined}</span>
+                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Declined</span>
+                                                                                        </div>
+                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#9ca3af' }}/>
+                                                                                            <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 700 }}>{stable}</span>
+                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Stable</span>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </div>
                                                                             );
                                                                         }}
                                                                     />
                                                                     
-                                                                    {/* Dumbbell chart: dots with connecting lines */}
+                                                                    {/* Current period dots - blue */}
                                                                     <Scatter 
                                                                         dataKey="ach_current" 
                                                                         fill="#3B82F6"
                                                                         name={`Q${quarter} ${year}`}
                                                                         shape={(props: any) => {
-                                                                            const { cx, cy, payload, xAxis } = props;
+                                                                            const { cx, cy, payload } = props;
                                                                             
-                                                                            // Check if we have compare data and xAxis scale
-                                                                            if (payload && payload.ach_compare !== undefined && xAxis && xAxis.scale) {
-                                                                                const cx2 = xAxis.scale(payload.ach_compare);
-                                                                                
-                                                                                return (
-                                                                                    <g>
-                                                                                        {/* Connecting line */}
-                                                                                        <line 
-                                                                                            x1={cx} 
-                                                                                            y1={cy} 
-                                                                                            x2={cx2} 
-                                                                                            y2={cy} 
-                                                                                            stroke="#9CA3AF" 
-                                                                                            strokeWidth={2}
-                                                                                        />
-                                                                                        {/* Current period dot (blue) */}
-                                                                                        <circle 
-                                                                                            cx={cx} 
-                                                                                            cy={cy} 
-                                                                                            r={6} 
-                                                                                            fill="#3B82F6" 
-                                                                                            stroke="#fff" 
-                                                                                            strokeWidth={2}
-                                                                                        />
-                                                                                        {/* Compare period dot (green) */}
-                                                                                        <circle 
-                                                                                            cx={cx2} 
-                                                                                            cy={cy} 
-                                                                                            r={6} 
-                                                                                            fill="#10b981" 
-                                                                                            stroke="#fff" 
-                                                                                            strokeWidth={2}
-                                                                                        />
-                                                                                    </g>
-                                                                                );
-                                                                            }
+                                                                            if (!payload || !cx || !cy) return null;
                                                                             
-                                                                            // Fallback: just blue dot if no compare data
+                                                                            const currentAch = Number(payload.ach_current) || 0;
+                                                                            const compareAch = Number(payload.ach_compare) || 0;
+                                                                            const bobot = Number(payload.bobot) || 0;
+                                                                            
+                                                                            // Check if truly in compare mode (has ach_compare field AND value > 0)
+                                                                            const hasCompare = payload.hasOwnProperty('ach_compare') && compareAch > 0;
+                                                                            
+                                                                            // Warna untuk non-compare: hijau jika achieved (>=bobot), merah jika not achieved
+                                                                            const achievementColor = currentAch >= bobot ? '#10b981' : '#ef4444';
+                                                                            
                                                                             return (
-                                                                                <circle 
-                                                                                    cx={cx} 
-                                                                                    cy={cy} 
-                                                                                    r={6} 
-                                                                                    fill="#3B82F6" 
-                                                                                    stroke="#fff" 
-                                                                                    strokeWidth={2}
-                                                                                />
+                                                                                <g>
+                                                                                    {/* Current dot */}
+                                                                                    <circle 
+                                                                                        cx={cx} 
+                                                                                        cy={cy} 
+                                                                                        r={hasCompare ? 6 : 7} 
+                                                                                        fill={hasCompare ? '#3B82F6' : achievementColor}
+                                                                                    />
+                                                                                    
+                                                                                    {/* Data label - di atas jika compare, di samping jika tidak */}
+                                                                                    <text 
+                                                                                        x={hasCompare ? cx : cx + 15} 
+                                                                                        y={hasCompare ? cy - 12 : cy + 4} 
+                                                                                        fontSize={hasCompare ? 9 : 11} 
+                                                                                        fill={hasCompare ? '#3B82F6' : '#1f2937'}
+                                                                                        fontWeight={hasCompare ? 600 : 700}
+                                                                                        textAnchor={hasCompare ? "middle" : "start"}
+                                                                                    >
+                                                                                        {currentAch.toFixed(1)}%
+                                                                                    </text>
+                                                                                </g>
                                                                             );
                                                                         }}
                                                                     />
                                                                     
-                                                                    {/* Hidden scatter for legend entry (green dot) */}
+                                                                    {/* Scatter untuk Compare Period - dot hijau sejajar dengan current */}
                                                                     <Scatter 
                                                                         dataKey="ach_compare" 
                                                                         fill="#10b981"
                                                                         name={`Q${compareQuarter} ${compareYear}`}
-                                                                        shape={() => null}
+                                                                        shape={(props: any) => {
+                                                                            const { cx, cy, payload } = props;
+                                                                            if (!payload || !cx || !cy) return null;
+                                                                            
+                                                                            const compareAch = Number(payload.ach_compare) || 0;
+                                                                            if (compareAch === 0) return null;
+                                                                            
+                                                                            const currentAch = Number(payload.ach_current) || 0;
+                                                                            const isImproved = currentAch > compareAch;
+                                                                            const trendColor = isImproved ? '#10b981' : '#ef4444';
+                                                                            
+                                                                            return (
+                                                                                <g>
+                                                                                    {/* Garis putus-putus penghubung antara current dan compare */}
+                                                                                    {(() => {
+                                                                                        // Hitung posisi cx untuk current berdasarkan ratio
+                                                                                        const cxCurrent = cx * (currentAch / compareAch);
+                                                                                        const radius = 6;
+                                                                                        // Hitung posisi edge dots
+                                                                                        const x1 = cx + radius;
+                                                                                        const x2 = cxCurrent - radius;
+                                                                                        
+                                                                                        return (
+                                                                                            <line 
+                                                                                                x1={x1} 
+                                                                                                y1={cy} 
+                                                                                                x2={x2} 
+                                                                                                y2={cy} 
+                                                                                                stroke={trendColor} 
+                                                                                                strokeWidth={2.5}
+                                                                                                strokeDasharray="4 3"
+                                                                                            />
+                                                                                        );
+                                                                                    })()}
+                                                                                    
+                                                                                    {/* Compare dot - hijau sesuai legend */}
+                                                                                    <circle 
+                                                                                        cx={cx} 
+                                                                                        cy={cy} 
+                                                                                        r={6} 
+                                                                                        fill="#10b981"
+                                                                                    />
+                                                                                    
+                                                                                    {/* Label di bawah */}
+                                                                                    <text 
+                                                                                        x={cx} 
+                                                                                        y={cy + 16} 
+                                                                                        fontSize={9} 
+                                                                                        fill="#10b981"
+                                                                                        fontWeight={600}
+                                                                                        textAnchor="middle"
+                                                                                    >
+                                                                                        {compareAch.toFixed(1)}%
+                                                                                    </text>
+                                                                                </g>
+                                                                            );
+                                                                        }}
                                                                     />
                                                                 </>
                                                             ) : (
                                                                 <>
                                                                     <Legend 
-                                                                        align="center"
+                                                                        align="left"
                                                                         verticalAlign="top"
                                                                         wrapperStyle={{ 
-                                                                            paddingTop: '5px',
-                                                                            paddingBottom: '10px'
+                                                                            paddingBottom: '5px',
+                                                                            paddingLeft: '120px'
                                                                         }}
                                                                         content={(props: any) => {
-                                                                            const { payload } = props;
+                                                                            // Calculate achievement vs bobot comparison
+                                                                            const achieved = chartData.filter((d: any) => (d.ach_current || 0) >= (d.bobot || 0)).length;
+                                                                            const notAchieved = chartData.filter((d: any) => (d.ach_current || 0) < (d.bobot || 0)).length;
+                                                                            
                                                                             return (
-                                                                                <div style={{
-                                                                                    display: 'flex',
-                                                                                    justifyContent: 'center',
-                                                                                    gap: '20px',
+                                                                                <div style={{ 
+                                                                                    display: 'inline-flex',
+                                                                                    alignItems: 'center',
+                                                                                    gap: '16px',
                                                                                     padding: '8px 16px',
-                                                                                    backgroundColor: '#ffffff',
-                                                                                    border: '1px solid #d1d5db',
-                                                                                    borderRadius: '6px',
-                                                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                                                                    margin: '0 auto',
-                                                                                    width: 'fit-content'
+                                                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                                                    border: '2px solid #000000',
+                                                                                    borderRadius: '8px',
+                                                                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
                                                                                 }}>
-                                                                                    {payload.map((entry: any, index: number) => (
-                                                                                        <div key={`legend-${index}`} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                                            <div style={{
-                                                                                                width: '12px',
-                                                                                                height: '12px',
-                                                                                                borderRadius: '50%',
-                                                                                                backgroundColor: entry.color,
-                                                                                                border: '2px solid #fff',
-                                                                                                boxShadow: '0 0 0 1px #d1d5db'
-                                                                                            }} />
-                                                                                            <span style={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>
-                                                                                                {entry.value}
-                                                                                            </span>
+                                                                                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>Achievement Status:</span>
+                                                                                    
+                                                                                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#10b981' }}/>
+                                                                                            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 700 }}>{achieved}</span>
+                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Achieved</span>
                                                                                         </div>
-                                                                                    ))}
+                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ef4444' }}/>
+                                                                                            <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700 }}>{notAchieved}</span>
+                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Not Achieved</span>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </div>
                                                                             );
                                                                         }}
                                                                     />
-                                                                    {/* Single dots for non-compare mode */}
+                                                                    {/* Single dots for non-compare mode with dynamic colors */}
                                                                     <Scatter 
                                                                         dataKey="ach_current" 
                                                                         fill="#3B82F6"
                                                                         name="Achievement %"
-                                                                    >
-                                                                        {chartData.map((entry, index) => (
-                                                                            <Cell key={`cell-${index}`} fill="#3B82F6" />
-                                                                        ))}
-                                                                    </Scatter>
+                                                                        shape={(props: any) => {
+                                                                            const { cx, cy, payload } = props;
+                                                                            const currentAch = Number(payload.ach_current) || 0;
+                                                                            const bobot = Number(payload.bobot) || 0;
+                                                                            
+                                                                            // Warna berdasarkan perbandingan dengan bobot
+                                                                            const achievementColor = currentAch >= bobot ? '#10b981' : '#ef4444';
+                                                                            
+                                                                            return (
+                                                                                <g>
+                                                                                    <circle 
+                                                                                        cx={cx} 
+                                                                                        cy={cy} 
+                                                                                        r={7} 
+                                                                                        fill={achievementColor}
+                                                                                    />
+                                                                                    {/* Data label */}
+                                                                                    <text 
+                                                                                        x={cx + 15} 
+                                                                                        y={cy + 4} 
+                                                                                        fontSize={11} 
+                                                                                        fill="#374151"
+                                                                                        fontWeight={600}
+                                                                                    >
+                                                                                        {currentAch.toFixed(1)}%
+                                                                                    </text>
+                                                                                </g>
+                                                                            );
+                                                                        }}
+                                                                    />
                                                                 </>
                                                             );
                                                             })()}
