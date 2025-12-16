@@ -379,8 +379,8 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                         <Loader2 className="h-8 w-8 animate-spin text-red-600 dark:text-red-400" />
                         <span className="ml-2 text-gray-600 dark:text-gray-400">Loading company analytics...</span>
                     </div>
-                )}
-
+                )}        
+                
                 {error && (
                     <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4 mb-6">
                         <p className="text-red-700 dark:text-red-300">{error}</p>

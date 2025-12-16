@@ -34,6 +34,13 @@ const ExpandContext = createContext<{
 const RevenueBreakdownTree: React.FC<RevenueBreakdownTreeProps> = ({ data, selectedCategory, onCategoryCleared }) => {
     const [expandAll, setExpandAll] = useState<boolean | null>(null);
 
+    // Reset expandAll when category is selected from pie chart
+    React.useEffect(() => {
+        if (selectedCategory) {
+            setExpandAll(null);
+        }
+    }, [selectedCategory]);
+
     return (
         <ExpandContext.Provider value={{ expandAll, setExpandAll }}>
             <div className="space-y-3">
