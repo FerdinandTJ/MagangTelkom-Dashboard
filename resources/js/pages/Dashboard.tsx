@@ -249,7 +249,7 @@ export default function Dashboard({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Revenue Analytics" />
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gray-50/30 dark:bg-gray-950/30">
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6 bg-gradient-to-br from-red-50/70 via-white to-pink-50/70 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
                 
                 {/* Summary Cards */}
                   <div className="grid auto-rows-min gap-6 md:grid-cols-4">
