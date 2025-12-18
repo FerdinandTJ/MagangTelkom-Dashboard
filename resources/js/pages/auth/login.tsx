@@ -11,6 +11,7 @@ import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface LoginProps {
     status?: string;
@@ -24,6 +25,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
     const [showCursor, setShowCursor] = useState(true);
     const [showWave, setShowWave] = useState(false);
     const [typingDirection, setTypingDirection] = useState<'typing' | 'deleting' | 'pausing'>('typing');
+    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -242,14 +244,26 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                         
                                         <Input
                                             id="password"
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             name="password"
                                             required
                                             tabIndex={2}
                                             autoComplete="current-password"
                                             placeholder="Enter your password"
-                                            className="relative h-12 px-4 text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 focus:border-red-500 dark:focus:border-red-400 focus:ring-0 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 hover:border-red-300 dark:hover:border-red-600 transform hover:scale-[1.02] focus:scale-[1.02] group-focus-within:shadow-lg"
+                                            className="relative h-12 px-4 pr-12 text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 focus:border-red-500 dark:focus:border-red-400 focus:ring-0 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 hover:border-red-300 dark:hover:border-red-600 transform hover:scale-[1.02] focus:scale-[1.02] group-focus-within:shadow-lg"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            tabIndex={-1}
+                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors duration-200 focus:outline-none z-10"
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="h-5 w-5" />
+                                            ) : (
+                                                <Eye className="h-5 w-5" />
+                                            )}
+                                        </button>
                                         {/* Lock icon animation */}
                                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300">
                                             <svg className="w-5 h-5 text-red-400 dark:text-red-500 group-focus-within:text-red-500 dark:group-focus-within:text-red-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"

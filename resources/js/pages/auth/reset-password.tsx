@@ -1,5 +1,7 @@
 import NewPasswordController from '@/actions/App/Http/Controllers/Auth/NewPasswordController';
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -14,6 +16,9 @@ interface ResetPasswordProps {
 }
 
 export default function ResetPassword({ token, email }: ResetPasswordProps) {
+    const [showPassword, setShowPassword] = useState(false);
+    const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
+
     return (
         <AuthLayout
             title="Reset password"
@@ -47,15 +52,29 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
 
                         <div className="grid gap-2">
                             <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                name="password"
-                                autoComplete="new-password"
-                                className="mt-1 block w-full"
-                                autoFocus
-                                placeholder="Password"
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    autoComplete="new-password"
+                                    className="mt-1 block w-full pr-10"
+                                    autoFocus
+                                    placeholder="Password"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    tabIndex={-1}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors duration-200 focus:outline-none"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-5 w-5" />
+                                    ) : (
+                                        <Eye className="h-5 w-5" />
+                                    )}
+                                </button>
+                            </div>
                             <InputError message={errors.password} />
                         </div>
 
@@ -63,14 +82,28 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                             <Label htmlFor="password_confirmation">
                                 Confirm password
                             </Label>
-                            <Input
-                                id="password_confirmation"
-                                type="password"
-                                name="password_confirmation"
-                                autoComplete="new-password"
-                                className="mt-1 block w-full"
-                                placeholder="Confirm password"
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password_confirmation"
+                                    type={showPasswordConfirmation ? "text" : "password"}
+                                    name="password_confirmation"
+                                    autoComplete="new-password"
+                                    className="mt-1 block w-full pr-10"
+                                    placeholder="Confirm password"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                                    tabIndex={-1}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors duration-200 focus:outline-none"
+                                >
+                                    {showPasswordConfirmation ? (
+                                        <EyeOff className="h-5 w-5" />
+                                    ) : (
+                                        <Eye className="h-5 w-5" />
+                                    )}
+                                </button>
+                            </div>
                             <InputError
                                 message={errors.password_confirmation}
                                 className="mt-2"
