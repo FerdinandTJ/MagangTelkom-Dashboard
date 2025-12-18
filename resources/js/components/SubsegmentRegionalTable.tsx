@@ -8,14 +8,15 @@ interface RegionalData {
     revenue: number;
     formatted_revenue: string;
     achievement: number;
-    growth_yoy: number;
+    growth_yoy: number | null;
+    has_previous_year_data?: boolean;
     company_count: number;
     top_companies: Array<{
         nama_perusahaan: string;
         revenue: number;
         formatted_revenue: string;
         achievement: number;
-        growth_yoy: number;
+        growth_yoy: number | null;
     }>;
 }
 
@@ -24,7 +25,8 @@ interface SubsegmentData {
     total_revenue: number;
     formatted_total_revenue: string;
     total_achievement: number;
-    total_growth_yoy: number;
+    total_growth_yoy: number | null;
+    has_previous_year_data?: boolean;
     share_percentage: number;
     total_companies: number;
     regional_breakdown: RegionalData[];
@@ -78,10 +80,32 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
         setExpandCollapseState('collapsed');
     };
 
-    const getTrendColor = (value: number) => {
+    const getTrendColor = (value: number | null) => {
+        if (value === null) return 'text-gray-400 dark:text-gray-500';
         if (value > 0) return 'text-green-600 dark:text-green-400';
         if (value < 0) return 'text-red-600 dark:text-red-400';
         return 'text-gray-600 dark:text-gray-400';
+    };
+
+    const renderYoYGrowth = (value: number | null, hasPrevData?: boolean) => {
+        if (value === null || hasPrevData === false) {
+            return (
+                <div className="flex items-center justify-center gap-1">
+                    <span 
+                        className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium cursor-help" 
+                        title="No previous year data available"
+                    >
+                        N/A
+                    </span>
+                </div>
+            );
+        }
+        return (
+            <div className={`flex items-center justify-center gap-1 font-bold ${getTrendColor(value)}`}>
+                {value > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                <span>{value > 0 ? '+' : ''}{value}%</span>
+            </div>
+        );
     };
 
     const getAchievementColor = (ach: number) => {
@@ -149,10 +173,7 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
                                                 </div>
                                                 <div className="text-center">
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Gr. YoY</p>
-                                                    <div className={`flex items-center justify-center gap-1 font-bold ${getTrendColor(subsegment.total_growth_yoy)}`}>
-                                                        {subsegment.total_growth_yoy > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                                                        <span>{subsegment.total_growth_yoy > 0 ? '+' : ''}{subsegment.total_growth_yoy}%</span>
-                                                    </div>
+                                                    {renderYoYGrowth(subsegment.total_growth_yoy, subsegment.has_previous_year_data)}
                                                 </div>
                                                 <div className="text-center">
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Share</p>
@@ -208,7 +229,9 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
                                                         <td className="px-4 py-3">
                                                             <div>
                                                                 <p className="font-bold text-gray-900 dark:text-gray-100">{region.region_code}</p>
-                                                                <p className="text-sm text-gray-600 dark:text-gray-400">Rev: {region.formatted_revenue} | Gr. {region.growth_yoy > 0 ? '+' : ''}{region.growth_yoy}%</p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                                    Rev: {region.formatted_revenue} | Gr. {region.growth_yoy !== null ? (region.growth_yoy > 0 ? '+' : '') + region.growth_yoy + '%' : 'N/A'}
+                                                                </p>
                                                                 <p className="text-xs text-gray-500 dark:text-gray-500">CC: {region.company_count}</p>
                                                             </div>
                                                         </td>
@@ -243,7 +266,7 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
                                                         <td className="px-4 py-3 text-center">
                                                             {region.top_companies.slice(0, 3).map((company, idx) => (
                                                                 <p key={idx} className={`text-sm font-bold py-[9px] ${getTrendColor(company.growth_yoy)}`}>
-                                                                    {company.growth_yoy > 0 ? '+' : ''}{company.growth_yoy}%
+                                                                    {company.growth_yoy !== null ? (company.growth_yoy > 0 ? '+' : '') + company.growth_yoy + '%' : 'N/A'}
                                                                 </p>
                                                             ))}
                                                         </td>

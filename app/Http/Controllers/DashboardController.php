@@ -1451,11 +1451,15 @@ class DashboardController extends Controller
             }
             
             // Calculate YoY growth
-            $yoyGrowth = 0;
+            $yoyGrowth = null;
+            $hasPrevData = false;
             if ($prevRevenue > 0) {
                 $yoyGrowth = round((($revenue - $prevRevenue) / $prevRevenue) * 100, 1);
+                $hasPrevData = true;
             } else if ($revenue > 0) {
-                $yoyGrowth = 100; // If no previous revenue but have current, it's 100% growth
+                // No previous year data available
+                $yoyGrowth = null;
+                $hasPrevData = false;
             }
             
             $totalRevenue += $revenue;
@@ -1471,6 +1475,7 @@ class DashboardController extends Controller
                 'target' => $target,
                 'achievement' => $achievement,
                 'yoy_growth' => $yoyGrowth,
+                'has_previous_year_data' => $hasPrevData,
                 'formatted_revenue' => 'Rp ' . number_format($revenue, 0, ',', '.'),
                 'formatted_target' => 'Rp ' . number_format($target, 0, ',', '.'),
             ];
@@ -1478,13 +1483,19 @@ class DashboardController extends Controller
 
         // Calculate overall achievement and YoY growth
         $overallAchievement = $totalTarget > 0 ? round(($totalRevenue / $totalTarget) * 100, 1) : 0;
-        $overallYoyGrowth = $totalPrevRevenue > 0 ? round((($totalRevenue - $totalPrevRevenue) / $totalPrevRevenue) * 100, 1) : 0;
+        $overallYoyGrowth = null;
+        $overallHasPrevData = false;
+        if ($totalPrevRevenue > 0) {
+            $overallYoyGrowth = round((($totalRevenue - $totalPrevRevenue) / $totalPrevRevenue) * 100, 1);
+            $overallHasPrevData = true;
+        }
 
         $summary = [
             'total_revenue' => $totalRevenue,
             'total_target' => $totalTarget,
             'achievement' => $overallAchievement,
             'yoy_growth' => $overallYoyGrowth,
+            'has_previous_year_data' => $overallHasPrevData,
             'company_count' => count($companiesData),
             'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'),
             'formatted_total_target' => 'Rp ' . number_format($totalTarget, 0, ',', '.'),
