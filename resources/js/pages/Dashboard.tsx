@@ -62,12 +62,13 @@ interface DashboardProps {
         previous_year: number;
         current_ytd: number;
         previous_ytd: number;
-        growth_percentage: number;
-        growth_amount: number;
+        growth_percentage: number | null;
+        growth_amount: number | null;
         formatted_current_ytd: string;
         formatted_previous_ytd: string;
         formatted_growth_amount: string;
-        is_positive_growth: boolean;
+        is_positive_growth: boolean | null;
+        has_previous_year_data?: boolean;
     };
     subsegmentRevenue: Array<{
         subsegment: string;

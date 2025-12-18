@@ -6,9 +6,10 @@ interface StatCardProps {
     subtitle?: string;
     icon?: React.ReactNode;
     trend?: {
-        value: number;
-        isPositive: boolean;
+        value: number | null;
+        isPositive: boolean | null;
         label: string;
+        hasPreviousData?: boolean;
     };
     className?: string;
     tooltip?: string;
@@ -57,21 +58,29 @@ const StatCard: React.FC<StatCardProps> = ({
             {trend && (
                 <div className="px-4 pb-1 pt-3 border-t border-gray-100 dark:border-gray-800">
                     <div className="flex items-center">
-                        <span className={`inline-flex items-center text-sm font-medium ${
-                            trend.isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                        }`}>
-                            {trend.isPositive ? (
-                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                </svg>
-                            ) : (
-                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                </svg>
-                            )}
-                            {Math.abs(trend.value)}%
-                        </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">{trend.label}</span>
+                        {trend.value !== null && trend.isPositive !== null ? (
+                            <>
+                                <span className={`inline-flex items-center text-sm font-medium ${
+                                    trend.isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                }`}>
+                                    {trend.isPositive ? (
+                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                        </svg>
+                                    )}
+                                    {Math.abs(trend.value)}%
+                                </span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">{trend.label}</span>
+                            </>
+                        ) : (
+                            <span className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium" title="No previous year data available">
+                                N/A
+                            </span>
+                        )}
                     </div>
                 </div>
             )}

@@ -137,19 +137,26 @@ class RevenueAnalyticsService
             ->where('r.bulan', '<=', $currentMonth)
             ->sum('r.revenue_realisasi');
 
-        $growth = $previousYtd > 0 ? (($currentYtd - $previousYtd) / $previousYtd) * 100 : 0;
+        // Calculate growth with validation
+        $growth = null;
+        $hasPreviousData = false;
+        if ($previousYtd > 0) {
+            $growth = round((($currentYtd - $previousYtd) / $previousYtd) * 100, 2);
+            $hasPreviousData = true;
+        }
 
         return [
             'current_year' => $year,
             'previous_year' => $previousYear,
             'current_ytd' => (float) $currentYtd,
             'previous_ytd' => (float) $previousYtd,
-            'growth_percentage' => round($growth, 2),
-            'growth_amount' => (float) ($currentYtd - $previousYtd),
+            'growth_percentage' => $growth,
+            'growth_amount' => $hasPreviousData ? (float) ($currentYtd - $previousYtd) : null,
             'formatted_current_ytd' => 'Rp ' . number_format($currentYtd, 0, ',', '.'),
             'formatted_previous_ytd' => 'Rp ' . number_format($previousYtd, 0, ',', '.'),
-            'formatted_growth_amount' => 'Rp ' . number_format(abs($currentYtd - $previousYtd), 0, ',', '.'),
-            'is_positive_growth' => $growth >= 0
+            'formatted_growth_amount' => $hasPreviousData ? 'Rp ' . number_format(abs($currentYtd - $previousYtd), 0, ',', '.') : 'N/A',
+            'is_positive_growth' => $growth !== null ? $growth >= 0 : null,
+            'has_previous_year_data' => $hasPreviousData
         ];
     }
 
@@ -672,6 +679,29 @@ class RevenueAnalyticsService
                 ->where('r.tahun', $year)
                 ->sum('r.revenue_realisasi');
 
+            // Get previous year subsegment revenue for YoY calculation
+            $subsegmentPrevRevenue = DB::table('group4 as p')
+                ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
+                ->where('companies.subsegment', $subsegment)
+                ->where('r.tahun', $year - 1)
+                ->sum('r.revenue_realisasi');
+
+            // Calculate subsegment YoY growth
+            $subsegmentYoyGrowth = null;
+            $subsegmentHasPrevData = false;
+            if ($subsegmentPrevRevenue > 0) {
+                $subsegmentYoyGrowth = round((($subsegmentRevenue - $subsegmentPrevRevenue) / $subsegmentPrevRevenue) * 100, 1);
+                $subsegmentHasPrevData = true;
+            } else if ($subsegmentRevenue > 0) {
+                // No previous year data available
+                $subsegmentYoyGrowth = null;
+                $subsegmentHasPrevData = false;
+            }
+
             $subsegmentCompanies = DB::table('group4 as p')
                 ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
                 ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
@@ -701,6 +731,31 @@ class RevenueAnalyticsService
                     ->where('r.tahun', $year)
                     ->sum('r.revenue_realisasi');
 
+                // Get previous year region revenue for YoY calculation
+                $regionPrevRevenue = DB::table('group4 as p')
+                    ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                    ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                    ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                    ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                    ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
+                    ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
+                    ->where('witels.region_id', $region->id)
+                    ->where('companies.subsegment', $subsegment)
+                    ->where('r.tahun', $year - 1)
+                    ->sum('r.revenue_realisasi');
+
+                // Calculate region YoY growth
+                $regionYoyGrowth = null;
+                $regionHasPrevData = false;
+                if ($regionPrevRevenue > 0) {
+                    $regionYoyGrowth = round((($regionRevenue - $regionPrevRevenue) / $regionPrevRevenue) * 100, 1);
+                    $regionHasPrevData = true;
+                } else if ($regionRevenue > 0) {
+                    // No previous year data available
+                    $regionYoyGrowth = null;
+                    $regionHasPrevData = false;
+                }
+
                 if ($regionRevenue > 0) {
                     // Get top 3 companies in this region for this subsegment
                     $topCompanies = DB::table('companies')
@@ -722,13 +777,47 @@ class RevenueAnalyticsService
                         ->orderByDesc('total_revenue')
                         ->limit(3)
                         ->get()
-                        ->map(function ($company) {
+                        ->map(function ($company) use ($year) {
+                            // Get previous year revenue for this company
+                            $prevRevenue = DB::table('group4 as p')
+                                ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                                ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                                ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                                ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                                ->where('group1.company_id', $company->nip_nas)
+                                ->where('r.tahun', $year - 1)
+                                ->sum('r.revenue_realisasi');
+
+                            // Calculate YoY growth for company
+                            $companyYoyGrowth = null;
+                            if ($prevRevenue > 0) {
+                                $companyYoyGrowth = round((($company->total_revenue - $prevRevenue) / $prevRevenue) * 100, 1);
+                            } else if ($company->total_revenue > 0) {
+                                // No previous year data available
+                                $companyYoyGrowth = null;
+                            }
+
+                            // Get target for achievement calculation
+                            $target = DB::table('group4 as p')
+                                ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                                ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                                ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                                ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                                ->where('group1.company_id', $company->nip_nas)
+                                ->where('r.tahun', $year)
+                                ->sum('r.revenue_target');
+
+                            $achievement = 0;
+                            if ($target > 0) {
+                                $achievement = round(($company->total_revenue / $target) * 100, 1);
+                            }
+
                             return [
                                 'nama_perusahaan' => $company->nama_perusahaan,
                                 'revenue' => (float) $company->total_revenue,
                                 'formatted_revenue' => $this->formatCurrency($company->total_revenue, 1),
-                                'achievement' => rand(60, 144), // Mock data - replace with actual calculation
-                                'growth_yoy' => rand(-40, 600), // Mock data - replace with actual calculation
+                                'achievement' => $achievement,
+                                'growth_yoy' => $companyYoyGrowth,
                             ];
                         })
                         ->toArray();
@@ -746,13 +835,32 @@ class RevenueAnalyticsService
                         ->distinct('companies.nip_nas')
                         ->count('companies.nip_nas');
 
+                    // Get target for region achievement calculation
+                    $regionTarget = DB::table('group4 as p')
+                        ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                        ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                        ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                        ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                        ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
+                        ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
+                        ->where('witels.region_id', $region->id)
+                        ->where('companies.subsegment', $subsegment)
+                        ->where('r.tahun', $year)
+                        ->sum('r.revenue_target');
+
+                    $regionAchievement = 0;
+                    if ($regionTarget > 0) {
+                        $regionAchievement = round(($regionRevenue / $regionTarget) * 100, 1);
+                    }
+
                     $regionalBreakdown[] = [
                         'region_code' => $region->code,
                         'region_name' => $region->description,
                         'revenue' => (float) $regionRevenue,
                         'formatted_revenue' => $this->formatCurrency($regionRevenue, 1),
-                        'achievement' => rand(39, 94), // Mock data - replace with actual target calculation
-                        'growth_yoy' => rand(-43, 20), // Mock data - replace with actual YoY calculation
+                        'achievement' => $regionAchievement,
+                        'growth_yoy' => $regionYoyGrowth,
+                        'has_previous_year_data' => $regionHasPrevData,
                         'company_count' => $regionCompanyCount,
                         'top_companies' => $topCompanies,
                     ];
@@ -760,12 +868,29 @@ class RevenueAnalyticsService
             }
 
             if ($subsegmentRevenue > 0) {
+                // Get target for subsegment achievement calculation
+                $subsegmentTarget = DB::table('group4 as p')
+                    ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                    ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                    ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                    ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                    ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
+                    ->where('companies.subsegment', $subsegment)
+                    ->where('r.tahun', $year)
+                    ->sum('r.revenue_target');
+
+                $subsegmentAchievement = 0;
+                if ($subsegmentTarget > 0) {
+                    $subsegmentAchievement = round(($subsegmentRevenue / $subsegmentTarget) * 100, 1);
+                }
+
                 $result[] = [
                     'subsegment' => $subsegment,
                     'total_revenue' => (float) $subsegmentRevenue,
                     'formatted_total_revenue' => $this->formatCurrency($subsegmentRevenue, 0),
-                    'total_achievement' => rand(50, 100), // Mock data - replace with actual calculation
-                    'total_growth_yoy' => rand(-30, 20), // Mock data - replace with actual YoY calculation
+                    'total_achievement' => $subsegmentAchievement,
+                    'total_growth_yoy' => $subsegmentYoyGrowth,
+                    'has_previous_year_data' => $subsegmentHasPrevData,
                     'share_percentage' => $totalRevenue > 0 ? round(($subsegmentRevenue / $totalRevenue) * 100) : 0,
                     'total_companies' => $subsegmentCompanies,
                     'regional_breakdown' => $regionalBreakdown,

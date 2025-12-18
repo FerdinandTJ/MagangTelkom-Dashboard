@@ -28,7 +28,8 @@ interface CompanyData {
     revenue: number;
     formatted_revenue: string;
     achievement: number;
-    yoy_growth: number;
+    yoy_growth: number | null;
+    has_previous_year_data?: boolean;
     target: number;
     formatted_target: string;
     source_data: string;
@@ -39,7 +40,8 @@ interface RegionDetail {
         total_revenue: number;
         total_target: number;
         achievement: number;
-        yoy_growth: number;
+        yoy_growth: number | null;
+        has_previous_year_data?: boolean;
         company_count: number;
         formatted_total_revenue: string;
         formatted_total_target: string;
@@ -158,9 +160,16 @@ const RegionDetailModal: React.FC<RegionDetailModalProps> = ({
                                     <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
                                     <span className="text-sm font-medium text-gray-600 dark:text-gray-400">YoY Growth</span>
                                 </div>
-                                <p className={`text-xl font-bold ${data.summary.yoy_growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                    {data.summary.yoy_growth >= 0 ? '+'  : ''}{data.summary.yoy_growth.toFixed(1)}%
-                                </p>
+                                {data.summary.yoy_growth !== null ? (
+                                    <p className={`text-xl font-bold ${data.summary.yoy_growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        {data.summary.yoy_growth >= 0 ? '+' : ''}{data.summary.yoy_growth.toFixed(1)}%
+                                    </p>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium">N/A</span>
+                                        <span className="text-xs text-gray-400 dark:text-gray-500">No prev year data</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
@@ -233,13 +242,19 @@ const RegionDetailModal: React.FC<RegionDetailModalProps> = ({
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <span className={`inline-flex items-center font-semibold ${
-                                                        company.yoy_growth >= 0 
-                                                            ? 'text-green-600 dark:text-green-400' 
-                                                            : 'text-red-600 dark:text-red-400'
-                                                    }`}>
-                                                        {company.yoy_growth >= 0 ? '▲' : '▼'} {Math.abs(company.yoy_growth).toFixed(1)}%
-                                                    </span>
+                                                    {company.yoy_growth !== null ? (
+                                                        <span className={`inline-flex items-center font-semibold ${
+                                                            company.yoy_growth >= 0 
+                                                                ? 'text-green-600 dark:text-green-400' 
+                                                                : 'text-red-600 dark:text-red-400'
+                                                        }`}>
+                                                            {company.yoy_growth >= 0 ? '▲' : '▼'} {Math.abs(company.yoy_growth).toFixed(1)}%
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium" title="No previous year data">
+                                                            N/A
+                                                        </span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
