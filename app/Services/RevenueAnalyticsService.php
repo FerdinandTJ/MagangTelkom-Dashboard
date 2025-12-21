@@ -56,6 +56,55 @@ class RevenueAnalyticsService
     }
 
     /**
+     * Get yearly revenue breakdown by subsegment
+     */
+    public function getYearlyRevenueBySubsegment(?int $startYear = null, ?int $endYear = null): array
+    {
+        $startYear = $startYear ?? date('Y') - 4;
+        $endYear = $endYear ?? date('Y');
+
+        // Get revenue data grouped by year and subsegment
+        $rawData = DB::table('group4 as p')
+            ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+            ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+            ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+            ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+            ->join('companies as c', 'group1.company_id', '=', 'c.nip_nas')
+            ->select(
+                'r.tahun',
+                'c.subsegment',
+                DB::raw('SUM(r.revenue_realisasi) as total_revenue')
+            )
+            ->whereBetween('r.tahun', [$startYear, $endYear])
+            ->groupBy('r.tahun', 'c.subsegment')
+            ->orderBy('r.tahun')
+            ->orderBy('c.subsegment')
+            ->get();
+
+        // Restructure data: one object per year with subsegment breakdown
+        $yearlyData = [];
+        foreach ($rawData as $row) {
+            $year = $row->tahun;
+            if (!isset($yearlyData[$year])) {
+                $yearlyData[$year] = [
+                    'tahun' => $year,
+                    'total_revenue' => 0,
+                ];
+            }
+            $subsegment = $row->subsegment;
+            $revenue = (float) $row->total_revenue;
+            $yearlyData[$year][$subsegment] = $revenue;
+            $yearlyData[$year]['total_revenue'] += $revenue;
+        }
+
+        // Convert to array and add formatted_revenue
+        return array_values(array_map(function ($item) {
+            $item['formatted_revenue'] = 'Rp ' . number_format($item['total_revenue'], 0, ',', '.');
+            return $item;
+        }, $yearlyData));
+    }
+
+    /**
      * Get monthly revenue data for specific year
      */
     public function getMonthlyRevenue(int $year): array

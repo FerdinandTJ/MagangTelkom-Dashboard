@@ -259,5 +259,11 @@
         max-width: 98vw !important;
         margin: 1vh auto !important;
     }
+
+    .historical-modal{
+        width: 46vw !important;
+        max-width: 98vw !important;
+        margin: 1vh auto !important;
+    }
 }
 

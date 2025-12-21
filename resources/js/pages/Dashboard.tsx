@@ -1,5 +1,5 @@
 import RevenueBarChart from '@/components/charts/RevenueBarChart';
-// import SubsegmentPieChart from '@/components/charts/SubsegmentPieChart';
+import SubsegmentPieChart from '@/components/charts/SubsegmentPieChart';
 import YearlyLineChart from '@/components/charts/YearlyLineChart';
 import StatCard from '@/components/StatCard';
 import CompanyDetailModal from '@/components/modals/CompanyDetailModal';
@@ -463,13 +463,28 @@ export default function Dashboard({
                                 {revenueViewTab === 'chart' ? (
                                     // Monthly Revenue Chart View
                                     <div className="px-6 pb-6">
-                                        <RevenueBarChart 
-                                            data={sortedMonthlyRevenue} 
-                                            height={450}
-                                            comparisonMode={comparisonMode}
-                                            selectedYear={selectedYear}
-                                            comparisonYear={comparisonYear}
-                                        />
+                                        <div className="grid gap-6 lg:grid-cols-3">
+                                            <div className="lg:col-span-2">
+                                                <RevenueBarChart 
+                                                    data={sortedMonthlyRevenue} 
+                                                    height={450}
+                                                    comparisonMode={comparisonMode}
+                                                    selectedYear={selectedYear}
+                                                    comparisonYear={comparisonYear}
+                                                />
+                                            </div>
+
+                                            <div className="lg:col-span-1 border-t border-gray-200 dark:border-gray-800 pt-6 lg:border-t-0 lg:border-l lg:pl-6 lg:pt-0">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Subsegment Composition</h4>
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">% of revenue</span>
+                                                </div>
+                                                <SubsegmentPieChart
+                                                    data={subsegmentRevenue}
+                                                    height={360}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 ) : (
                                     // Subsegment Regional Performance View

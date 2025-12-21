@@ -60,7 +60,7 @@ class DashboardController extends Controller
         
         return Inertia::render('Dashboard', [
             'dashboardSummary' => $this->analyticsService->getDashboardSummary($currentYear),
-            'yearlyRevenue' => $this->analyticsService->getYearlyRevenue(),
+            'yearlyRevenue' => $this->analyticsService->getYearlyRevenueBySubsegment(),
             'monthlyRevenue' => $monthlyRevenue,
             'ytdComparison' => $this->analyticsService->getYtdComparison($currentYear),
             'subsegmentRevenue' => $this->analyticsService->getSubsegmentRevenue($currentYear),

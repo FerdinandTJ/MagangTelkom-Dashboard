@@ -16,16 +16,19 @@ interface SubsegmentPieChartProps {
     onSegmentClick?: (data: SubsegmentData) => void;
 }
 
-const COLORS = {
-    'Airport': '#dc2626',              // Red
-    'Hospital': '#ea580c',             // Orange
-    'PTN': '#d97706',                  // Amber
-    'PTS': '#ca8a04',                  // Yellow
-    'Media': '#65a30d',                // Green
-    'Airlines': '#0891b2',             // Cyan
-    'OLO': '#4f46e5',                  // Indigo
-    'Professional Service': '#7c3aed', // Violet
-    'Tourism and MICE': '#db2777'      // Pink
+// Generate consistent color based on string hash
+const getColorFromString = (str: string): string => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Generate vibrant, distinguishable colors using HSL
+    const hue = Math.abs(hash % 360);
+    const saturation = 70 + (Math.abs(hash) % 20); // 70-90% for vibrant colors
+    const lightness = 40 + (Math.abs(hash >> 8) % 12); // 40-52% for darker, readable colors
+    
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
 
 const SubsegmentPieChart: React.FC<SubsegmentPieChartProps> = ({ 
@@ -33,6 +36,8 @@ const SubsegmentPieChart: React.FC<SubsegmentPieChartProps> = ({
     height = 400,
     onSegmentClick 
 }) => {
+    const isClickable = Boolean(onSegmentClick);
+
     const handleSegmentClick = (data: any) => {
         if (onSegmentClick) {
             onSegmentClick(data);
@@ -83,13 +88,13 @@ const SubsegmentPieChart: React.FC<SubsegmentPieChartProps> = ({
                         outerRadius={120}
                         fill="#8884d8"
                         dataKey="total_revenue"
-                        onClick={handleSegmentClick}
-                        className="cursor-pointer"
+                        onClick={isClickable ? handleSegmentClick : undefined}
+                        className={isClickable ? 'cursor-pointer' : undefined}
                     >
                         {data.map((entry, index) => (
                             <Cell 
                                 key={`cell-${index}`} 
-                                fill={COLORS[entry.subsegment as keyof typeof COLORS] || '#6b7280'}
+                                fill={getColorFromString(entry.subsegment)}
                                 className="hover:opacity-80 transition-opacity"
                             />
                         ))}
