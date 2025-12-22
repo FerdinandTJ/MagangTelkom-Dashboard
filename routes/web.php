@@ -15,6 +15,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('performance-am', [DashboardController::class, 'performanceAM'])->name('performance-am');
     
+    // Data Import routes
+    Route::get('data-import/revenue', [DashboardController::class, 'dataImportRevenue'])->name('data-import.revenue');
+    Route::get('data-import/performance', [DashboardController::class, 'dataImportPerformance'])->name('data-import.performance');
+    
     // API routes for dashboard analytics
     Route::prefix('api/dashboard')->group(function () {
         Route::get('monthly-data', [DashboardController::class, 'getMonthlyData'])->name('api.dashboard.monthly');

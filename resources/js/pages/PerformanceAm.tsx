@@ -432,7 +432,7 @@ export default function PerformanceAM({
                         </CardHeader>
                     </Card>
 
-                    {/* Card 5: Export/Import Buttons - Placeholder untuk fitur nanti */}
+                    {/* Card 5: Export Button - Placeholder untuk fitur nanti */}
                     <Card className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
@@ -447,15 +447,6 @@ export default function PerformanceAM({
                                         >
                                             <Download className="h-4 w-4 mr-2" />
                                             Export
-                                        </Button>
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="w-full"
-                                            onClick={() => alert('Import feature coming soon')}
-                                        >
-                                            <Upload className="h-4 w-4 mr-2" />
-                                            Import
                                         </Button>
                                     </div>
                                 </div>

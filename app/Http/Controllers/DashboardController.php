@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\RevenueAnalyticsService;
+use App\Models\Region;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -58,6 +59,9 @@ class DashboardController extends Controller
             }
         }
         
+        // Get all regions for filter
+        $regions = Region::orderBy('code')->get(['id', 'code', 'name']);
+        
         return Inertia::render('Dashboard', [
             'dashboardSummary' => $this->analyticsService->getDashboardSummary($currentYear),
             'yearlyRevenue' => $this->analyticsService->getYearlyRevenueBySubsegment(),
@@ -66,6 +70,7 @@ class DashboardController extends Controller
             'subsegmentRevenue' => $this->analyticsService->getSubsegmentRevenue($currentYear),
             'subsegmentRegionalData' => $this->analyticsService->getSubsegmentWithRegionalBreakdown($currentYear),
             'topCompanies' => $this->analyticsService->getTopCompanies($currentYear, 5),
+            'regions' => $regions,
             'currentYear' => (int)$currentYear,
             'comparisonYear' => $comparisonYear ? (int)$comparisonYear : null,
             'hasComparison' => !is_null($comparisonYear) && $comparisonYear != $currentYear,
@@ -150,6 +155,22 @@ class DashboardController extends Controller
             'currentRegion' => $currentRegion,
             'currentYtd' => $isYearToDate,
         ]);
+    }
+
+    /**
+     * Display Data Import Revenue page
+     */
+    public function dataImportRevenue()
+    {
+        return Inertia::render('DataImportRevenue');
+    }
+
+    /**
+     * Display Data Import Performance page
+     */
+    public function dataImportPerformance()
+    {
+        return Inertia::render('DataImportPerformance');
     }
 
     /**

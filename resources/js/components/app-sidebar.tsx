@@ -11,9 +11,10 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard, performanceAm } from '@/routes';
+import { dataImportRevenue, dataImportPerformance } from '@/actions/App/Http/Controllers/DashboardController';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, TrendingUp } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, TrendingUp, Upload } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -26,6 +27,21 @@ const mainNavItems: NavItem[] = [
         title: 'Performance AM',
         href: performanceAm(),
         icon: TrendingUp,
+    },
+    {
+        title: 'Data Import',
+        href: dataImportRevenue(), // Default to first submenu
+        icon: Upload,
+        items: [
+            {
+                title: 'Revenue Dashboard',
+                href: dataImportRevenue(),
+            },
+            {
+                title: 'Performance AM',
+                href: dataImportPerformance(),
+            },
+        ],
     },
 ];
 
