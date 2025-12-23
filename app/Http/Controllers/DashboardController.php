@@ -1512,4 +1512,204 @@ class DashboardController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Get Region Witel Detail - List of witels in a region with revenue and AM count
+     */
+    public function getRegionWitelDetail(Request $request)
+    {
+        try {
+            $request->validate([
+                'region_code' => 'required|string',
+                'year' => 'required|integer|min:2020|max:2030',
+                'quartal' => 'required|string|in:Q1,Q2,Q3,Q4',
+                'ytd' => 'nullable|boolean'
+            ]);
+
+            $regionCode = $request->input('region_code');
+            $year = $request->input('year');
+            $quartal = $request->input('quartal');
+            $isYtd = $request->boolean('ytd');
+
+            \Log::info('Region Witel Detail Request', [
+                'region_code' => $regionCode,
+                'year' => $year,
+                'quartal' => $quartal,
+                'ytd' => $isYtd
+            ]);
+
+            // Determine month range based on quarter and YTD
+            if ($isYtd && $quartal !== 'Q1') {
+                $monthStart = 1;
+                $monthEnd = intval(substr($quartal, 1)) * 3;
+            } else {
+                $quarterNum = intval(substr($quartal, 1));
+                $monthStart = ($quarterNum - 1) * 3 + 1;
+                $monthEnd = $quarterNum * 3;
+            }
+
+            // Get region info
+            // Support pencarian by code atau by name (untuk Headquarters TREG2)
+            $region = DB::table('regions')
+                ->where('code', $regionCode)
+                ->orWhere('name', $regionCode)
+                ->first();
+
+            if (!$region) {
+                \Log::warning('Region not found', ['region_code' => $regionCode]);
+                return response()->json([
+                    'success' => false,
+                    'message' => "Region not found for code: {$regionCode}"
+                ], 404);
+            }
+
+            \Log::info('Found region', ['region' => $region]);
+
+            // Build quarter list for YTD
+            if ($isYtd && $quartal !== 'Q1') {
+                $quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+                $index = array_search($quartal, $quarters);
+                $quarterList = array_slice($quarters, 0, $index + 1);
+            } else {
+                $quarterList = [$quartal];
+            }
+
+            // Get AM NIKs in this region
+            $amNiks = DB::table('account_managers')
+                ->join('witels', 'account_managers.idwitels', '=', 'witels.idwitels')
+                ->where('witels.region_id', $region->id)
+                ->pluck('account_managers.nik');
+
+            if ($amNiks->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'summary' => [
+                            'total_target_revenue' => 0,
+                            'formatted_total_target_revenue' => 'Rp 0',
+                            'total_realisasi_revenue' => 0,
+                            'formatted_total_realisasi_revenue' => 'Rp 0',
+                            'total_am' => 0,
+                            'total_witel' => 0,
+                            'achievement_percentage' => 0,
+                            'period' => $isYtd && $quartal !== 'Q1' ? "Q1 - {$quartal} {$year} (YTD)" : "{$quartal} {$year}"
+                        ],
+                        'witels' => []
+                    ]
+                ]);
+            }
+
+            // Get lini_waktu IDs for this period
+            $liniWaktuIds = DB::table('lini_waktu')
+                ->where('tahun', $year)
+                ->whereIn('quartal', $quarterList)
+                ->whereIn('nik_am', $amNiks)
+                ->pluck('id');
+
+            // Get witel data with revenue using lini_waktu_target (same as chart)
+            $witelsData = DB::table('witels')
+                ->join('account_managers as am', 'witels.idwitels', '=', 'am.idwitels')
+                ->leftJoin('lini_waktu as lw', function($join) use ($year, $quarterList) {
+                    $join->on('am.nik', '=', 'lw.nik_am')
+                         ->where('lw.tahun', '=', $year)
+                         ->whereIn('lw.quartal', $quarterList);
+                })
+                ->leftJoin('lini_waktu_target as lwt', 'lw.id', '=', 'lwt.lini_waktu_id')
+                ->leftJoin('target_account_m as tam', 'lwt.target_id', '=', 'tam.id')
+                ->leftJoin('account_manager_company as amc', 'tam.account_manager_company_id', '=', 'amc.id')
+                ->where('witels.region_id', $region->id)
+                ->select(
+                    'witels.idwitels',
+                    'witels.nama_witels as witel_name',
+                    DB::raw('COUNT(DISTINCT am.nik) as am_count'),
+                    DB::raw('COALESCE(SUM(tam.t_revenue * (amc.proporsi / 100)), 0) as t_revenue'),
+                    DB::raw('COALESCE(SUM(lwt.r_revenue * (amc.proporsi / 100)), 0) as r_revenue')
+                )
+                ->groupBy('witels.idwitels', 'witels.nama_witels')
+                ->orderBy('witels.nama_witels')
+                ->get();
+
+            \Log::info('Fetched witel data', ['count' => $witelsData->count()]);
+
+            // Calculate totals and format data
+            $totalTargetRevenue = 0;
+            $totalRealisasiRevenue = 0;
+            $totalAm = 0;
+
+            $formattedWitels = $witelsData->map(function ($witel) use (&$totalTargetRevenue, &$totalRealisasiRevenue, &$totalAm) {
+                $tRevenue = (float) $witel->t_revenue;
+                $rRevenue = (float) $witel->r_revenue;
+                $achievementPercentage = $tRevenue > 0 ? round(($rRevenue / $tRevenue) * 100, 1) : 0;
+
+                $totalTargetRevenue += $tRevenue;
+                $totalRealisasiRevenue += $rRevenue;
+                $totalAm += (int) $witel->am_count;
+
+                return [
+                    'witel_name' => $witel->witel_name,
+                    't_revenue' => $tRevenue,
+                    'formatted_t_revenue' => $this->formatRevenue($tRevenue),
+                    'r_revenue' => $rRevenue,
+                    'formatted_r_revenue' => $this->formatRevenue($rRevenue),
+                    'am_count' => (int) $witel->am_count,
+                    'achievement_percentage' => $achievementPercentage
+                ];
+            })->toArray();
+
+            // Calculate overall achievement
+            $overallAchievement = $totalTargetRevenue > 0 
+                ? round(($totalRealisasiRevenue / $totalTargetRevenue) * 100, 1) 
+                : 0;
+
+            // Format period string
+            $periodString = $isYtd && $quartal !== 'Q1'
+                ? "Q1 - {$quartal} {$year} (YTD)"
+                : "{$quartal} {$year}";
+
+            $summary = [
+                'total_target_revenue' => $totalTargetRevenue,
+                'formatted_total_target_revenue' => $this->formatRevenue($totalTargetRevenue),
+                'total_realisasi_revenue' => $totalRealisasiRevenue,
+                'formatted_total_realisasi_revenue' => $this->formatRevenue($totalRealisasiRevenue),
+                'total_am' => $totalAm,
+                'total_witel' => count($formattedWitels),
+                'achievement_percentage' => $overallAchievement,
+                'period' => $periodString
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'summary' => $summary,
+                    'witels' => $formattedWitels,
+                    'region_code' => $regionCode,
+                    'region_name' => $region->name
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in getRegionWitelDetail', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading region witel data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper function to format revenue
+     */
+    private function formatRevenue($amount)
+    {
+        if ($amount >= 1000000000000) {
+            return 'Rp ' . number_format($amount / 1000000000000, 2, ',', '.') . 'T';
+        } elseif ($amount >= 1000000000) {
+            return 'Rp ' . number_format($amount / 1000000000, 2, ',', '.') . 'M';
+        } else {
+            return 'Rp ' . number_format($amount, 0, ',', '.');
+        }
+    }
 }

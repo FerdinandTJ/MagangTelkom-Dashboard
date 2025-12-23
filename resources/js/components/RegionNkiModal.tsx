@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, MapPin, Target, Calendar, Users } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
 import axios from 'axios';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ScatterChart, ZAxis, Cell, Line, ComposedChart, ReferenceLine } from 'recharts';
 import WitelNkiDetailModal from './modals/WitelNkiDetailModal';
+import ParameterPerformanceBalanceChart from './charts/ParameterPerformanceBalanceChart';
+import SummaryCardsSection from './sections/SummaryCardsSection';
+import { formatCurrency } from '@/utils/currency';
 
 interface RegionNkiModalProps {
     isOpen: boolean;
@@ -126,7 +128,14 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
     const [compareQuarter, setCompareQuarter] = useState(quarter > 1 ? quarter - 1 : 4);
     const [compareYear, setCompareYear] = useState(quarter > 1 ? year : year - 1);
     const [activeParameterTab, setActiveParameterTab] = useState<'result' | 'proses'>('result');
+    const [activeChartTab, setActiveChartTab] = useState<'result' | 'proses'>('result');
     const [availableYears, setAvailableYears] = useState<number[]>([]);
+
+    // Handler untuk sinkronisasi tab Parameter dan Chart
+    const handleTabChange = (tab: 'result' | 'proses') => {
+        setActiveParameterTab(tab);
+        setActiveChartTab(tab);
+    };
     const [availableQuarters, setAvailableQuarters] = useState<number[]>([1, 2, 3, 4]);
     const [quartersByYear, setQuartersByYear] = useState<Record<number, number[]>>({});
     const [chartData, setChartData] = useState<any[]>([]);
@@ -449,24 +458,38 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
             
             // Format value based on parameter type
             const formatValue = (value: number, parameter: string) => {
-                // Revenue and Scaling use special formatting
-                if (parameter === 'Revenue') {
-                    if (value >= 1000000000000) {
-                        return `Rp ${(value / 1000000000000).toFixed(2)}T`;
+                // Check if value is in Billion or Million range
+                if (value >= 1000000000) {
+                    // Billion (Miliar) - divide by 1,000,000,000
+                    const billionValue = value / 1000000000;
+                    if (parameter === 'Revenue' || parameter.toLowerCase().includes('revenue')) {
+                        return `Rp ${billionValue.toFixed(2)}B`;
                     } else {
-                        return `Rp ${(value / 1000000000).toFixed(2)}M`;
+                        return `${billionValue.toFixed(2)}B`;
                     }
-                } else if (parameter === 'Scaling') {
-                    if (value >= 1000000) {
-                        return `${(value / 1000000).toFixed(2)}M`;
-                    } else if (value >= 1000) {
-                        return `${(value / 1000).toFixed(2)}K`;
+                } else if (value >= 1000000) {
+                    // Million (Juta) - divide by 1,000,000
+                    const millionValue = value / 1000000;
+                    if (parameter === 'Revenue' || parameter.toLowerCase().includes('revenue')) {
+                        return `Rp ${millionValue.toFixed(2)}M`;
                     } else {
-                        return value.toFixed(0);
+                        return `${millionValue.toFixed(2)}M`;
+                    }
+                } else if (value >= 1000) {
+                    // Thousand (Ribu) - divide by 1,000
+                    const thousandValue = value / 1000;
+                    if (parameter === 'Revenue' || parameter.toLowerCase().includes('revenue')) {
+                        return `Rp ${thousandValue.toFixed(2)}K`;
+                    } else {
+                        return `${thousandValue.toFixed(2)}K`;
                     }
                 } else {
-                    // Other parameters use standard number formatting
-                    return value.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                    // Less than thousand - show as is
+                    if (parameter === 'Revenue' || parameter.toLowerCase().includes('revenue')) {
+                        return `Rp ${value.toLocaleString('id-ID', { maximumFractionDigits: 2 })}`;
+                    } else {
+                        return value.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                    }
                 }
             };
             
@@ -478,10 +501,11 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                         padding: '12px',
-                        color: '#374151'
+                        color: '#374151',
+                        minWidth: '200px'
                     }}
                 >
-                    <p style={{ fontWeight: 600, marginBottom: '8px', color: '#374151' }}>
+                    <p style={{ fontWeight: 600, marginBottom: '8px', color: '#374151', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px' }}>
                         {data.parameter}
                     </p>
                     
@@ -492,18 +516,21 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                 Q{quarter} {year}
                             </p>
                         )}
-                        <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
-                            Target: {formatValue(data.target, data.parameter)}
+                        <p style={{ margin: '4px 0', color: '#000000', fontSize: '12px', fontWeight: 700 }}>
+                            Target: {formatValue(data.target || 0, data.parameter)}
                         </p>
-                        <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
-                            Realisasi: {formatValue(data.realisasi, data.parameter)}
-                        </p>
-                        <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
-                            Bobot: {data.bobot}%
-                        </p>
-                        <p style={{ margin: '4px 0', fontWeight: 600, color: '#2563eb', fontSize: '13px' }}>
-                            Achievement: {data.ach_current.toFixed(2)}%
-                        </p>
+                        {(() => {
+                            const currentAch = Number(data.ach_current) || 0;
+                            const bobot = Number(data.bobot) || 0;
+                            const isAchieved = currentAch >= bobot;
+                            const realisasiColor = isAchieved ? '#10b981' : '#ef4444';
+                            
+                            return (
+                                <p style={{ margin: '4px 0', color: realisasiColor, fontSize: '12px', fontWeight: 700 }}>
+                                    Realisasi: {formatValue(data.realisasi || 0, data.parameter)}
+                                </p>
+                            );
+                        })()}
                     </div>
                     
                     {/* Comparison Period Data (if enabled) */}
@@ -513,18 +540,21 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                 <p style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>
                                     Q{compareQuarter} {compareYear}
                                 </p>
-                                <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
-                                    Target: {formatValue(data.target_compare, data.parameter)}
+                                <p style={{ margin: '4px 0', color: '#000000', fontSize: '12px', fontWeight: 700 }}>
+                                    Target: {formatValue(data.target_compare || 0, data.parameter)}
                                 </p>
-                                <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
-                                    Realisasi: {formatValue(data.realisasi_compare, data.parameter)}
-                                </p>
-                                <p style={{ margin: '4px 0', color: '#374151', fontSize: '12px' }}>
-                                    Bobot: {data.bobot_compare}%
-                                </p>
-                                <p style={{ margin: '4px 0', fontWeight: 600, color: '#10b981', fontSize: '13px' }}>
-                                    Achievement: {data.ach_compare.toFixed(2)}%
-                                </p>
+                                {(() => {
+                                    const compareAch = Number(data.ach_compare) || 0;
+                                    const bobotCompare = Number(data.bobot_compare) || Number(data.bobot) || 0;
+                                    const isAchievedCompare = compareAch >= bobotCompare;
+                                    const realisasiColor = isAchievedCompare ? '#10b981' : '#ef4444';
+                                    
+                                    return (
+                                        <p style={{ margin: '4px 0', color: realisasiColor, fontSize: '12px', fontWeight: 700 }}>
+                                            Realisasi: {formatValue(data.realisasi_compare || 0, data.parameter)}
+                                        </p>
+                                    );
+                                })()}
                             </div>
                         </>
                     )}
@@ -573,7 +603,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                     <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4 mb-6">
                         <p className="text-red-700 dark:text-red-300">{error}</p>
                         <Button 
-                            onClick={fetchData}
+                            onClick={() => fetchData()}
                             variant="outline" 
                             size="sm" 
                             className="mt-2"
@@ -645,87 +675,10 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                         </div>
 
                         {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            {/* Card 1: Revenue Target */}
-                            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                <div className="p-4">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Revenue Target</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                                                {getCurrentSummary()?.formatted_target_revenue}
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Total target regional</p>
-                                        </div>
-                                        <div className="flex-shrink-0 ml-4">
-                                            <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                                                <Target className="h-6 w-6 text-red-600 dark:text-red-400" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Card 2: Revenue Actual */}
-                            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                <div className="p-4">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Revenue Actual</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                                                {getCurrentSummary()?.formatted_realisasi_revenue}
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Total realisasi regional</p>
-                                        </div>
-                                        <div className="flex-shrink-0 ml-4">
-                                            <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                                                <Target className="h-6 w-6 text-red-600 dark:text-red-400" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Card 3: Jumlah AM */}
-                            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                <div className="p-4">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Jumlah AM</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                                                {getCurrentSummary()?.total_am}
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Account Managers</p>
-                                        </div>
-                                        <div className="flex-shrink-0 ml-4">
-                                            <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                                                <Users className="h-6 w-6 text-red-600 dark:text-red-400" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Card 4: Period */}
-                            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                <div className="p-4">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Period</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                                                {getCurrentPeriodLabel()}
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Periode aktif</p>
-                                        </div>
-                                        <div className="flex-shrink-0 ml-4">
-                                            <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                                                <Calendar className="h-6 w-6 text-red-600 dark:text-red-400" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <SummaryCardsSection 
+                            currentSummary={getCurrentSummary()}
+                            periodLabel={getCurrentPeriodLabel()}
+                        />
 
                         {/* Content: Table, Chart, and Parameter Section */}
                         <div className="grid grid-cols-1 lg:grid-cols-20 gap-6 auto-rows-auto">
@@ -805,7 +758,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                                 <td className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-800 sticky left-0 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-850">
                                                                     <div className="flex items-center gap-2">
                                                                         <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                                                                        {data.current_period.label}
+                                                                        {data.current_period?.label}
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-3 py-3 text-center font-medium border-r border-gray-200 dark:border-gray-800">
@@ -880,7 +833,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                                 <td className="px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-800 sticky left-0 bg-gray-50 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-800">
                                                                     <div className="flex items-center gap-2">
                                                                         <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                                                                        {data.comparison_period.label}
+                                                                        {data.comparison_period?.label}
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-3 py-3 text-center text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-800">{stat.result.ach}</td>
@@ -970,333 +923,209 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
 
                                 {/* Parameter Performance Balance Chart */}
                                 {chartData.length > 0 && (
-                                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-                                        <div className="bg-white dark:bg-gray-900 px-5 py-4 border-b border-gray-200 dark:border-gray-800">
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                                <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                                </svg>
-                                                Parameter Performance Balance
-                                            </h3>
-                                        </div>
-                                        <div className="pl-5 pr-5 pb-5 pt-5">
-                                            <div className="overflow-x-auto">
-                                                <div style={{ width: '100%', minHeight: `${Math.max(chartData.length * 50, 450)}px` }}>
-                                                    <ResponsiveContainer width="100%" height={Math.max(chartData.length * 50, 450)}>
-                                                        <ComposedChart 
-                                                            data={chartData} 
-                                                            layout="vertical"
-                                                            margin={{ top: 0, right: 50, bottom: 20, left: 5 }}
-                                                        >
-                                                            <XAxis 
-                                                                type="number"
-                                                                tick={{ fontSize: 10 }}
-                                                                stroke="#6B7280"
-                                                                label={{ value: 'Achievement (%)', position: 'insideBottom', offset: -5, style: { fontSize: 11 } }}
-                                                                domain={[
-                                                                    0, 
-                                                                    (dataMax: number) => {
-                                                                        const maxValue = Math.max(...chartData.map((d: any) => 
-                                                                            Math.max(d.ach_current || 0, d.ach_compare || 0)
-                                                                        ));
-                                                                        return Math.ceil(maxValue) + 10;
-                                                                    }
-                                                                ]}
-                                                                tickCount={30}
-                                                            />
-                                                            <YAxis 
-                                                                type="category"
-                                                                dataKey="parameter"
-                                                                tick={{ fontSize: 12 }}
-                                                                stroke="#6B7280"
-                                                                width={100}
-                                                                padding={{ top: 15, bottom: 15 }}
-                                                            />
-                                                            <Tooltip content={<CustomTooltip />} />
-                                                            {(() => {
-                                                                const hasCompareData = compareMode && chartData.length > 0 && 
-                                                                    chartData[0] && typeof chartData[0].ach_compare === 'number';
-                                                                
-                                                                return hasCompareData ? (
-                                                                <>
-                                                                    <Legend 
-                                                                        align="left"
-                                                                        verticalAlign="top"
-                                                                        wrapperStyle={{ 
-                                                                            paddingBottom: '5px',
-                                                                            paddingLeft: '120px'
-                                                                        }}
-                                                                        content={(props: any) => {
-                                                                            const { payload } = props;
-                                                                            
-                                                                            // Calculate comparison stats
-                                                                            const improved = chartData.filter((d: any) => 
-                                                                                (d.ach_current || 0) > (d.ach_compare || 0) + 0.5
-                                                                            ).length;
-                                                                            const declined = chartData.filter((d: any) => 
-                                                                                (d.ach_current || 0) < (d.ach_compare || 0) - 0.5
-                                                                            ).length;
-                                                                            const stable = chartData.length - improved - declined;
-                                                                            
-                                                                            return (
-                                                                                <div style={{ 
-                                                                                    display: 'inline-flex',
-                                                                                    alignItems: 'center',
-                                                                                    gap: '20px',
-                                                                                    padding: '8px 16px',
-                                                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                                                                    border: '2px solid #000000',
-                                                                                    borderRadius: '8px',
-                                                                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                                                                                }}>
-                                                                                    {/* Period Indicators */}
-                                                                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', paddingRight: '20px', borderRight: '1px solid #e5e7eb' }}>
-                                                                                        {payload.map((entry: any, index: number) => (
-                                                                                            <div key={`legend-${index}`} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                                                <div style={{
-                                                                                                    width: '12px',
-                                                                                                    height: '12px',
-                                                                                                    borderRadius: '50%',
-                                                                                                    backgroundColor: entry.color,
-                                                                                                    border: '2px solid #fff',
-                                                                                                    boxShadow: `0 0 0 1px ${entry.color}60`
-                                                                                                }} />
-                                                                                                <span style={{ fontSize: '12px', color: '#1f2937', fontWeight: 600 }}>
-                                                                                                    {entry.value}
-                                                                                                </span>
-                                                                                            </div>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                    
-                                                                                    {/* Trend Summary - Horizontal */}
-                                                                                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                                            <svg width="14" height="14" viewBox="0 0 16 16" style={{ color: '#10b981' }}>
-                                                                                                <path fill="currentColor" d="M8 3l3 5H5l3-5z"/>
-                                                                                            </svg>
-                                                                                            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 700 }}>{improved}</span>
-                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Improved</span>
-                                                                                        </div>
-                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                                            <svg width="14" height="14" viewBox="0 0 16 16" style={{ color: '#ef4444' }}>
-                                                                                                <path fill="currentColor" d="M8 13l-3-5h6l-3 5z"/>
-                                                                                            </svg>
-                                                                                            <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700 }}>{declined}</span>
-                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Declined</span>
-                                                                                        </div>
-                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#9ca3af' }}/>
-                                                                                            <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 700 }}>{stable}</span>
-                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Stable</span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        }}
-                                                                    />
-                                                                    
-                                                                    {/* Current period dots - blue */}
-                                                                    <Scatter 
-                                                                        dataKey="ach_current" 
-                                                                        fill="#3B82F6"
-                                                                        name={`Q${quarter} ${year}`}
-                                                                        shape={(props: any) => {
-                                                                            const { cx, cy, payload } = props;
-                                                                            
-                                                                            if (!payload || !cx || !cy) return null;
-                                                                            
-                                                                            const currentAch = Number(payload.ach_current) || 0;
-                                                                            const compareAch = Number(payload.ach_compare) || 0;
-                                                                            const bobot = Number(payload.bobot) || 0;
-                                                                            
-                                                                            // Check if truly in compare mode (has ach_compare field AND value > 0)
-                                                                            const hasCompare = payload.hasOwnProperty('ach_compare') && compareAch > 0;
-                                                                            
-                                                                            // Warna untuk non-compare: hijau jika achieved (>=bobot), merah jika not achieved
-                                                                            const achievementColor = currentAch >= bobot ? '#10b981' : '#ef4444';
-                                                                            
-                                                                            return (
-                                                                                <g>
-                                                                                    {/* Current dot */}
-                                                                                    <circle 
-                                                                                        cx={cx} 
-                                                                                        cy={cy} 
-                                                                                        r={hasCompare ? 6 : 7} 
-                                                                                        fill={hasCompare ? '#3B82F6' : achievementColor}
-                                                                                    />
-                                                                                    
-                                                                                    {/* Data label - di atas jika compare, di samping jika tidak */}
-                                                                                    <text 
-                                                                                        x={hasCompare ? cx : cx + 15} 
-                                                                                        y={hasCompare ? cy - 12 : cy + 4} 
-                                                                                        fontSize={hasCompare ? 9 : 11} 
-                                                                                        fill={hasCompare ? '#3B82F6' : '#1f2937'}
-                                                                                        fontWeight={hasCompare ? 600 : 700}
-                                                                                        textAnchor={hasCompare ? "middle" : "start"}
-                                                                                    >
-                                                                                        {currentAch.toFixed(1)}%
-                                                                                    </text>
-                                                                                </g>
-                                                                            );
-                                                                        }}
-                                                                    />
-                                                                    
-                                                                    {/* Scatter untuk Compare Period - dot hijau sejajar dengan current */}
-                                                                    <Scatter 
-                                                                        dataKey="ach_compare" 
-                                                                        fill="#10b981"
-                                                                        name={`Q${compareQuarter} ${compareYear}`}
-                                                                        shape={(props: any) => {
-                                                                            const { cx, cy, payload } = props;
-                                                                            if (!payload || !cx || !cy) return null;
-                                                                            
-                                                                            const compareAch = Number(payload.ach_compare) || 0;
-                                                                            if (compareAch === 0) return null;
-                                                                            
-                                                                            const currentAch = Number(payload.ach_current) || 0;
-                                                                            const isImproved = currentAch > compareAch;
-                                                                            const trendColor = isImproved ? '#10b981' : '#ef4444';
-                                                                            
-                                                                            return (
-                                                                                <g>
-                                                                                    {/* Garis putus-putus penghubung antara current dan compare */}
-                                                                                    {(() => {
-                                                                                        // Hitung posisi cx untuk current berdasarkan ratio
-                                                                                        const cxCurrent = cx * (currentAch / compareAch);
-                                                                                        const radius = 6;
-                                                                                        // Hitung posisi edge dots
-                                                                                        const x1 = cx + radius;
-                                                                                        const x2 = cxCurrent - radius;
-                                                                                        
-                                                                                        return (
-                                                                                            <line 
-                                                                                                x1={x1} 
-                                                                                                y1={cy} 
-                                                                                                x2={x2} 
-                                                                                                y2={cy} 
-                                                                                                stroke={trendColor} 
-                                                                                                strokeWidth={2.5}
-                                                                                                strokeDasharray="4 3"
-                                                                                            />
-                                                                                        );
-                                                                                    })()}
-                                                                                    
-                                                                                    {/* Compare dot - hijau sesuai legend */}
-                                                                                    <circle 
-                                                                                        cx={cx} 
-                                                                                        cy={cy} 
-                                                                                        r={6} 
-                                                                                        fill="#10b981"
-                                                                                    />
-                                                                                    
-                                                                                    {/* Label di bawah */}
-                                                                                    <text 
-                                                                                        x={cx} 
-                                                                                        y={cy + 16} 
-                                                                                        fontSize={9} 
-                                                                                        fill="#10b981"
-                                                                                        fontWeight={600}
-                                                                                        textAnchor="middle"
-                                                                                    >
-                                                                                        {compareAch.toFixed(1)}%
-                                                                                    </text>
-                                                                                </g>
-                                                                            );
-                                                                        }}
-                                                                    />
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Legend 
-                                                                        align="left"
-                                                                        verticalAlign="top"
-                                                                        wrapperStyle={{ 
-                                                                            paddingBottom: '5px',
-                                                                            paddingLeft: '120px'
-                                                                        }}
-                                                                        content={(props: any) => {
-                                                                            // Calculate achievement vs bobot comparison
-                                                                            const achieved = chartData.filter((d: any) => (d.ach_current || 0) >= (d.bobot || 0)).length;
-                                                                            const notAchieved = chartData.filter((d: any) => (d.ach_current || 0) < (d.bobot || 0)).length;
-                                                                            
-                                                                            return (
-                                                                                <div style={{ 
-                                                                                    display: 'inline-flex',
-                                                                                    alignItems: 'center',
-                                                                                    gap: '16px',
-                                                                                    padding: '8px 16px',
-                                                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                                                                    border: '2px solid #000000',
-                                                                                    borderRadius: '8px',
-                                                                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                                                                                }}>
-                                                                                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>Achievement Status:</span>
-                                                                                    
-                                                                                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#10b981' }}/>
-                                                                                            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 700 }}>{achieved}</span>
-                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Achieved</span>
-                                                                                        </div>
-                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ef4444' }}/>
-                                                                                            <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700 }}>{notAchieved}</span>
-                                                                                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>Not Achieved</span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        }}
-                                                                    />
-                                                                    {/* Single dots for non-compare mode with dynamic colors */}
-                                                                    <Scatter 
-                                                                        dataKey="ach_current" 
-                                                                        fill="#3B82F6"
-                                                                        name="Achievement %"
-                                                                        shape={(props: any) => {
-                                                                            const { cx, cy, payload } = props;
-                                                                            const currentAch = Number(payload.ach_current) || 0;
-                                                                            const bobot = Number(payload.bobot) || 0;
-                                                                            
-                                                                            // Warna berdasarkan perbandingan dengan bobot
-                                                                            const achievementColor = currentAch >= bobot ? '#10b981' : '#ef4444';
-                                                                            
-                                                                            return (
-                                                                                <g>
-                                                                                    <circle 
-                                                                                        cx={cx} 
-                                                                                        cy={cy} 
-                                                                                        r={7} 
-                                                                                        fill={achievementColor}
-                                                                                    />
-                                                                                    {/* Data label */}
-                                                                                    <text 
-                                                                                        x={cx + 15} 
-                                                                                        y={cy + 4} 
-                                                                                        fontSize={11} 
-                                                                                        fill="#374151"
-                                                                                        fontWeight={600}
-                                                                                    >
-                                                                                        {currentAch.toFixed(1)}%
-                                                                                    </text>
-                                                                                </g>
-                                                                            );
-                                                                        }}
-                                                                    />
-                                                                </>
-                                                            );
-                                                            })()}
-                                                        </ComposedChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <ParameterPerformanceBalanceChart
+                                        chartData={chartData}
+                                        activeChartTab={activeChartTab}
+                                        setActiveChartTab={handleTabChange}
+                                        quarter={quarter}
+                                        year={year}
+                                        compareMode={compareMode}
+                                        compareQuarter={compareQuarter}
+                                        compareYear={compareYear}
+                                        resultParamNames={data?.compare_enabled && data?.current_period 
+                                            ? data.current_period.data.parameter_result.parameters.map((p: any) => p.parameter)
+                                            : data?.parameter_result?.parameters.map((p: any) => p.parameter) || []}
+                                        prosesParamNames={data?.compare_enabled && data?.current_period
+                                            ? data.current_period.data.parameter_proses.parameters.map((p: any) => p.parameter)
+                                            : data?.parameter_proses?.parameters.map((p: any) => p.parameter) || []}
+                                    />
                                 )}
                             </div>
 
-                            {/* Right: Parameter Section - 35% (7 columns) - Row Span 2 */}
-                            <div className="lg:col-span-7 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                            {/* Right: Parameter Section & Top Parameter - 35% (7 columns) */}
+                            <div className="lg:col-span-7 flex flex-col gap-6">
+                                {/* Top Parameter Section */}
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                                    <div className="bg-white dark:bg-gray-900 px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                            </svg>
+                                            Top Parameter
+                                        </h3>
+                                        
+                                        {/* Tab Navigation */}
+                                        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+                                            <button
+                                                onClick={() => handleTabChange('result')}
+                                                className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+                                                    activeParameterTab === 'result'
+                                                        ? 'text-amber-600 dark:text-amber-400'
+                                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                                }`}
+                                            >
+                                                Aspek Result
+                                                {activeParameterTab === 'result' && (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-600 dark:bg-amber-400"></div>
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={() => handleTabChange('proses')}
+                                                className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+                                                    activeParameterTab === 'proses'
+                                                        ? 'text-amber-600 dark:text-amber-400'
+                                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                                }`}
+                                            >
+                                                Aspek Process
+                                                {activeParameterTab === 'proses' && (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-600 dark:bg-amber-400"></div>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="p-5">
+                                        {activeParameterTab === 'result' && (() => {
+                                            // Get result parameters from chartData (filtered by resultParamNames)
+                                            const resultParamNames = data?.compare_enabled && data?.current_period 
+                                                ? data.current_period.data.parameter_result.parameters.map((p: any) => p.parameter)
+                                                : data?.parameter_result?.parameters.map((p: any) => p.parameter) || [];
+                                            
+                                            const resultChartData = chartData.filter((item) => resultParamNames.includes(item.parameter));
+                                            
+                                            const topParam = resultChartData.length > 0 
+                                                ? resultChartData.reduce((max, param) => {
+                                                    // Use ach (achievement percentage) as the metric for top parameter
+                                                    const maxAch = Number(max.ach_current || max.ach || 0);
+                                                    const paramAch = Number(param.ach_current || param.ach || 0);
+                                                    return paramAch > maxAch ? param : max;
+                                                })
+                                                : null;
+                                            
+                                            if (!topParam) {
+                                                return (
+                                                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                                                        No parameter data available
+                                                    </div>
+                                                );
+                                            }
+                                            
+                                            const achievementPercentage = Number(topParam.ach_current || topParam.ach || 0);
+                                            
+                                            // Format realisasi based on parameter type
+                                            const formatRealisasi = (value: number, parameter: string) => {
+                                                const paramLower = parameter.toLowerCase();
+                                                if (paramLower.includes('revenue') || paramLower.includes('scaling') || paramLower.includes('kecukupan lop')) {
+                                                    return formatCurrency(value, 2);
+                                                } else {
+                                                    return value.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                                                }
+                                            };
+                                            
+                                            return (
+                                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg p-6 border-2 border-amber-200 dark:border-amber-700">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-10 h-10 bg-amber-500 dark:bg-amber-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                                1
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-lg text-gray-900 dark:text-white">{topParam.parameter}</h4>
+                                                                <p className="text-xs text-gray-600 dark:text-gray-400">Best Performance</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4 mt-4">
+                                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Realisasi</p>
+                                                            <p className="text-lg font-bold text-gray-900 dark:text-white">
+                                                                {formatRealisasi(Number(topParam.realisasi || 0), topParam.parameter)}
+                                                            </p>
+                                                        </div>
+                                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Persentase</p>
+                                                            <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                                                                {achievementPercentage.toFixed(1)}%
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                        
+                                        {activeParameterTab === 'proses' && (() => {
+                                            // Get proses parameters from chartData (filtered by prosesParamNames)
+                                            const prosesParamNames = data?.compare_enabled && data?.current_period
+                                                ? data.current_period.data.parameter_proses.parameters.map((p: any) => p.parameter)
+                                                : data?.parameter_proses?.parameters.map((p: any) => p.parameter) || [];
+                                            
+                                            const prosesChartData = chartData.filter((item) => prosesParamNames.includes(item.parameter));
+                                            
+                                            const topParam = prosesChartData.length > 0 
+                                                ? prosesChartData.reduce((max, param) => {
+                                                    // Use ach (achievement percentage) as the metric for top parameter
+                                                    const maxAch = Number(max.ach_current || max.ach || 0);
+                                                    const paramAch = Number(param.ach_current || param.ach || 0);
+                                                    return paramAch > maxAch ? param : max;
+                                                })
+                                                : null;
+                                            
+                                            if (!topParam) {
+                                                return (
+                                                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                                                        No parameter data available
+                                                    </div>
+                                                );
+                                            }
+                                            
+                                            const achievementPercentage = Number(topParam.ach_current || topParam.ach || 0);
+                                            
+                                            // Format realisasi based on parameter type
+                                            const formatRealisasi = (value: number, parameter: string) => {
+                                                const paramLower = parameter.toLowerCase();
+                                                if (paramLower.includes('revenue') || paramLower.includes('scaling') || paramLower.includes('kecukupan lop')) {
+                                                    return formatCurrency(value, 2);
+                                                } else {
+                                                    return value.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                                                }
+                                            };
+                                            
+                                            return (
+                                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg p-6 border-2 border-amber-200 dark:border-amber-700">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-10 h-10 bg-amber-500 dark:bg-amber-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                                1
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-lg text-gray-900 dark:text-white">{topParam.parameter}</h4>
+                                                                <p className="text-xs text-gray-600 dark:text-gray-400">Best Performance</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4 mt-4">
+                                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Realisasi</p>
+                                                            <p className="text-lg font-bold text-gray-900 dark:text-white">
+                                                                {formatRealisasi(Number(topParam.realisasi || 0), topParam.parameter)}
+                                                            </p>
+                                                        </div>
+                                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Persentase</p>
+                                                            <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                                                                {achievementPercentage.toFixed(1)}%
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+
+                                {/* Parameter Section */}
+                            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex-1">
                                 <div className="bg-white dark:bg-gray-900 px-5 py-4 border-b border-gray-200 dark:border-gray-800">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                         <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1308,7 +1137,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                     {/* Tab Navigation */}
                                     <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
                                         <button
-                                            onClick={() => setActiveParameterTab('result')}
+                                            onClick={() => handleTabChange('result')}
                                             className={`px-4 py-2 text-sm font-medium transition-colors relative ${
                                                 activeParameterTab === 'result'
                                                     ? 'text-red-600 dark:text-red-400'
@@ -1321,7 +1150,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                             )}
                                         </button>
                                         <button
-                                            onClick={() => setActiveParameterTab('proses')}
+                                            onClick={() => handleTabChange('proses')}
                                             className={`px-4 py-2 text-sm font-medium transition-colors relative ${
                                                 activeParameterTab === 'proses'
                                                     ? 'text-red-600 dark:text-red-400'
@@ -1342,7 +1171,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                         <div>
                                             <div className="mb-3">
                                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                    Bobot: {parseFloat(getCurrentParameterResult()?.percentage_result || 0).toFixed(2)}%
+                                                    Bobot: {parseFloat(String(getCurrentParameterResult()?.percentage_result || 0)).toFixed(2)}%
                                                 </p>
                                             </div>
                                             
@@ -1386,18 +1215,18 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                                             <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-850">
                                                                                 <td className="px-3 py-2 text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-800">{index + 1}</td>
                                                                                 <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-800">{param.parameter}</td>
-                                                                                <td className="px-3 py-2 text-center text-gray-900 dark:text-gray-100 border-r border-gray-300 dark:border-gray-700">{parseFloat(param.bobot).toFixed(2)}%</td>
+                                                                                <td className="px-3 py-2 text-center text-gray-900 dark:text-gray-100 border-r border-gray-300 dark:border-gray-700">{parseFloat(String(param.bobot)).toFixed(2)}%</td>
                                                                                 {/* Periode 1 (Current) */}
                                                                                 <td className="px-3 py-2 text-center font-bold border-r border-gray-200 dark:border-gray-800">
                                                                                     <TrendIndicator 
                                                                                         current={param.ach} 
-                                                                                        previous={compParam?.ach}
+                                                                                        previous={compParam?.ach ?? null}
                                                                                     />
                                                                                 </td>
                                                                                 <td className="px-3 py-2 text-center font-bold border-r border-gray-300 dark:border-gray-700">
                                                                                     <TrendIndicator 
                                                                                         current={param.not_ach} 
-                                                                                        previous={compParam?.not_ach}
+                                                                                        previous={compParam?.not_ach ?? null}
                                                                                     />
                                                                                 </td>
                                                                                 {/* Periode 2 (Comparison) */}
@@ -1414,7 +1243,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                                         <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-850">
                                                                             <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{index + 1}</td>
                                                                             <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">{param.parameter}</td>
-                                                                            <td className="px-3 py-2 text-center text-gray-900 dark:text-gray-100">{parseFloat(param.bobot).toFixed(2)}%</td>
+                                                                            <td className="px-3 py-2 text-center text-gray-900 dark:text-gray-100">{parseFloat(String(param.bobot)).toFixed(2)}%</td>
                                                                             <td className="px-3 py-2 text-center font-bold text-green-600 dark:text-green-400">{param.ach}</td>
                                                                             <td className="px-3 py-2 text-center font-bold text-red-600 dark:text-red-400">{param.not_ach}</td>
                                                                         </tr>
@@ -1439,7 +1268,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                         <div>
                                             <div className="mb-3">
                                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                    Bobot: {parseFloat(getCurrentParameterProses()?.percentage_proses || 0).toFixed(2)}%
+                                                    Bobot: {parseFloat(String(getCurrentParameterProses()?.percentage_proses || 0)).toFixed(2)}%
                                                 </p>
                                             </div>
                                             
@@ -1483,18 +1312,18 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                                             <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-850">
                                                                                 <td className="px-3 py-2 text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-800">{index + 1}</td>
                                                                                 <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-800">{param.parameter}</td>
-                                                                                <td className="px-3 py-2 text-center text-gray-900 dark:text-gray-100 border-r border-gray-300 dark:border-gray-700">{parseFloat(param.bobot).toFixed(2)}%</td>
+                                                                                <td className="px-3 py-2 text-center text-gray-900 dark:text-gray-100 border-r border-gray-300 dark:border-gray-700">{parseFloat(String(param.bobot)).toFixed(2)}%</td>
                                                                                 {/* Periode 1 (Current) */}
                                                                                 <td className="px-3 py-2 text-center font-bold border-r border-gray-200 dark:border-gray-800">
                                                                                     <TrendIndicator 
                                                                                         current={param.ach} 
-                                                                                        previous={compParam?.ach}
+                                                                                        previous={compParam?.ach ?? null}
                                                                                     />
                                                                                 </td>
                                                                                 <td className="px-3 py-2 text-center font-bold border-r border-gray-300 dark:border-gray-700">
                                                                                     <TrendIndicator 
                                                                                         current={param.not_ach} 
-                                                                                        previous={compParam?.not_ach}
+                                                                                        previous={compParam?.not_ach ?? null}
                                                                                     />
                                                                                 </td>
                                                                                 {/* Periode 2 (Comparison) */}
@@ -1511,7 +1340,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                                         <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-850">
                                                                             <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{index + 1}</td>
                                                                             <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">{param.parameter}</td>
-                                                                            <td className="px-3 py-2 text-center text-gray-900 dark:text-gray-100">{parseFloat(param.bobot).toFixed(2)}%</td>
+                                                                            <td className="px-3 py-2 text-center text-gray-900 dark:text-gray-100">{parseFloat(String(param.bobot)).toFixed(2)}%</td>
                                                                             <td className="px-3 py-2 text-center font-bold text-green-600 dark:text-green-400">{param.ach}</td>
                                                                             <td className="px-3 py-2 text-center font-bold text-red-600 dark:text-red-400">{param.not_ach}</td>
                                                                         </tr>
@@ -1531,6 +1360,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                         </div>
                                     )}
                                 </div>
+                            </div>
                             </div>
                         </div>
                     </>

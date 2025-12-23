@@ -34,6 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('region-nki-chart/{regionId}', [\App\Http\Controllers\RegionNkiController::class, 'getParameterChartData'])->name('api.dashboard.region-nki-chart');
         Route::get('witel-nki-detail', [\App\Http\Controllers\RegionNkiController::class, 'getWitelNkiDetail'])->name('api.dashboard.witel-nki-detail');
         Route::get('region-revenue', [\App\Http\Controllers\RegionRevenueController::class, 'getRegionRevenue'])->name('api.dashboard.region-revenue');
+        Route::get('region-witel-detail', [DashboardController::class, 'getRegionWitelDetail'])->name('api.dashboard.region-witel-detail');
         
         // DUMMY ENDPOINT - For testing Revenue Breakdown Tree component
         // Route::get('revenue-breakdown-dummy', [RevenueBreakdownDummyController::class, 'getDummyRevenueBreakdown'])->name('api.dashboard.revenue-breakdown-dummy');
