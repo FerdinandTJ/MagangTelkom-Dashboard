@@ -26,6 +26,7 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
     protected ?string $lastCompanyName = null; // Track last valid company name
     protected ?string $lastSubSegment = null; // Track last valid subsegment
     protected ?string $lastSourceData = null; // Track last valid source data
+    protected ?int $lastIdWitels = null; // Track last valid witel ID
 
     public function __construct(int $year)
     {
@@ -78,19 +79,32 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
                 } else if (!empty($rowData['source_data'])) {
                     $this->lastSourceData = trim($rowData['source_data']);
                 }
+                
+                // Handle merged cells for witel ID
+                if (empty($rowData['witel_id']) && $this->lastIdWitels !== null) {
+                    $rowData['witel_id'] = $this->lastIdWitels;
+                } else if (!empty($rowData['witel_id'])) {
+                    $this->lastIdWitels = (int) $rowData['witel_id'];
+                }
 
                 // Clean and validate the row data
                 $cleanedRow = $this->cleanRowData($rowData);
                 
                 // Log first few rows for debugging
-                if ($rowNumber <= 5) {
+                if ($rowNumber <= 2) {
                     Log::info("Processing row {$rowNumber}", [
+                        'raw_witel_id' => $rowData['witel_id'] ?? 'NOT_SET',
+                        'raw_idwitels' => $rowData['idwitels'] ?? 'NOT_SET',
                         'nip_nas' => $cleanedRow['nip_nas'],
                         'company' => $cleanedRow['standard_name'],
                         'group1' => $cleanedRow['group1'],
                         'group2' => $cleanedRow['group2'],
                         'group3' => $cleanedRow['group3'],
                         'group4' => $cleanedRow['group4'],
+                        'target_1' => $cleanedRow['target_1'] ?? 'NOT_SET',
+                        'target_2' => $cleanedRow['target_2'] ?? 'NOT_SET',
+                        'raw_t_1' => $rowData['t_1'] ?? 'NOT_SET',
+                        'raw_t_2' => $rowData['t_2'] ?? 'NOT_SET',
                     ]);
                 }
                 
@@ -126,11 +140,31 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
      */
     protected function cleanRowData(array $row): array
     {
+        // Support both "WITEL ID" (converted to witel_id) and "idwitels" header formats
+        $witelId = null;
+        
+        // Check witel_id (from "WITEL ID" header)
+        if (isset($row['witel_id'])) {
+            $trimmed = trim((string)$row['witel_id']);
+            if ($trimmed !== '' && $trimmed !== '0') {
+                $witelId = (int) $trimmed;
+            }
+        }
+        
+        // Fallback to idwitels if witel_id not found
+        if ($witelId === null && isset($row['idwitels'])) {
+            $trimmed = trim((string)$row['idwitels']);
+            if ($trimmed !== '' && $trimmed !== '0') {
+                $witelId = (int) $trimmed;
+            }
+        }
+        
         return [
             'sub_segment' => trim($row['sub_segment'] ?? ''),
             'nip_nas' => trim($row['nip_nas'] ?? ''),
             'standard_name' => trim($row['standard_name'] ?? ''),
             'source_data' => trim($row['source_data'] ?? ''),
+            'idwitels' => $witelId, // Witel ID from Excel (supports both "WITEL ID" and "idwitels" headers)
             'group1' => trim($row['group1'] ?? ''),
             'group2' => trim($row['group2'] ?? ''),
             'group3' => trim($row['group3'] ?? ''),
@@ -148,6 +182,19 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
             'month_10' => $this->parseRevenue($row['10'] ?? 0),
             'month_11' => $this->parseRevenue($row['11'] ?? 0),
             'month_12' => $this->parseRevenue($row['12'] ?? 0),
+            // Target columns (T-1 to T-12)
+            'target_1' => $this->parseRevenue($row['t_1'] ?? 0),
+            'target_2' => $this->parseRevenue($row['t_2'] ?? 0),
+            'target_3' => $this->parseRevenue($row['t_3'] ?? 0),
+            'target_4' => $this->parseRevenue($row['t_4'] ?? 0),
+            'target_5' => $this->parseRevenue($row['t_5'] ?? 0),
+            'target_6' => $this->parseRevenue($row['t_6'] ?? 0),
+            'target_7' => $this->parseRevenue($row['t_7'] ?? 0),
+            'target_8' => $this->parseRevenue($row['t_8'] ?? 0),
+            'target_9' => $this->parseRevenue($row['t_9'] ?? 0),
+            'target_10' => $this->parseRevenue($row['t_10'] ?? 0),
+            'target_11' => $this->parseRevenue($row['t_11'] ?? 0),
+            'target_12' => $this->parseRevenue($row['t_12'] ?? 0),
         ];
     }
 
@@ -205,14 +252,30 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
      */
     protected function processRow(array $row, int $rowNumber): void
     {
-        // 1. Create or update company
+        // 1. Create or update company with witel_id
+        $companyData = [
+            'nama_perusahaan' => $row['standard_name'],
+            'subsegment' => $row['sub_segment'] ?: null,
+            'source_data' => $row['source_data'],
+        ];
+        
+        // Add idwitels if provided in Excel
+        if (!empty($row['idwitels'])) {
+            $companyData['idwitels'] = $row['idwitels'];
+            Log::info("Setting idwitels for company", [
+                'nip_nas' => $row['nip_nas'],
+                'idwitels' => $row['idwitels']
+            ]);
+        } else {
+            Log::warning("No idwitels found for company", [
+                'nip_nas' => $row['nip_nas'],
+                'row_data' => $row
+            ]);
+        }
+        
         $company = Company::updateOrCreate(
             ['nip_nas' => $row['nip_nas']],
-            [
-                'nama_perusahaan' => $row['standard_name'],
-                'subsegment' => $row['sub_segment'] ?: null,
-                'source_data' => $row['source_data'],
-            ]
+            $companyData
         );
 
         // 2. Find or create Group1 (linked to company)
@@ -253,8 +316,9 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
         // 6. Create or update revenues for all 12 months
         for ($month = 1; $month <= 12; $month++) {
             $revenueValue = $row["month_{$month}"];
+            $targetValue = $row["target_{$month}"] ?? 0;
             
-            // Only create/update if there's a value (skip 0 or null)
+            // Only create/update if there's a revenue value (skip 0 or null)
             if ($revenueValue > 0) {
                 Revenue::updateOrCreate(
                     [
@@ -264,7 +328,7 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
                     ],
                     [
                         'revenue_realisasi' => $revenueValue,
-                        'revenue_target' => 0 // Can be updated later with target data
+                        'revenue_target' => $targetValue
                     ]
                 );
                 
