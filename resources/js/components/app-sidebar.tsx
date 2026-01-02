@@ -29,7 +29,7 @@ const mainNavItems: NavItem[] = [
         icon: TrendingUp,
     },
     {
-        title: 'Data Import',
+        title: 'Data Upload',
         href: dataImportRevenue(), // Default to first submenu
         icon: Upload,
         items: [

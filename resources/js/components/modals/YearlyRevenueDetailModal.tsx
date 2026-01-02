@@ -57,15 +57,15 @@ const YearlyRevenueDetailModal: React.FC<YearlyRevenueDetailModalProps> = ({
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Revenue</p>
-                                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                                <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                                     {formatCurrency(totalRevenue, 2)}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     {subsegments.length} subsegments
                                 </p>
                             </div>
-                            <div className="bg-blue-600 dark:bg-blue-500 p-3 rounded-full">
-                                <TrendingUp className="w-5 h-5 text-white" />
+                            <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-full">
+                                <TrendingUp className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                             </div>
                         </div>
                     </div>
@@ -78,11 +78,11 @@ const YearlyRevenueDetailModal: React.FC<YearlyRevenueDetailModalProps> = ({
                         <ResponsiveContainer width="100%" height={400}>
                             <PieChart>
                                 <Pie
-                                    data={subsegments}
+                                    data={subsegments as any[]}
                                     cx="50%"
                                     cy="50%"
                                     labelLine={false}
-                                    label={({ name, percentage }) => `${name} (${percentage.toFixed(1)}%)`}
+                                    label={(entry: any) => `${entry.name} (${(entry.percent * 100).toFixed(1)}%)`}
                                     outerRadius={120}
                                     fill="#8884d8"
                                     dataKey="value"

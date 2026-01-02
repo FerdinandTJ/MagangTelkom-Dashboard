@@ -160,9 +160,74 @@ class DashboardController extends Controller
     /**
      * Display Data Import Revenue page
      */
-    public function dataImportRevenue()
+    public function dataImportRevenue(Request $request)
     {
-        return Inertia::render('DataImportRevenue');
+        $selectedYear = $request->input('year', date('Y'));
+        $currentYear = date('Y'); // Always use current year for dropdown
+        
+        // Get uploaded months data with file info from revenue_uploads table
+        $uploadedMonths = DB::table('revenue_uploads as ru')
+            ->join('revenues as r', function($join) {
+                $join->on('ru.tahun', '=', 'r.tahun')
+                     ->on('ru.bulan', '=', 'r.bulan');
+            })
+            ->select(
+                'ru.bulan as month',
+                'ru.original_filename',
+                'ru.file_size_kb',
+                'ru.uploaded_by',
+                'ru.updated_at as last_upload',
+                DB::raw('COUNT(DISTINCT r.group4_id) as record_count'),
+                DB::raw('SUM(r.revenue_realisasi) as total_revenue')
+            )
+            ->where('ru.tahun', $selectedYear)
+            ->groupBy('ru.bulan', 'ru.original_filename', 'ru.file_size_kb', 'ru.uploaded_by', 'ru.updated_at')
+            ->get()
+            ->keyBy('month');
+        
+        // Build months data with status
+        $monthsData = [];
+        $monthNames = [
+            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+        ];
+        
+        for ($month = 1; $month <= 12; $month++) {
+            $monthData = [
+                'month' => $month,
+                'name' => $monthNames[$month],
+                'status' => 'pending',
+            ];
+            
+            if (isset($uploadedMonths[$month])) {
+                $upload = $uploadedMonths[$month];
+                
+                // Get uploader name
+                $uploader = DB::table('users')->where('id', $upload->uploaded_by)->first();
+                $uploaderName = $uploader ? $uploader->name : 'System';
+                
+                $monthData['status'] = 'uploaded';
+                $monthData['uploadInfo'] = [
+                    'fileName' => $upload->original_filename,
+                    'uploadDate' => \Carbon\Carbon::parse($upload->last_upload)->format('M d, Y H:i'),
+                    'uploadedBy' => $uploaderName,
+                    'fileSize' => number_format($upload->file_size_kb, 2) . ' KB',
+                    'rowCount' => $upload->record_count,
+                    'dateRange' => $monthNames[$month] . " 1 - " . $monthNames[$month] . " 31, {$selectedYear}",
+                    'totalRevenue' => 'Rp ' . number_format($upload->total_revenue / 1000000, 1) . 'M',
+                    'subsegmentCount' => 0, // Can be calculated if needed
+                ];
+            }
+            
+            $monthsData[] = $monthData;
+        }
+        
+        return Inertia::render('DataImportRevenue', [
+            'initialMonthsData' => $monthsData,
+            'selectedYear' => $selectedYear,
+            'currentYear' => $currentYear, // For calculating dropdown years
+        ]);
     }
 
     /**

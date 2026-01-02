@@ -496,7 +496,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                                             cx="50%"
                                                             cy="50%"
                                                             labelLine={false}
-                                                            label={({ percentage }) => `${percentage}%`}
+                                                            label={(entry: any) => `${entry.percentage}%`}
                                                             outerRadius={80}
                                                             dataKey="value"
                                                             onClick={handlePieSliceClick}

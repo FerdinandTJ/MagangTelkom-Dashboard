@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nip_nas')->unique()->comment('Nomor Induk Pegawai Nasional');
             $table->string('nama_perusahaan');
-            $table->string('subsegment');
+            $table->string('subsegment')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
             

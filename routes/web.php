@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RevenueBreakdownDummyController;
 use App\Http\Controllers\RevenueBreakdownController;
+use App\Http\Controllers\RevenueImportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -18,6 +19,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Data Import routes
     Route::get('data-import/revenue', [DashboardController::class, 'dataImportRevenue'])->name('data-import.revenue');
     Route::get('data-import/performance', [DashboardController::class, 'dataImportPerformance'])->name('data-import.performance');
+    
+    // Data Import - Upload & Template Download
+    Route::post('data-import/revenue/upload', [RevenueImportController::class, 'store'])->name('data-import.revenue.upload');
+    Route::get('data-import/revenue/template', [RevenueImportController::class, 'downloadTemplate'])->name('data-import.revenue.template');
     
     // API routes for dashboard analytics
     Route::prefix('api/dashboard')->group(function () {
