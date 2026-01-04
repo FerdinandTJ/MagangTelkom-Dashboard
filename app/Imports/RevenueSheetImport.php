@@ -27,6 +27,9 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
     protected ?string $lastSubSegment = null; // Track last valid subsegment
     protected ?string $lastSourceData = null; // Track last valid source data
     protected ?int $lastIdWitels = null; // Track last valid witel ID
+    protected ?string $lastGroup1 = null; // Track last valid group1 for merged cells
+    protected ?string $lastGroup2 = null; // Track last valid group2 for merged cells
+    protected ?string $lastGroup3 = null; // Track last valid group3 for merged cells
 
     public function __construct(int $year)
     {
@@ -85,6 +88,27 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
                     $rowData['witel_id'] = $this->lastIdWitels;
                 } else if (!empty($rowData['witel_id'])) {
                     $this->lastIdWitels = (int) $rowData['witel_id'];
+                }
+                
+                // Handle merged cells for GROUP1
+                if (empty($rowData['group1']) && $this->lastGroup1 !== null) {
+                    $rowData['group1'] = $this->lastGroup1;
+                } else if (!empty($rowData['group1'])) {
+                    $this->lastGroup1 = trim($rowData['group1']);
+                }
+                
+                // Handle merged cells for GROUP2
+                if (empty($rowData['group2']) && $this->lastGroup2 !== null) {
+                    $rowData['group2'] = $this->lastGroup2;
+                } else if (!empty($rowData['group2'])) {
+                    $this->lastGroup2 = trim($rowData['group2']);
+                }
+                
+                // Handle merged cells for GROUP3
+                if (empty($rowData['group3']) && $this->lastGroup3 !== null) {
+                    $rowData['group3'] = $this->lastGroup3;
+                } else if (!empty($rowData['group3'])) {
+                    $this->lastGroup3 = trim($rowData['group3']);
                 }
 
                 // Clean and validate the row data

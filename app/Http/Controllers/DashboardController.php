@@ -761,49 +761,69 @@ class DashboardController extends Controller
             ->get();
         
         // Get last 12 months revenue data for chart (with filters applied)
-        $monthlyQuery = (clone $baseQuery)
+        // Get detail revenues per month untuk editing
+        $monthlyRevenuesDetail = (clone $baseQuery)
             ->select(
+                'r.id',
                 'r.tahun',
                 'r.bulan',
-                \DB::raw('SUM(r.revenue_realisasi) as total_revenue'),
-                \DB::raw('CASE 
-                    WHEN r.bulan = 1 THEN "Januari"
-                    WHEN r.bulan = 2 THEN "Februari" 
-                    WHEN r.bulan = 3 THEN "Maret"
-                    WHEN r.bulan = 4 THEN "April"
-                    WHEN r.bulan = 5 THEN "Mei"
-                    WHEN r.bulan = 6 THEN "Juni"
-                    WHEN r.bulan = 7 THEN "Juli"
-                    WHEN r.bulan = 8 THEN "Agustus"
-                    WHEN r.bulan = 9 THEN "September"
-                    WHEN r.bulan = 10 THEN "Oktober"
-                    WHEN r.bulan = 11 THEN "November"
-                    WHEN r.bulan = 12 THEN "Desember"
-                    END as bulan_name')
+                'r.revenue_realisasi',
+                'r.revenue_target',
+                'p.nama_group4',
+                'group3.nama_group3',
+                'group2.nama_group2',
+                'group1.nama_group1'
             )
-            ->groupBy('r.tahun', 'r.bulan')
             ->orderBy('r.tahun', 'desc')
-            ->orderBy('r.bulan', 'desc');
+            ->orderBy('r.bulan', 'desc')
+            ->get();
+        
+        // Group by year and month for aggregated data
+        $monthlyGrouped = $monthlyRevenuesDetail->groupBy(function ($item) {
+            return $item->tahun . '-' . $item->bulan;
+        });
+        
+        $monthNames = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+                      7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
+        
+        $monthlyData = $monthlyGrouped->map(function ($revenues, $key) use ($monthNames) {
+            $first = $revenues->first();
+            $totalRevenue = $revenues->sum('revenue_realisasi');
+            $totalTarget = $revenues->sum('revenue_target');
+            $achievement = $totalTarget > 0 ? ($totalRevenue / $totalTarget) * 100 : 0;
+            
+            return [
+                'tahun' => $first->tahun,
+                'bulan' => $first->bulan,
+                'bulan_name' => $monthNames[$first->bulan],
+                'revenue' => $totalRevenue,
+                'target' => $totalTarget,
+                'achievement_percentage' => round($achievement, 2),
+                'formatted_revenue' => 'Rp ' . number_format($totalRevenue / 1000000000, 2) . 'M',
+                'formatted_target' => 'Rp ' . number_format($totalTarget / 1000000000, 2) . 'M',
+                'period_label' => $monthNames[$first->bulan] . ' ' . $first->tahun,
+                'revenues' => $revenues->map(function ($rev) {
+                    return [
+                        'id' => $rev->id,
+                        'product' => $rev->nama_group4,
+                        'category' => $rev->nama_group3,
+                        'type' => $rev->nama_group2,
+                        'main_category' => $rev->nama_group1,
+                        'revenue' => $rev->revenue_realisasi,
+                        'target' => $rev->revenue_target,
+                        'formatted_revenue' => 'Rp ' . number_format($rev->revenue_realisasi, 0, ',', '.'),
+                        'formatted_target' => 'Rp ' . number_format($rev->revenue_target, 0, ',', '.'),
+                    ];
+                })->values()
+            ];
+        })->sortByDesc(function ($item) {
+            return $item['tahun'] * 100 + $item['bulan'];
+        })->values();
         
         // Only limit to 12 if no filters applied
         if (!$filterYear && !$filterMonth) {
-            $monthlyQuery->limit(12);
+            $monthlyData = $monthlyData->take(12);
         }
-        
-        $monthlyData = $monthlyQuery
-            ->get()
-            ->reverse()
-            ->values()
-            ->map(function ($item) {
-                return [
-                    'tahun' => $item->tahun,
-                    'bulan' => $item->bulan,
-                    'bulan_name' => $item->bulan_name,
-                    'revenue' => $item->total_revenue,
-                    'formatted_revenue' => 'Rp ' . number_format($item->total_revenue / 1000000000, 2) . 'M',
-                    'period_label' => $item->bulan_name . ' ' . $item->tahun
-                ];
-            });
 
         // Get yearly totals (with filters applied)
         $yearlyData = (clone $baseQuery)
@@ -829,10 +849,6 @@ class DashboardController extends Controller
         $avgMonthlyRevenue = $allMonthlyData->count() > 0 ? $totalRevenue / $allMonthlyData->count() : 0;
         $bestMonthRecord = $allMonthlyData->sortByDesc('total_revenue')->first();
         $bestYear = $yearlyData->sortByDesc('total_revenue')->first();
-        
-        // Get month name for best month
-        $monthNames = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
-                      7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
 
         // Build period description
         $periodText = 'All Time';
@@ -1595,6 +1611,34 @@ class DashboardController extends Controller
                 'subsegment' => $subsegment,
                 'region_code' => $regionCode,
                 'year' => $year
+            ]
+        ]);
+    }
+
+    /**
+     * Update revenue target for a specific revenue record
+     * 
+     * @param Request $request
+     * @param int $revenueId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateRevenueTarget(Request $request, $revenueId)
+    {
+        $request->validate([
+            'revenue_target' => 'required|numeric|min:0'
+        ]);
+
+        $revenue = \App\Models\Revenue::findOrFail($revenueId);
+        $revenue->revenue_target = $request->revenue_target;
+        $revenue->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Target berhasil diupdate',
+            'data' => [
+                'id' => $revenue->idRevenue,
+                'revenue_target' => $revenue->revenue_target,
+                'formatted_target' => 'Rp ' . number_format($revenue->revenue_target, 0, ',', '.')
             ]
         ]);
     }

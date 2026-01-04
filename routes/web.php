@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\RevenueBreakdownDummyController;
 use App\Http\Controllers\RevenueBreakdownController;
 use App\Http\Controllers\RevenueImportController;
 use Illuminate\Support\Facades\Route;
@@ -44,11 +43,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('witel-nki-detail', [\App\Http\Controllers\RegionNkiController::class, 'getWitelNkiDetail'])->name('api.dashboard.witel-nki-detail');
         Route::get('region-revenue', [\App\Http\Controllers\RegionRevenueController::class, 'getRegionRevenue'])->name('api.dashboard.region-revenue');
         
-        // DUMMY ENDPOINT - For testing Revenue Breakdown Tree component
-        // Route::get('revenue-breakdown-dummy', [RevenueBreakdownDummyController::class, 'getDummyRevenueBreakdown'])->name('api.dashboard.revenue-breakdown-dummy');
-        
-        // PRODUCTION ENDPOINT - Revenue Breakdown from database
+        // Revenue Breakdown
         Route::get('revenue-breakdown/{companyId}', [RevenueBreakdownController::class, 'getBreakdown'])->name('api.dashboard.revenue-breakdown');
+        
+        // Revenue Target Edit
+        Route::patch('revenue-target/{revenueId}', [DashboardController::class, 'updateRevenueTarget'])->name('api.dashboard.update-revenue-target');
     });
 });
 
