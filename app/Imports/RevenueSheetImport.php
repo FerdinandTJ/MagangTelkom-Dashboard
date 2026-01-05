@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Company;
+use App\Models\CompanyTarget;
 use App\Models\Group1;
 use App\Models\Group2;
 use App\Models\Group3;
@@ -22,6 +23,7 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
     protected int $successCount = 0;
     protected int $skipCount = 0;
     protected array $monthsImported = []; // Track which months have data
+    protected array $companyTargets = []; // Track company targets: [nip_nas][month] = target_amount
     protected ?string $lastNipNas = null; // Track last valid NIP_NAS for merged cells
     protected ?string $lastCompanyName = null; // Track last valid company name
     protected ?string $lastSubSegment = null; // Track last valid subsegment
@@ -337,7 +339,7 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
             ]
         );
 
-        // 6. Create or update revenues for all 12 months
+        // 6. Create or update revenues for all 12 months and aggregate company targets
         for ($month = 1; $month <= 12; $month++) {
             $revenueValue = $row["month_{$month}"];
             $targetValue = $row["target_{$month}"] ?? 0;
@@ -352,7 +354,7 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
                     ],
                     [
                         'revenue_realisasi' => $revenueValue,
-                        'revenue_target' => $targetValue
+                        'revenue_target' => 0 // Target moved to company_targets table
                     ]
                 );
                 
@@ -360,6 +362,40 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
                 if (!in_array($month, $this->monthsImported)) {
                     $this->monthsImported[] = $month;
                 }
+                
+                // Aggregate target per company per month
+                if ($targetValue > 0) {
+                    $nipNas = $company->nip_nas;
+                    if (!isset($this->companyTargets[$nipNas])) {
+                        $this->companyTargets[$nipNas] = [];
+                    }
+                    if (!isset($this->companyTargets[$nipNas][$month])) {
+                        $this->companyTargets[$nipNas][$month] = 0;
+                    }
+                    $this->companyTargets[$nipNas][$month] += $targetValue;
+                }
+            }
+        }
+    }
+    
+    /**
+     * Called when collection is finished to save company targets
+     */
+    public function __destruct()
+    {
+        // Save aggregated company targets
+        foreach ($this->companyTargets as $nipNas => $months) {
+            foreach ($months as $month => $targetAmount) {
+                CompanyTarget::updateOrCreate(
+                    [
+                        'nip_nas' => $nipNas,
+                        'tahun' => $this->year,
+                        'bulan' => $month
+                    ],
+                    [
+                        'target_revenue' => $targetAmount
+                    ]
+                );
             }
         }
     }

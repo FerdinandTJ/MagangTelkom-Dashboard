@@ -1510,7 +1510,22 @@ class DashboardController extends Controller
                 'companies.source_data',
                 'witels.nama_witels',
                 DB::raw('SUM(r.revenue_realisasi) as revenue'),
-                DB::raw('SUM(r.revenue_target) as target')
+                DB::raw('(
+                    SELECT IFNULL(SUM(ct.target_revenue), 0)
+                    FROM company_targets ct
+                    WHERE ct.nip_nas = companies.nip_nas
+                    AND ct.tahun = ' . $year . '
+                    AND ct.bulan IN (
+                        SELECT DISTINCT r2.bulan
+                        FROM revenues r2
+                        JOIN group4 p2 ON r2.group4_id = p2.idGroup4
+                        JOIN group3 g3 ON p2.group3_id = g3.idGroup3
+                        JOIN group2 g2 ON g3.group2_id = g2.idGroup2
+                        JOIN group1 g1 ON g2.group1_id = g1.idGroup1
+                        WHERE g1.company_id = companies.nip_nas
+                        AND r2.tahun = ' . $year . '
+                    )
+                ) as target')
             )
             ->groupBy('companies.nip_nas', 'companies.nama_perusahaan', 'companies.source_data', 'witels.nama_witels')
             ->orderByDesc('revenue')
