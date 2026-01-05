@@ -35,9 +35,11 @@ class RevenueImport implements WithMultipleSheets, SkipsUnknownSheets
             ];
         }
 
-        // Otherwise, try to import sheets for multiple years (2020-2030)
+        // Otherwise, try to import sheets for multiple years (dynamic range)
         $sheets = [];
-        $years = range(2020, 2030);
+        $currentYear = (int) date('Y');
+        $startYear = 2020; // Earliest year in historical data
+        $years = range($startYear, $currentYear + 5); // Current year + 5 years future
         
         foreach ($years as $year) {
             $sheetImporter = new RevenueSheetImport($year);
@@ -71,8 +73,9 @@ class RevenueImport implements WithMultipleSheets, SkipsUnknownSheets
         foreach ($this->sheetImporters as $year => $importer) {
             $stats = $importer->getStats();
             
-            // Only include years that had data
-            if ($stats['total'] > 0) {
+            // Only include years that had data AND months_imported
+            // This prevents updating revenue_uploads for years that don't exist in the file
+            if ($stats['total'] > 0 && !empty($stats['months_imported'])) {
                 $yearStats[$year] = $stats;
                 $totalSuccess += $stats['success'];
                 $totalErrors += $stats['errors'];

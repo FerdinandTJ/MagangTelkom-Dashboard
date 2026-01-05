@@ -10,6 +10,7 @@ class RevenueUpload extends Model
         'tahun',
         'bulan',
         'original_filename',
+        'stored_path',
         'uploaded_by',
         'row_count',
         'file_size_kb',

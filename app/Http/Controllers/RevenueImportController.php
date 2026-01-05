@@ -7,6 +7,7 @@ use App\Models\RevenueUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -64,8 +65,28 @@ class RevenueImportController extends Controller
                 $uploadedBy = auth()->id();
                 
                 foreach ($stats['year_stats'] as $year => $yearStats) {
-                    if (isset($yearStats['months_imported'])) {
+                    // Double check: only update if months_imported exists and not empty
+                    if (isset($yearStats['months_imported']) && !empty($yearStats['months_imported'])) {
                         foreach ($yearStats['months_imported'] as $month) {
+                            // Hapus file lama jika ada
+                            $existingUpload = RevenueUpload::where('tahun', $year)
+                                ->where('bulan', $month)
+                                ->first();
+
+                            if ($existingUpload && $existingUpload->stored_path) {
+                                if (Storage::exists($existingUpload->stored_path)) {
+                                    Storage::delete($existingUpload->stored_path);
+                                }
+                            }
+
+                            // Simpan file baru
+                            $timestamp = now()->format('YmdHis');
+                            $storedPath = $file->storeAs(
+                                "revenue-uploads/{$year}",
+                                "{$month}_{$timestamp}_{$originalFilename}",
+                                'local'
+                            );
+                            
                             RevenueUpload::updateOrCreate(
                                 [
                                     'tahun' => $year,
@@ -73,6 +94,7 @@ class RevenueImportController extends Controller
                                 ],
                                 [
                                     'original_filename' => $originalFilename,
+                                    'stored_path' => $storedPath,
                                     'uploaded_by' => $uploadedBy,
                                     'row_count' => $yearStats['success'] ?? 0,
                                     'file_size_kb' => $fileSize,
@@ -108,8 +130,28 @@ class RevenueImportController extends Controller
             $uploadedBy = auth()->id();
             
             foreach ($stats['year_stats'] as $year => $yearStats) {
-                if (isset($yearStats['months_imported'])) {
+                // Double check: only update if months_imported exists and not empty
+                if (isset($yearStats['months_imported']) && !empty($yearStats['months_imported'])) {
                     foreach ($yearStats['months_imported'] as $month) {
+                        // Hapus file lama jika ada
+                        $existingUpload = RevenueUpload::where('tahun', $year)
+                            ->where('bulan', $month)
+                            ->first();
+
+                        if ($existingUpload && $existingUpload->stored_path) {
+                            if (Storage::exists($existingUpload->stored_path)) {
+                                Storage::delete($existingUpload->stored_path);
+                            }
+                        }
+
+                        // Simpan file baru
+                        $timestamp = now()->format('YmdHis');
+                        $storedPath = $file->storeAs(
+                            "revenue-uploads/{$year}",
+                            "{$month}_{$timestamp}_{$originalFilename}",
+                            'local'
+                        );
+                        
                         RevenueUpload::updateOrCreate(
                             [
                                 'tahun' => $year,
@@ -117,6 +159,7 @@ class RevenueImportController extends Controller
                             ],
                             [
                                 'original_filename' => $originalFilename,
+                                'stored_path' => $storedPath,
                                 'uploaded_by' => $uploadedBy,
                                 'row_count' => $yearStats['success'] ?? 0,
                                 'file_size_kb' => $fileSize,
@@ -335,6 +378,47 @@ class RevenueImportController extends Controller
             ]);
             
             return back()->with('error', 'Failed to generate template: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download uploaded revenue file
+     */
+    public function downloadFile(Request $request, int $year, int $month)
+    {
+        try {
+            $upload = RevenueUpload::where('tahun', $year)
+                ->where('bulan', $month)
+                ->firstOrFail();
+            
+            // Check if file path exists
+            if (!$upload->stored_path) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'File tidak tersedia. Data diimport sebelum fitur penyimpanan file diaktifkan.'
+                ], 404);
+            }
+            
+            // Check if file exists in storage
+            if (!Storage::exists($upload->stored_path)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'File tidak ditemukan di server. Mungkin sudah dihapus.'
+                ], 404);
+            }
+            
+            return Storage::download($upload->stored_path, $upload->original_filename);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Data upload tidak ditemukan untuk bulan dan tahun tersebut.'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan saat mengunduh file: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

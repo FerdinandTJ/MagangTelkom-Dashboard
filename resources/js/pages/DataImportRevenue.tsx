@@ -195,6 +195,74 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         window.location.href = template.url({ query: { year: selectedYear } });
     };
 
+    // Handler untuk Replace/Update
+    const handleReplaceClick = (month: number) => {
+        const fileInput = document.getElementById(`replace-file-${month}`) as HTMLInputElement;
+        fileInput?.click();
+    };
+
+    const handleReplaceFileSelect = async (month: number, event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const monthData = monthsData.find(m => m.month === month);
+        const confirmed = window.confirm(
+            `Apakah Anda yakin ingin mengganti data ${monthData?.name} ${selectedYear}?\n\n` +
+            `File lama: ${monthData?.uploadInfo?.fileName}\n` +
+            `File baru: ${file.name}\n\n` +
+            `Data yang sudah ada akan ditimpa dengan data baru.`
+        );
+        
+        if (!confirmed) {
+            event.target.value = ''; // Reset input
+            return;
+        }
+
+        setIsUploading(true);
+        setUploadingMonth(month);
+        setUploadProgress(0);
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('year', selectedYear.toString());
+        formData.append('month', month.toString());
+
+        try {
+            await axios.post(upload.url(), formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+                onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                        const percentCompleted = Math.round(
+                            (progressEvent.loaded * 100) / progressEvent.total
+                        );
+                        setUploadProgress(percentCompleted);
+                    }
+                },
+            });
+
+            // Success - reload data with full page reload
+            window.location.href = revenue.url({ query: { year: selectedYear } });
+        } catch (error: any) {
+            console.error('Replace error:', error);
+            
+            // Tampilkan error message
+            const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat mengganti file';
+            alert(`Gagal mengganti file:\n${errorMessage}`);
+            
+            setIsUploading(false);
+            setUploadingMonth(null);
+            setUploadProgress(0);
+            event.target.value = ''; // Reset input
+        }
+    };
+
+    // Handler untuk Download
+    const handleDownload = (month: number) => {
+        window.location.href = `/data-import/revenue/download/${selectedYear}/${month}`;
+    };
+
     const getStatusBadge = (status: MonthData['status']) => {
         switch (status) {
             case 'uploaded':
@@ -365,19 +433,47 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
 
                                                     {/* Actions */}
                                                     <div className="flex gap-2 pt-2">
-                                                        <Button size="sm" variant="outline" className="flex-1">
+                                                        {/* Hidden file input untuk Replace */}
+                                                        <input
+                                                            type="file"
+                                                            id={`replace-file-${monthData.month}`}
+                                                            className="hidden"
+                                                            accept=".xlsx,.xls,.csv"
+                                                            onChange={(e) => handleReplaceFileSelect(monthData.month, e)}
+                                                            disabled={isUploading}
+                                                        />
+                                                        
+                                                        {/* Update Button */}
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="outline" 
+                                                            className="flex-1"
+                                                            onClick={() => handleReplaceClick(monthData.month)}
+                                                            disabled={isUploading}
+                                                        >
                                                             <Upload className="w-4 h-4 mr-2" />
-                                                            Replace
+                                                            Update
                                                         </Button>
-                                                        <Button size="sm" variant="outline">
+                                                        
+                                                        {/* Preview Button - Belum diimplementasi */}
+                                                        <Button size="sm" variant="outline" disabled>
                                                             <Eye className="w-4 h-4 mr-2" />
                                                             Preview
                                                         </Button>
-                                                        <Button size="sm" variant="outline">
+                                                        
+                                                        {/* Download Button */}
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="outline"
+                                                            onClick={() => handleDownload(monthData.month)}
+                                                            disabled={isUploading}
+                                                        >
                                                             <Download className="w-4 h-4 mr-2" />
                                                             Download
                                                         </Button>
-                                                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                                                        
+                                                        {/* Delete Button - Belum diimplementasi */}
+                                                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" disabled>
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
                                                     </div>

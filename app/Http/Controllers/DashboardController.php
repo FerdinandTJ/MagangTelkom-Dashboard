@@ -210,7 +210,7 @@ class DashboardController extends Controller
                 $monthData['status'] = 'uploaded';
                 $monthData['uploadInfo'] = [
                     'fileName' => $upload->original_filename,
-                    'uploadDate' => \Carbon\Carbon::parse($upload->last_upload)->format('M d, Y H:i'),
+                    'uploadDate' => \Carbon\Carbon::parse($upload->last_upload)->timezone('Asia/Jakarta')->format('M d, Y H:i'),
                     'uploadedBy' => $uploaderName,
                     'fileSize' => number_format($upload->file_size_kb, 2) . ' KB',
                     'rowCount' => $upload->record_count,
