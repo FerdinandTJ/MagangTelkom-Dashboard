@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -7,8 +7,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, MapPin, Users, Target, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
+import { Loader2, MapPin, Users, Target, Calendar, TrendingUp, TrendingDown, ArrowUp, ArrowDown } from 'lucide-react';
 import axios from '@/lib/axios';
+import AmPerformanceDetailModal from './AmPerformanceDetailModal';
 
 interface AMDetailData {
     nik_am: string;
@@ -127,7 +128,18 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
     const [data, setData] = useState<WitelNkiDetailData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'result' | 'proses'>('result');
+    const [selectedAM, setSelectedAM] = useState<string | null>(null);
+    const [isAMModalOpen, setIsAMModalOpen] = useState(false);
+
+    const handleAMClick = (nikAm: string) => {
+        setSelectedAM(nikAm);
+        setIsAMModalOpen(true);
+    };
+
+    const closeAMModal = () => {
+        setIsAMModalOpen(false);
+        setSelectedAM(null);
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -182,6 +194,62 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
         return 'text-red-600 dark:text-red-400';
     };
 
+    // Create parameter bobot mapping from data
+    const parameterBobotMap = useMemo(() => {
+        if (!data) return new Map<string, number>();
+        
+        const map = new Map<string, number>();
+        
+        // Map Result parameters
+        data.parameter_result.parameters.forEach(param => {
+            const paramName = param.parameter.toLowerCase();
+            if (paramName === 'revenue') map.set('revenue_plan', param.bobot);
+            else if (paramName === 'scaling') map.set('scaling', param.bobot);
+            else if (paramName === 'sales datin') map.set('sales_datin', param.bobot);
+            else if (paramName === 'hsi') map.set('hsi', param.bobot);
+            else if (paramName === 'wireline') map.set('wireline', param.bobot);
+            else if (paramName === 'wifi') map.set('wifi', param.bobot);
+            else if (paramName === 'cyc') map.set('cyc', param.bobot);
+            else if (paramName === 'cr') map.set('cr', param.bobot);
+            else if (paramName === 'profit') map.set('profit', param.bobot);
+            else if (paramName === 'nps') map.set('nps', param.bobot);
+        });
+        
+        // Map Process parameters
+        data.parameter_proses.parameters.forEach(param => {
+            const paramName = param.parameter.toLowerCase();
+            if (paramName === 'maps') map.set('maps', param.bobot);
+            else if (paramName === 'lop') map.set('lop', param.bobot);
+            else if (paramName === 'capability') map.set('capability', param.bobot);
+            else if (paramName === 'cc') map.set('cc', param.bobot);
+        });
+        
+        return map;
+    }, [data]);
+
+    // Helper function to render achievement cell with indicator
+    const renderAchCell = (achValue: number, paramKey: string) => {
+        const bobot = parameterBobotMap.get(paramKey) || 100;
+        const isAboveBobot = achValue >= bobot;
+        
+        return (
+            <td className={`text-right p-2 text-sm font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 ${
+                isAboveBobot 
+                    ? 'text-green-600 dark:text-green-400' 
+                    : 'text-red-600 dark:text-red-400'
+            }`}>
+                <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                    {isAboveBobot ? (
+                        <ArrowUp className="h-3 w-3 flex-shrink-0" />
+                    ) : (
+                        <ArrowDown className="h-3 w-3 flex-shrink-0" />
+                    )}
+                    <span>{formatNumber(achValue)}%</span>
+                </div>
+            </td>
+        );
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="wide-modal max-w-[98vw] w-[98vw] max-h-[95vh] overflow-y-auto p-6 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
@@ -189,7 +257,7 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                     <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
                         <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
                         <span className="truncate">
-                            Detail NKI AM - {data?.witel_info.segment || segment}
+                            Detail NKI AM
                         </span>
                     </DialogTitle>
                     <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
@@ -311,10 +379,10 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                             </div>
                         </div>
 
-                        {/* Main Content: Table (65%) and Parameters (35%) */}
+                        {/* Main Content: Full Width Table with Grid Constraint */}
                         <div className="grid grid-cols-1 lg:grid-cols-20 gap-6">
-                            {/* Left: AM Detail Table - 65% (13 columns) */}
-                            <div className="lg:col-span-13">
+                            {/* AM Detail Table - Full 20 columns */}
+                            <div className="lg:col-span-20">
                                 <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                         <Users className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -397,11 +465,11 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                                                 </tr>
                                                 <tr className="bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600">
                                                     {/* Revenue */}
-                                                    <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Target</th>
+                                                    <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600 min-w-[90px]">Target</th>
                                                     <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Real</th>
                                                     <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Ach%</th>
                                                     {/* Scaling */}
-                                                    <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Target</th>
+                                                    <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600 min-w-[90px]">Target</th>
                                                     <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Real</th>
                                                     <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Ach%</th>
                                                     {/* Sales Datin */}
@@ -441,7 +509,7 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                                                     <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Real</th>
                                                     <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Ach%</th>
                                                     {/* LOP */}
-                                                    <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Target</th>
+                                                    <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600 min-w-[90px]">Target</th>
                                                     <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Real</th>
                                                     <th className="text-center p-2 text-xs font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600">Ach%</th>
                                                     {/* Capability */}
@@ -463,104 +531,86 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                                                                 idx % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-850'
                                                             }`}
                                                         >
-                                                            <td className={`sticky-nik z-10 p-3 font-mono text-xs ${
-                                                                idx % 2 === 0 ? 'bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800' : 'bg-gray-50 dark:bg-gray-850 group-hover:bg-gray-100 dark:group-hover:bg-gray-800'
-                                                            }`}>{am.nik_am}</td>
-                                                            <td className={`sticky-nama z-10 p-3 font-medium text-xs sticky-shadow-right ${
-                                                                idx % 2 === 0 ? 'bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800' : 'bg-gray-50 dark:bg-gray-850 group-hover:bg-gray-100 dark:group-hover:bg-gray-800'
-                                                            }`}>{am.nama_am}</td>
+                                                            <td 
+                                                                className={`sticky-nik z-10 p-3 font-mono text-sm cursor-pointer hover:text-red-600 dark:hover:text-red-400 hover:underline ${
+                                                                    idx % 2 === 0 ? 'bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800' : 'bg-gray-50 dark:bg-gray-850 group-hover:bg-gray-100 dark:group-hover:bg-gray-800'
+                                                                }`}
+                                                                onClick={() => handleAMClick(am.nik_am)}
+                                                            >
+                                                                {am.nik_am}
+                                                            </td>
+                                                            <td 
+                                                                className={`sticky-nama z-10 p-3 font-medium text-sm sticky-shadow-right cursor-pointer hover:text-red-600 dark:hover:text-red-400 hover:underline ${
+                                                                    idx % 2 === 0 ? 'bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800' : 'bg-gray-50 dark:bg-gray-850 group-hover:bg-gray-100 dark:group-hover:bg-gray-800'
+                                                                }`}
+                                                                onClick={() => handleAMClick(am.nik_am)}
+                                                            >
+                                                                {am.nama_am}
+                                                            </td>
                                                             {/* Revenue */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{am.formatted_t_revenue || formatNumber(am.t_revenue, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{am.formatted_r_revenue || formatNumber(am.r_revenue, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_revenue_plan)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600 min-w-[90px] whitespace-nowrap">{am.formatted_t_revenue || formatNumber(am.t_revenue, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600 min-w-[90px] whitespace-nowrap">{am.formatted_r_revenue || formatNumber(am.r_revenue, 0)}</td>
+                                                            {renderAchCell(am.ach_revenue_plan, 'revenue_plan')}
                                                             {/* Scaling */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{am.formatted_t_scaling || formatNumber(am.t_scaling, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{am.formatted_r_scaling || formatNumber(am.r_scaling, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_scaling)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600 min-w-[90px] whitespace-nowrap">{am.formatted_t_scaling || formatNumber(am.t_scaling, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600 min-w-[90px] whitespace-nowrap">{am.formatted_r_scaling || formatNumber(am.r_scaling, 0)}</td>
+                                                            {renderAchCell(am.ach_scaling, 'scaling')}
                                                             {/* Sales Datin */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_sales_datin, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_sales_datin, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_sales_datin)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_sales_datin, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_sales_datin, 0)}</td>
+                                                            {renderAchCell(am.ach_sales_datin, 'sales_datin')}
                                                             {/* HSI */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_hsi, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_hsi, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_hsi)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_hsi, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_hsi, 0)}</td>
+                                                            {renderAchCell(am.ach_hsi, 'hsi')}
                                                             {/* Wireline */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_wireline, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_wireline, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_wireline)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_wireline, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_wireline, 0)}</td>
+                                                            {renderAchCell(am.ach_wireline, 'wireline')}
                                                             {/* WiFi */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_wifi, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_wifi, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_wifi)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_wifi, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_wifi, 0)}</td>
+                                                            {renderAchCell(am.ach_wifi, 'wifi')}
                                                             {/* CYC */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cyc, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cyc, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_cyc)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cyc, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cyc, 0)}</td>
+                                                            {renderAchCell(am.ach_cyc, 'cyc')}
                                                             {/* CR */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cr, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cr, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_cr)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cr, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cr, 0)}</td>
+                                                            {renderAchCell(am.ach_cr, 'cr')}
                                                             {/* Profit */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_profit, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_profit, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_profit)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_profit, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_profit, 0)}</td>
+                                                            {renderAchCell(am.ach_profit, 'profit')}
                                                             {/* NPS */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_nps, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_nps, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_nps)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_nps, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_nps, 0)}</td>
+                                                            {renderAchCell(am.ach_nps, 'nps')}
                                                             {/* MAPS */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_maps, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_maps, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_maps)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_maps, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_maps, 0)}</td>
+                                                            {renderAchCell(am.ach_maps, 'maps')}
                                                             {/* LOP */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{am.formatted_t_lop || formatNumber(am.t_lop, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{am.formatted_r_lop || formatNumber(am.r_lop, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_lop)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600 min-w-[90px] whitespace-nowrap">{am.formatted_t_lop || formatNumber(am.t_lop, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600 min-w-[90px] whitespace-nowrap">{am.formatted_r_lop || formatNumber(am.r_lop, 0)}</td>
+                                                            {renderAchCell(am.ach_lop, 'lop')}
                                                             {/* Capability */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_capability, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_capability, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_capability)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_capability, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_capability, 0)}</td>
+                                                            {renderAchCell(am.ach_capability, 'capability')}
                                                             {/* CC */}
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cc, 0)}</td>
-                                                            <td className="text-right p-2 text-xs border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cc, 0)}</td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
-                                                                {formatNumber(am.ach_cc)}%
-                                                            </td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cc, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cc, 0)}</td>
+                                                            {renderAchCell(am.ach_cc, 'cc')}
                                                             {/* Summary */}
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
+                                                            <td className="text-right p-2 text-sm font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
                                                                 {formatNumber(am.ach_result)}%
                                                             </td>
-                                                            <td className="text-right p-2 text-xs font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
+                                                            <td className="text-right p-2 text-sm font-bold border-r border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-950 text-gray-900 dark:text-gray-100">
                                                                 {formatNumber(am.ach_proses)}%
                                                             </td>
-                                                            <td className={`text-right p-2 text-xs font-bold ${getAchievementColor(am.nki_adjustment)}`}>
+                                                            <td className={`text-right p-2 text-sm font-bold ${getAchievementColor(am.nki_adjustment)}`}>
                                                                 {formatNumber(am.nki_adjustment)}%
                                                             </td>
                                                     </tr>
@@ -574,65 +624,6 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                                                 )}
                                             </tbody>
                                         </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right: Parameter Section - 35% (7 columns) */}
-                            <div className="lg:col-span-7">
-                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm sticky top-6">
-                                    <div className="p-5">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Parameter Performance</h3>
-                                        
-                                        {/* Tab Navigation */}
-                                        <div className="flex gap-2 mb-4 border-b border-gray-200 dark:border-gray-700">
-                                            <button
-                                                onClick={() => setActiveTab('result')}
-                                                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-                                                    activeTab === 'result'
-                                                        ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                                                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                                                }`}
-                                            >
-                                                Aspek Result ({formatNumber(data.parameter_result.percentage_result)}%)
-                                            </button>
-                                            <button
-                                                onClick={() => setActiveTab('proses')}
-                                                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-                                                    activeTab === 'proses'
-                                                        ? 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'
-                                                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                                                }`}
-                                            >
-                                                Aspek Process ({formatNumber(data.parameter_proses.percentage_proses)}%)
-                                            </button>
-                                        </div>
-
-                                        {/* Tab Content */}
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-sm">
-                                                <thead>
-                                                    <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                                                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">No</th>
-                                                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">Parameter</th>
-                                                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 dark:text-gray-300">Bobot (%)</th>
-                                                        <th className="px-3 py-2 text-center text-xs font-semibold text-green-600 dark:text-green-400">Ach</th>
-                                                        <th className="px-3 py-2 text-center text-xs font-semibold text-red-600 dark:text-red-400">Not Ach</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                                                    {(activeTab === 'result' ? data.parameter_result.parameters : data.parameter_proses.parameters).map((param, idx) => (
-                                                        <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-850">
-                                                            <td className="px-3 py-2 text-gray-900 dark:text-gray-100">{idx + 1}</td>
-                                                            <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">{param.parameter}</td>
-                                                            <td className="px-3 py-2 text-center text-gray-900 dark:text-gray-100">{formatNumber(param.bobot)}%</td>
-                                                            <td className="px-3 py-2 text-center font-bold text-green-600 dark:text-green-400">{param.ach_count}</td>
-                                                            <td className="px-3 py-2 text-center font-bold text-red-600 dark:text-red-400">{param.not_ach_count}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -650,6 +641,18 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                     </Button>
                 </div>
             </DialogContent>
+
+            {/* AM Performance Detail Modal */}
+            {selectedAM && (
+                <AmPerformanceDetailModal
+                    isOpen={isAMModalOpen}
+                    onClose={closeAMModal}
+                    nikAm={selectedAM}
+                    quarter={quarter}
+                    year={year}
+                    segment={segment}
+                />
+            )}
         </Dialog>
     );
 };

@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, User, MapPin, Phone, Building2, Calendar, TrendingUp, TrendingDown, Target, Award, ArrowUp, ArrowDown } from 'lucide-react';
 import axios from '@/lib/axios';
+import AmPerformanceTrendChart from '@/components/charts/AmPerformanceTrendChart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface AMInfo {
@@ -146,6 +147,8 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
                 }
             });
             
+            if (response.data.success) {
+                setData(response.data.data);
             console.log('AM Details Response:', response.data);
             console.log('Response success:', response.data.success);
             console.log('Response data:', response.data.data);
@@ -726,6 +729,11 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
                                     </Button>
                                 </div>
                             </div>
+                            <AmPerformanceTrendChart
+                                historicalData={data.historical_data}
+                                mode={chartFilter}
+                                currentYear={parseInt(String(year))}
+                            />
                             <div className="h-[400px] w-full">
                                 {chartFilter === 'year' ? (
                                     prepareChartData().length > 0 ? (

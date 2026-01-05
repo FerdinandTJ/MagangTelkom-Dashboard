@@ -820,88 +820,140 @@ class RegionNkiController extends Controller
                 continue;
             }
 
-            // Get all targets for this AM's companies in this segment
-            $amCompanyIds = DB::table('account_manager_company as amc')
+            // Get bobot (percentage) for each parameter from lini_waktu
+            $bobotRevenue = $liniWaktu->percentage_revenue ?? 0;
+            $bobotScaling = $liniWaktu->percentage_scaling ?? 0;
+            $bobotDatin = $liniWaktu->percentage_datin ?? 0;
+            $bobotHsi = $liniWaktu->percentage_hsi ?? 0;
+            $bobotWireline = $liniWaktu->percentage_wireline ?? 0;
+            $bobotWifi = $liniWaktu->percentage_wifi ?? 0;
+            $bobotCyc = $liniWaktu->percentage_cyc ?? 0;
+            $bobotCr = $liniWaktu->percentage_cr ?? 0;
+            $bobotProfit = $liniWaktu->percentage_profit ?? 0;
+            $bobotNps = $liniWaktu->percentage_customer ?? 0;
+            $bobotMaps = $liniWaktu->percentage_maps ?? 0;
+            $bobotLop = $liniWaktu->percentage_lop ?? 0;
+            $bobotCapability = $liniWaktu->percentage_capability ?? 0;
+            $bobotCc = $liniWaktu->percentage_cc ?? 0;
+
+            // Get pivot data with targets and proporsi - same method as getPeriodData
+            $pivotData = DB::table('lini_waktu_target as lwt')
+                ->join('target_account_m as t', 'lwt.target_id', '=', 't.id')
+                ->join('account_manager_company as amc', 't.account_manager_company_id', '=', 'amc.id')
+                ->where('lwt.lini_waktu_id', $liniWaktu->id)
                 ->where('amc.nik_am', $am->nik)
                 ->where('amc.segment', $segment)
-                ->pluck('amc.id')
-                ->toArray();
-
-            \Log::info("AM {$am->nik} company IDs:", ['count' => count($amCompanyIds), 'ids' => $amCompanyIds]);
-
-            if (empty($amCompanyIds)) {
-
-                continue;
-            }
-
-            $targets = TargetAccountM::whereIn('account_manager_company_id', $amCompanyIds)->get();
-            $targetIds = $targets->pluck('id')->toArray();
-
-            \Log::info("AM {$am->nik} target IDs:", ['count' => count($targetIds)]);
-
-            if (empty($targetIds)) {
-
-                continue;
-            }
-
-            // Get pivot data (realisasi and achievements)
-            $pivotData = DB::table('lini_waktu_target')
-                ->where('lini_waktu_id', $liniWaktu->id)
-                ->whereIn('target_id', $targetIds)
+                ->select('lwt.*', 't.*', 'amc.proporsi')
                 ->get();
 
             \Log::info("AM {$am->nik} pivot data:", ['count' => $pivotData->count()]);
 
             if ($pivotData->isEmpty()) {
-
                 continue;
             }
 
-            // Aggregate targets and realisasi for this AM
-            $amTargetRevenue = $targets->sum('t_revenue');
-            $amRealisasiRevenue = $pivotData->sum('r_revenue');
-            $amTargetScaling = $targets->sum('t_scalling');
-            $amRealisasiScaling = $pivotData->sum('r_scalling');
-            $amTargetDatin = $targets->sum('t_datin');
-            $amRealisasiDatin = $pivotData->sum('r_datin');
-            $amTargetHsi = $targets->sum('t_hsi');
-            $amRealisasiHsi = $pivotData->sum('r_hsi');
-            $amTargetWireline = $targets->sum('t_wireline');
-            $amRealisasiWireline = $pivotData->sum('r_wireline');
-            $amTargetWifi = $targets->sum('t_wifi');
-            $amRealisasiWifi = $pivotData->sum('r_wifi');
-            $amTargetCyc = $targets->sum('t_cyc');
-            $amRealisasiCyc = $pivotData->sum('r_cyc');
-            $amTargetCr = $targets->sum('t_cr');
-            $amRealisasiCr = $pivotData->sum('r_cr');
-            $amTargetProfit = $targets->sum('t_profit');
-            $amRealisasiProfit = $pivotData->sum('r_profit');
-            $amTargetNps = $targets->sum('t_nps');
-            $amRealisasiNps = $pivotData->sum('r_nps');
-            $amTargetMaps = $targets->sum('t_maps');
-            $amRealisasiMaps = $pivotData->sum('r_maps');
-            $amTargetLop = $targets->sum('t_lop');
-            $amRealisasiLop = $pivotData->sum('r_lop');
-            $amTargetCapability = $targets->sum('t_capability');
-            $amRealisasiCapability = $pivotData->sum('r_capability');
-            $amTargetCc = $targets->sum('t_cc');
-            $amRealisasiCc = $pivotData->sum('r_cc');
+            // Aggregate targets and realisasi for this AM with proporsi - same calculation as getPeriodData
+            $amTargetRevenue = $pivotData->sum(function($row) {
+                return $row->t_revenue * ($row->proporsi / 100);
+            });
+            \Log::info("AM {$am->nik} Target Revenue:", ['amount' => $amTargetRevenue, 'targets_count' => $pivotData->count()]);
+            $amRealisasiRevenue = $pivotData->sum(function($row) {
+                return $row->r_revenue * ($row->proporsi / 100);
+            });
+            $amTargetScaling = $pivotData->sum(function($row) {
+                return $row->t_scalling * ($row->proporsi / 100);
+            });
+            $amRealisasiScaling = $pivotData->sum(function($row) {
+                return $row->r_scalling * ($row->proporsi / 100);
+            });
+            $amTargetDatin = $pivotData->sum(function($row) {
+                return $row->t_datin * ($row->proporsi / 100);
+            });
+            $amRealisasiDatin = $pivotData->sum(function($row) {
+                return $row->r_datin * ($row->proporsi / 100);
+            });
+            $amTargetHsi = $pivotData->sum(function($row) {
+                return $row->t_hsi * ($row->proporsi / 100);
+            });
+            $amRealisasiHsi = $pivotData->sum(function($row) {
+                return $row->r_hsi * ($row->proporsi / 100);
+            });
+            $amTargetWireline = $pivotData->sum(function($row) {
+                return $row->t_wireline * ($row->proporsi / 100);
+            });
+            $amRealisasiWireline = $pivotData->sum(function($row) {
+                return $row->r_wireline * ($row->proporsi / 100);
+            });
+            $amTargetWifi = $pivotData->sum(function($row) {
+                return $row->t_wifi * ($row->proporsi / 100);
+            });
+            $amRealisasiWifi = $pivotData->sum(function($row) {
+                return $row->r_wifi * ($row->proporsi / 100);
+            });
+            $amTargetCyc = $pivotData->sum(function($row) {
+                return $row->t_cyc * ($row->proporsi / 100);
+            });
+            $amRealisasiCyc = $pivotData->sum(function($row) {
+                return $row->r_cyc * ($row->proporsi / 100);
+            });
+            $amTargetCr = $pivotData->sum(function($row) {
+                return $row->t_cr * ($row->proporsi / 100);
+            });
+            $amRealisasiCr = $pivotData->sum(function($row) {
+                return $row->r_cr * ($row->proporsi / 100);
+            });
+            $amTargetProfit = $pivotData->sum(function($row) {
+                return $row->t_profit * ($row->proporsi / 100);
+            });
+            $amRealisasiProfit = $pivotData->sum(function($row) {
+                return $row->r_profit * ($row->proporsi / 100);
+            });
+            $amTargetNps = $pivotData->sum(function($row) {
+                return $row->t_nps * ($row->proporsi / 100);
+            });
+            $amRealisasiNps = $pivotData->sum(function($row) {
+                return $row->r_nps * ($row->proporsi / 100);
+            });
+            $amTargetMaps = $pivotData->sum(function($row) {
+                return $row->t_maps * ($row->proporsi / 100);
+            });
+            $amRealisasiMaps = $pivotData->sum(function($row) {
+                return $row->r_maps * ($row->proporsi / 100);
+            });
+            $amTargetLop = $pivotData->sum(function($row) {
+                return $row->t_lop * ($row->proporsi / 100);
+            });
+            $amRealisasiLop = $pivotData->sum(function($row) {
+                return $row->r_lop * ($row->proporsi / 100);
+            });
+            $amTargetCapability = $pivotData->sum(function($row) {
+                return $row->t_capability * ($row->proporsi / 100);
+            });
+            $amRealisasiCapability = $pivotData->sum(function($row) {
+                return $row->r_capability * ($row->proporsi / 100);
+            });
+            $amTargetCc = $pivotData->sum(function($row) {
+                return $row->t_cc * ($row->proporsi / 100);
+            });
+            $amRealisasiCc = $pivotData->sum(function($row) {
+                return $row->r_cc * ($row->proporsi / 100);
+            });
 
-            // Calculate achievements
-            $achRevenue = $amTargetRevenue > 0 ? ($amRealisasiRevenue / $amTargetRevenue) * 100 : 0;
-            $achScaling = $amTargetScaling > 0 ? ($amRealisasiScaling / $amTargetScaling) * 100 : 0;
-            $achDatin = $amTargetDatin > 0 ? ($amRealisasiDatin / $amTargetDatin) * 100 : 0;
-            $achHsi = $amTargetHsi > 0 ? ($amRealisasiHsi / $amTargetHsi) * 100 : 0;
-            $achWireline = $amTargetWireline > 0 ? ($amRealisasiWireline / $amTargetWireline) * 100 : 0;
-            $achWifi = $amTargetWifi > 0 ? ($amRealisasiWifi / $amTargetWifi) * 100 : 0;
-            $achCyc = $amTargetCyc > 0 ? ($amRealisasiCyc / $amTargetCyc) * 100 : 0;
-            $achCr = $amTargetCr > 0 ? ($amRealisasiCr / $amTargetCr) * 100 : 0;
-            $achProfit = $amTargetProfit > 0 ? ($amRealisasiProfit / $amTargetProfit) * 100 : 0;
-            $achNps = $amTargetNps > 0 ? ($amRealisasiNps / $amTargetNps) * 100 : 0;
-            $achMaps = $amTargetMaps > 0 ? ($amRealisasiMaps / $amTargetMaps) * 100 : 0;
-            $achLop = $amTargetLop > 0 ? ($amRealisasiLop / $amTargetLop) * 100 : 0;
-            $achCapability = $amTargetCapability > 0 ? ($amRealisasiCapability / $amTargetCapability) * 100 : 0;
-            $achCc = $amTargetCc > 0 ? ($amRealisasiCc / $amTargetCc) * 100 : 0;
+            // Calculate achievements with bobot
+            $achRevenue = $amTargetRevenue > 0 ? ($amRealisasiRevenue / $amTargetRevenue) * $bobotRevenue : 0;
+            $achScaling = $amTargetScaling > 0 ? ($amRealisasiScaling / $amTargetScaling) * $bobotScaling : 0;
+            $achDatin = $amTargetDatin > 0 ? ($amRealisasiDatin / $amTargetDatin) * $bobotDatin : 0;
+            $achHsi = $amTargetHsi > 0 ? ($amRealisasiHsi / $amTargetHsi) * $bobotHsi : 0;
+            $achWireline = $amTargetWireline > 0 ? ($amRealisasiWireline / $amTargetWireline) * $bobotWireline : 0;
+            $achWifi = $amTargetWifi > 0 ? ($amRealisasiWifi / $amTargetWifi) * $bobotWifi : 0;
+            $achCyc = $amTargetCyc > 0 ? ($amRealisasiCyc / $amTargetCyc) * $bobotCyc : 0;
+            $achCr = $amTargetCr > 0 ? ($amRealisasiCr / $amTargetCr) * $bobotCr : 0;
+            $achProfit = $amTargetProfit > 0 ? ($amRealisasiProfit / $amTargetProfit) * $bobotProfit : 0;
+            $achNps = $amTargetNps > 0 ? ($amRealisasiNps / $amTargetNps) * $bobotNps : 0;
+            $achMaps = $amTargetMaps > 0 ? ($amRealisasiMaps / $amTargetMaps) * $bobotMaps : 0;
+            $achLop = $amTargetLop > 0 ? ($amRealisasiLop / $amTargetLop) * $bobotLop : 0;
+            $achCapability = $amTargetCapability > 0 ? ($amRealisasiCapability / $amTargetCapability) * $bobotCapability : 0;
+            $achCc = $amTargetCc > 0 ? ($amRealisasiCc / $amTargetCc) * $bobotCc : 0;
 
             // Get ach_result, ach_proses, nki_adjustment from pivot
             $achResult = $pivotData->avg('ach_result') ?? 0;
@@ -912,6 +964,8 @@ class RegionNkiController extends Controller
             $totalRealisasiRevenue += $amRealisasiRevenue;
             $totalNki += $nkiAdjustment;
             $nkiCount++;
+            
+            \Log::info("Running Total Target Revenue:", ['total' => $totalTargetRevenue]);
 
             // Format currency
             $formattedTargetRevenue = $this->formatCurrency($amTargetRevenue);
@@ -1098,6 +1152,7 @@ class RegionNkiController extends Controller
         }
 
         \Log::info('Final AM List count:', ['count' => count($amList)]);
+        \Log::info('FINAL Total Target Revenue:', ['amount' => $totalTargetRevenue, 'formatted' => $this->formatCurrency($totalTargetRevenue)]);
 
         // Get percentage_result and percentage_proses from lini_waktu
         $sampleLiniWaktu = $liniWaktuData->first();

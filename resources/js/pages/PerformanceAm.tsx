@@ -2,12 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Users, Target, Calendar, FileSpreadsheet, Download, Upload, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import AMRevenueDetailModal from '@/components/modals/AMRevenueDetailModal';
 import RegionNkiModal from '@/components/RegionNkiModal';
+import RegionWitelDetailModal from '@/components/modals/RegionWitelDetailModal';
+import RegionDistributionChart from '@/components/charts/RegionDistributionChart';
+import BestPerformanceSection from '@/components/sections/BestPerformanceSection';
+import TargetRevenueRegionChart from '@/components/charts/TargetRevenueRegionChart';
 
 interface PerformanceAMProps {
     amMetrics: {
@@ -128,6 +131,12 @@ export default function PerformanceAM({
     const [isRegionNkiModalOpen, setIsRegionNkiModalOpen] = useState(false);
     const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
     const [selectedRegionName, setSelectedRegionName] = useState<string>('');
+    const [selectedRegionModal, setSelectedRegionModal] = useState<string>('');
+
+    // State for Region Witel Detail Modal
+    const [isRegionWitelModalOpen, setIsRegionWitelModalOpen] = useState(false);
+    const [selectedRegionCodeForWitel, setSelectedRegionCodeForWitel] = useState<string | null>(null);
+    const [selectedRegionNameForWitel, setSelectedRegionNameForWitel] = useState<string>('');
 
     // State for tooltip
     const [tooltipData, setTooltipData] = useState<RegionRevenueData | null>(null);
@@ -287,7 +296,7 @@ export default function PerformanceAM({
                 setRegionRevenueData(result.data);
             }
         } catch (error) {
-            console.error('Error fetching region revenue data:', error);
+            // Silent error handling
         } finally {
             setLoadingRegionRevenue(false);
         }
@@ -309,6 +318,19 @@ export default function PerformanceAM({
                 setSelectedRegionName(regionName || regionCode);
                 setIsRegionNkiModalOpen(true);
             }
+        }
+    };
+
+    // Handler untuk click pada chart region (dari TargetRevenueRegionChart)
+    const handleRegionChartClick = (regionCode: string) => {
+        // Chart mengirim region_code langsung (TREG1, TREG2, dll)
+        // Cari region yang region_code-nya sama
+        const region = regionRevenueData.find(r => r.region_code === regionCode);
+        
+        if (region) {
+            setSelectedRegionCodeForWitel(region.region_code);
+            setSelectedRegionNameForWitel(region.region_name);
+            setIsRegionWitelModalOpen(true);
         }
     };
 
@@ -598,234 +620,14 @@ export default function PerformanceAM({
                                         <p className="text-gray-600">No data available</p>
                                     </div>
                                 ) : (
-                                    <div className="w-full">
-                                        {/* Legend - At Top Right */}
-                                        <div className="flex justify-end mb-3">
-                                            <div className="flex flex-row gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded" style={{ backgroundColor: '#94a3b8', opacity: 0.8 }}></div>
-                                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">To Target</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 bg-red-600 dark:bg-red-500 rounded"></div>
-                                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Below Target</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 bg-green-600 dark:bg-green-500 rounded"></div>
-                                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Above Target</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-4 h-1 bg-black rounded-full"></div>
-                                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Target Value</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Bullet Chart with Axis */}
-                                        <div className="flex gap-0">
-                                                {/* Y-Axis */}
-                                                <div className="flex flex-col justify-between py-3 relative" style={{ height: '450px' }}>
-                                                    {(() => {
-                                                        const maxValue = Math.max(...regionRevenueData.map(r => Math.max(r.target_revenue, r.realisasi_revenue)));
-                                                        const yAxisSteps = 10;
-                                                        const stepValue = maxValue / yAxisSteps;
-                                                        
-                                                        return Array.from({ length: yAxisSteps + 1 }, (_, i) => {
-                                                            const value = maxValue - (i * stepValue);
-                                                            const formatted = value >= 1000000000000 
-                                                                ? `${(value / 1000000000000).toFixed(1)}T`
-                                                                : `${(value / 1000000000).toFixed(0)}M`;
-                                                            
-                                                            return (
-                                                                <div key={i} className="flex items-center justify-end gap-0.5">
-                                                                    <span className="text-xs text-gray-600 dark:text-gray-400" style={{ fontSize: '12px' }}>
-                                                                        {formatted}
-                                                                    </span>
-                                                                    <div className="w-1.5 h-px bg-gray-400"></div>
-                                                                </div>
-                                                            );
-                                                        });
-                                                    })()}
-                                                </div>
-                                            
-                                                {/* Chart Area */}
-                                                <div className="flex-1 relative">
-                                                    <div className="chart-container flex items-end justify-around gap-6 h-[450px] border-l-2 border-b-2 border-gray-400 pl-6 relative">
-                                                        {/* Global Tooltip */}
-                                                        {tooltipData && (
-                                                            <div 
-                                                                className="absolute pointer-events-none z-50"
-                                                                style={{ 
-                                                                    left: `${tooltipPosition.x + 15}px`,
-                                                                    top: `${tooltipPosition.y - 75}px`,
-                                                                    transform: 'translateY(-50%)'
-                                                                }}
-                                                            >
-                                                                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-3 min-w-[200px]" style={{ boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-                                                                    <p className="font-semibold text-gray-900 dark:text-gray-100 mb-2" style={{ fontSize: '14px' }}>
-                                                                        {tooltipData.region_name}
-                                                                    </p>
-                                                                    
-                                                                    <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }} className="dark:border-gray-700">
-                                                                        <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Target Revenue</p>
-                                                                        <p style={{ margin: '4px 0', fontSize: '14px' }} className="text-gray-900 dark:text-gray-100">
-                                                                            <span style={{ 
-                                                                                display: 'inline-block',
-                                                                                width: '12px',
-                                                                                height: '12px',
-                                                                                backgroundColor: '#94a3b8',
-                                                                                marginRight: '8px',
-                                                                                borderRadius: '2px',
-                                                                                opacity: 0.8
-                                                                            }}></span>
-                                                                            {tooltipData.formatted_target}
-                                                                        </p>
-                                                                    </div>
-                                                                    
-                                                                    <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }} className="dark:border-gray-700">
-                                                                        <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Realisasi Revenue</p>
-                                                                        <p style={{ margin: '4px 0', fontSize: '14px' }} className="text-gray-900 dark:text-gray-100">
-                                                                            <span style={{ 
-                                                                                display: 'inline-block',
-                                                                                width: '12px',
-                                                                                height: '12px',
-                                                                                backgroundColor: tooltipData.realisasi_revenue > tooltipData.target_revenue ? '#16a34a' : '#dc2626',
-                                                                                marginRight: '8px',
-                                                                                borderRadius: '2px'
-                                                                            }}></span>
-                                                                            {tooltipData.formatted_realisasi}
-                                                                        </p>
-                                                                    </div>
-                                                                    
-                                                                    <div style={{ 
-                                                                        display: 'flex', 
-                                                                        alignItems: 'center', 
-                                                                        gap: '8px',
-                                                                        padding: '6px 8px',
-                                                                        borderRadius: '4px',
-                                                                        backgroundColor: (tooltipData.realisasi_revenue - tooltipData.target_revenue) >= 0 ? '#dcfce7' : '#fee2e2',
-                                                                        color: (tooltipData.realisasi_revenue - tooltipData.target_revenue) >= 0 ? '#166534' : '#991b1b'
-                                                                    }}>
-                                                                        <span style={{ fontWeight: 600, fontSize: '12px' }}>
-                                                                            {(tooltipData.realisasi_revenue - tooltipData.target_revenue) >= 0 ? '▲' : '▼'} {(() => {
-                                                                                const absVariance = Math.abs(tooltipData.realisasi_revenue - tooltipData.target_revenue);
-                                                                                if (absVariance >= 1000000000000) {
-                                                                                    return `${(absVariance / 1000000000000).toFixed(2)}T`;
-                                                                                } else if (absVariance >= 1000000000) {
-                                                                                    return `${(absVariance / 1000000000).toFixed(2)}M`;
-                                                                                } else {
-                                                                                    return `${(absVariance / 1000000).toFixed(2)}Jt`;
-                                                                                }
-                                                                            })()}
-                                                                        </span>
-                                                                        <span style={{ fontSize: '11px' }}>
-                                                                            {(tooltipData.realisasi_revenue - tooltipData.target_revenue) >= 0 ? 'Above Target' : 'Below Target'}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {regionRevenueData.map((region, idx) => {
-                                                        const maxValue = Math.max(...regionRevenueData.map(r => Math.max(r.target_revenue, r.realisasi_revenue)));
-                                                        const targetHeight = (region.target_revenue / maxValue) * 100;
-                                                        const realisasiHeight = (region.realisasi_revenue / maxValue) * 100;
-                                                        const isAboveTarget = region.realisasi_revenue > region.target_revenue;
-                                                        const variance = region.realisasi_revenue - region.target_revenue;
-                                                        const varianceHeight = (Math.abs(variance) / maxValue) * 100;
-                                                        
-                                                        return (
-                                                            <div 
-                                                                key={region.region_code} 
-                                                                className="flex flex-col items-center flex-1 max-w-[90px]"
-                                                                onMouseEnter={() => setTooltipData(region)}
-                                                                onMouseLeave={() => setTooltipData(null)}
-                                                                onMouseMove={(e) => {
-                                                                    const chartContainer = e.currentTarget.closest('.chart-container');
-                                                                    if (chartContainer) {
-                                                                        const rect = chartContainer.getBoundingClientRect();
-                                                                        setTooltipPosition({
-                                                                            x: e.clientX - rect.left,
-                                                                            y: e.clientY - rect.top
-                                                                        });
-                                                                    }
-                                                                }}
-                                                            >
-                                                                {/* Stacked Bar Chart */}
-                                                                <div 
-                                                                    className="relative w-full flex flex-col-reverse cursor-pointer" 
-                                                                    style={{ height: '420px' }}
-                                                                >
-                                                                    {/* Percentage Label - follows chart height */}
-                                                                    {variance !== 0 && (
-                                                                        <div 
-                                                                            className={`absolute left-1/2 transform -translate-x-1/2 text-xs font-semibold flex items-center gap-0.5 whitespace-nowrap ${
-                                                                                isAboveTarget ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'
-                                                                            }`}
-                                                                            style={{ 
-                                                                                bottom: `${isAboveTarget ? targetHeight + varianceHeight : Math.max(targetHeight, realisasiHeight)}%`,
-                                                                                marginBottom: '4px'
-                                                                            }}
-                                                                        >
-                                                                            <span>{isAboveTarget ? '↑' : '↓'}</span>
-                                                                            <span>{Math.abs(region.variance_percentage).toFixed(1)}%</span>
-                                                                        </div>
-                                                                    )}
-                                                                    
-                                                                    {/* Gray base bar (Target) */}
-                                                                    <div 
-                                                                        className="w-full rounded-t-xl relative shadow-md transition-all duration-200 group-hover:shadow-lg"
-                                                                        style={{ height: `${targetHeight}%`, backgroundColor: '#94a3b8', opacity: 0.8 }}
-                                                                    >
-                                                                        {/* Target marker line */}
-                                                                        <div className="absolute -top-[3px] left-0 right-0 h-[4px] bg-black z-10 shadow-md"></div>
-                                                                        
-                                                                        {/* Variance bar on top of gray */}
-                                                                        {variance !== 0 && (
-                                                                            <div 
-                                                                                className={`absolute left-0 right-0 rounded-t-xl shadow-lg transition-all duration-200 ${
-                                                                                    isAboveTarget 
-                                                                                        ? 'bg-gradient-to-t from-green-500 to-green-600 group-hover:from-green-600 group-hover:to-green-700' 
-                                                                                        : 'bg-gradient-to-t from-red-500 to-red-600 group-hover:from-red-600 group-hover:to-red-700'
-                                                                                }`}
-                                                                                style={{ 
-                                                                                    height: `${(varianceHeight / targetHeight) * 100}%`,
-                                                                                    bottom: isAboveTarget ? '100%' : 'auto',
-                                                                                    top: isAboveTarget ? 'auto' : '0'
-                                                                                }}
-                                                                            />
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                                
-                                                    {/* X-Axis with Label */}
-                                                    <div className="relative mt-0">
-                                                        {/* Tick Marks and Labels */}
-                                                        <div className="flex items-start justify-around gap-6 pl-6">
-                                                            {regionRevenueData.map((region) => (
-                                                                <div key={`label-${region.region_code}`} className="flex-1 max-w-[90px] flex flex-col items-center justify-center">
-                                                                    <div className="w-px h-1.5 bg-gray-400 mb-0.5"></div>
-                                                                    <div className="text-xs text-gray-600 text-center">
-                                                                        {region.region_code}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        
-                                                        {/* Axis Label */}
-                                                        <div className="text-center mt-0.5 mb-0.5">
-                                                            <span className="text-xs text-gray-600" style={{ fontSize: '11px' }}>
-                                                                Region
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                        </div>
-                                    </div>
+                                    <TargetRevenueRegionChart
+                                        regionRevenueData={regionRevenueData}
+                                        tooltipData={tooltipData}
+                                        setTooltipData={setTooltipData}
+                                        tooltipPosition={tooltipPosition}
+                                        setTooltipPosition={setTooltipPosition}
+                                        onRegionClick={handleRegionChartClick}
+                                    />
                                 )
                             )}
                         </CardContent>
@@ -844,133 +646,16 @@ export default function PerformanceAM({
                                 <CardDescription>Distribusi AM per Region</CardDescription>
                             </CardHeader>
                         <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={regionDistribution}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-                                            if (percent < 0.05) return null;
-                                            
-                                            const RADIAN = Math.PI / 180;
-                                            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-                                            return (
-                                                <text 
-                                                    x={x} 
-                                                    y={y} 
-                                                    fill="white" 
-                                                    textAnchor={x > cx ? 'start' : 'end'} 
-                                                    dominantBaseline="central"
-                                                    fontSize={12}
-                                                    fontWeight="bold"
-                                                >
-                                                    {`${(percent * 100).toFixed(0)}%`}
-                                                </text>
-                                            );
-                                        }}
-                                        outerRadius={100}
-                                        fill="#8884d8"
-                                        dataKey="am_count"
-                                        className="cursor-pointer"
-                                        onClick={handlePieClick}
-                                    >
-                                        {regionDistribution.map((entry, index) => (
-                                            <Cell 
-                                                key={`cell-${index}`} 
-                                                fill={COLORS[index % COLORS.length]}
-                                                className="hover:opacity-80 transition-opacity"
-                                            />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip 
-                                        formatter={(value: any, name: any, props: any) => [
-                                            `${value} Account Manager`,
-                                            props.payload.region_code
-                                        ]}
-                                        labelFormatter={() => ''}
-                                        contentStyle={{
-                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                            border: '1px solid #e5e7eb',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                                        }}
-                                    />
-                                    <Legend 
-                                        verticalAlign="bottom"
-                                        height={36}
-                                        formatter={(value, entry: any) => entry.payload.region_code}
-                                        wrapperStyle={{ fontSize: '12px' }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
+                            <RegionDistributionChart 
+                                data={regionDistribution}
+                                colors={COLORS}
+                                onPieClick={handlePieClick}
+                            />
                         </CardContent>
                         </Card>
 
                         {/* Best Performance Card - Hanya muncul saat tab Regional Performance aktif */}
-                        {activeRevenueTab === 'regional' && bestPerformance && bestPerformance.length > 0 && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Target className="h-5 w-5 text-red-600" />
-                                        Best Performance
-                                    </CardTitle>
-                                    <CardDescription>Top 3 Account Managers</CardDescription>
-                                </CardHeader>
-                            <CardContent>
-                                <div className="space-y-3">
-                                    {bestPerformance.map((am, index) => {
-                                        const medals = ['🥇', '🥈', '🥉'];
-                                        const borderColors = ['border-yellow-400', 'border-gray-400', 'border-orange-400'];
-                                        const bgGradients = [
-                                            'from-yellow-50 to-orange-50',
-                                            'from-gray-50 to-gray-100',
-                                            'from-orange-50 to-amber-50'
-                                        ];
-                                        
-                                        return (
-                                            <div key={am.nik} className={`p-4 bg-gradient-to-r ${bgGradients[index]} border-2 ${borderColors[index]} rounded-xl`}>
-                                                {/* Header dengan Rank dan Nama */}
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <div className="flex-shrink-0">
-                                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
-                                                            <span className="text-xl">{medals[index]}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="font-bold text-base text-gray-900 truncate">{am.am_name}</h3>
-                                                        <p className="text-xs text-gray-600">Region: {am.region_code}</p>
-                                                    </div>
-                                                </div>
-                                                
-                                                {/* Metrics dalam satu baris */}
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2 text-center">
-                                                        <p className="text-xs text-gray-600 mb-1">Revenue</p>
-                                                        <p className="text-sm font-bold text-gray-900">{am.formatted_revenue}</p>
-                                                    </div>
-                                                    <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2 text-center">
-                                                        <p className="text-xs text-gray-600 mb-1">Growth</p>
-                                                        <p className={`text-sm font-bold ${am.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                            {am.growth >= 0 ? '↗' : '↘'} {am.formatted_growth}
-                                                        </p>
-                                                    </div>
-                                                    <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2 text-center">
-                                                        <p className="text-xs text-gray-600 mb-1">CC</p>
-                                                        <p className="text-sm font-bold text-gray-900">{am.company_count}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
-                        )}
+                        {activeRevenueTab === 'regional' && <BestPerformanceSection bestPerformance={bestPerformance} />}
                     </div>
                 </div>
 
@@ -1130,6 +815,17 @@ export default function PerformanceAM({
                         year={selectedYear}
                     />
                 )}
+
+                {/* Region Witel Detail Modal */}
+                <RegionWitelDetailModal
+                    isOpen={isRegionWitelModalOpen}
+                    onClose={() => setIsRegionWitelModalOpen(false)}
+                    regionCode={selectedRegionCodeForWitel}
+                    regionName={selectedRegionNameForWitel}
+                    year={selectedYear}
+                    quartal={baseQuartal}
+                    isYearToDate={isYearToDate}
+                />
             </div>
         </AppSidebarLayout>
     );
