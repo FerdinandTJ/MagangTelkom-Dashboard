@@ -478,8 +478,8 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                             </div>
                         )}
 
-                        {/* Monthly Target Management Section */}
-                        {monthlyData && monthlyData.length > 0 && (
+                        {/* Monthly Target Management Section - TEMPORARILY DISABLED */}
+                        {false && monthlyData && monthlyData.length > 0 && (
                             <div className="mt-3 mb-3">
                                 <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
                                     <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">

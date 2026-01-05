@@ -1617,29 +1617,30 @@ class DashboardController extends Controller
 
     /**
      * Update revenue target for a specific revenue record
+     * TEMPORARILY DISABLED
      * 
      * @param Request $request
      * @param int $revenueId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function updateRevenueTarget(Request $request, $revenueId)
-    {
-        $request->validate([
-            'revenue_target' => 'required|numeric|min:0'
-        ]);
+    // public function updateRevenueTarget(Request $request, $revenueId)
+    // {
+    //     $request->validate([
+    //         'revenue_target' => 'required|numeric|min:0'
+    //     ]);
 
-        $revenue = \App\Models\Revenue::findOrFail($revenueId);
-        $revenue->revenue_target = $request->revenue_target;
-        $revenue->save();
+    //     $revenue = \App\Models\Revenue::findOrFail($revenueId);
+    //     $revenue->revenue_target = $request->revenue_target;
+    //     $revenue->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Target berhasil diupdate',
-            'data' => [
-                'id' => $revenue->idRevenue,
-                'revenue_target' => $revenue->revenue_target,
-                'formatted_target' => 'Rp ' . number_format($revenue->revenue_target, 0, ',', '.')
-            ]
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Target berhasil diupdate',
+    //         'data' => [
+    //             'id' => $revenue->idRevenue,
+    //             'revenue_target' => $revenue->revenue_target,
+    //             'formatted_target' => 'Rp ' . number_format($revenue->revenue_target, 0, ',', '.')
+    //         ]
+    //     ]);
+    // }
 }

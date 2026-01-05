@@ -46,8 +46,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Revenue Breakdown
         Route::get('revenue-breakdown/{companyId}', [RevenueBreakdownController::class, 'getBreakdown'])->name('api.dashboard.revenue-breakdown');
         
-        // Revenue Target Edit
-        Route::patch('revenue-target/{revenueId}', [DashboardController::class, 'updateRevenueTarget'])->name('api.dashboard.update-revenue-target');
+        // Revenue Target Edit - TEMPORARILY DISABLED
+        // Route::patch('revenue-target/{revenueId}', [DashboardController::class, 'updateRevenueTarget'])->name('api.dashboard.update-revenue-target');
     });
 });
 
