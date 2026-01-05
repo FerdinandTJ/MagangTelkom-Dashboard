@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, User, MapPin, Phone, Building2, Calendar, TrendingUp, TrendingDown, Target, Award, ArrowUp, ArrowDown } from 'lucide-react';
 import axios from '@/lib/axios';
 import AmPerformanceTrendChart from '@/components/charts/AmPerformanceTrendChart';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface AMInfo {
     nik_am: string;
@@ -129,6 +130,13 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
         setLoading(true);
         setError(null);
         
+        console.log('Fetching AM Details with params:', {
+            nik_am: nikAm,
+            quarter: quarter,
+            year: year,
+            segment: segment
+        });
+        
         try {
             const response = await axios.get('/api/dashboard/am-performance-detail', {
                 params: {
@@ -141,6 +149,13 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
             
             if (response.data.success) {
                 setData(response.data.data);
+            console.log('AM Details Response:', response.data);
+            console.log('Response success:', response.data.success);
+            console.log('Response data:', response.data.data);
+            
+            if (response.data.success) {
+                setData(response.data.data);
+                console.log('Data set successfully:', response.data.data);
             } else {
                 const errorMsg = response.data.message || 'Failed to fetch AM details';
                 console.error('API returned error:', errorMsg);
@@ -154,6 +169,149 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
         } finally {
             setLoading(false);
         }
+    };
+
+    // Prepare chart data based on filter
+    const prepareChartData = () => {
+        if (!data || !data.historical_data) return [];
+
+        if (chartFilter === 'year') {
+            // Yearly mode: Compare current year with 2 previous years (total 3 years)
+            const currentYear = parseInt(String(year)); // Ensure year prop is number
+            const targetYears = [currentYear, currentYear - 1, currentYear - 2];
+            const yearlyData: { [key: number]: any } = {};
+            
+            console.log('=== YEARLY CHART DEBUG ===');
+            console.log('Props year:', year, 'typeof:', typeof year);
+            console.log('Parsed currentYear:', currentYear, 'typeof:', typeof currentYear);
+            console.log('Target Years:', targetYears);
+            console.log('Total Historical Data Records:', data.historical_data.length);
+            console.log('Full Historical Data:', JSON.stringify(data.historical_data, null, 2));
+            
+            // Initialize data structure for target years only
+            targetYears.forEach(yr => {
+                yearlyData[yr] = {
+                    year: yr,
+                    Q1: null,
+                    Q2: null,
+                    Q3: null,
+                    Q4: null
+                };
+            });
+            
+            // Fill in data from historical_data
+            data.historical_data.forEach((period, index) => {
+                const periodYear = period.year; // Already number from backend
+                const periodQuarter = period.quarter; // Already number from backend
+                
+                console.log(`Period ${index}:`, {
+                    periodYear,
+                    periodQuarter,
+                    typeof_year: typeof periodYear,
+                    targetYears,
+                    includes: targetYears.includes(periodYear),
+                    nki: period.nki_adjustment
+                });
+                
+                // Only include data for target years
+                if (targetYears.includes(periodYear)) {
+                    console.log(`✓✓✓ ADDING Q${periodQuarter} ${periodYear} NKI: ${period.nki_adjustment}`);
+                    yearlyData[periodYear][`Q${periodQuarter}`] = period.nki_adjustment;
+                }
+            });
+
+            console.log('Final Yearly Data Structure:', JSON.stringify(yearlyData, null, 2));
+
+            // Convert to array and create data points for each quarter
+            const chartData: any[] = [];
+            ['Q1', 'Q2', 'Q3', 'Q4'].forEach(quarter => {
+                const dataPoint: any = { quarter };
+                targetYears.forEach(yr => {
+                    const value = yearlyData[yr][quarter];
+                    // Only add to dataPoint if value is not null (connectNulls=false will handle gaps)
+                    dataPoint[`year${yr}`] = value;
+                });
+                chartData.push(dataPoint);
+            });
+
+            console.log('Chart Data:', chartData);
+
+            return chartData;
+        } else {
+            // Quarterly mode: Show all parameters (Revenue to CC) for last 3 quarters
+            const last3Quarters = data.historical_data.slice(0, 3);
+            
+            const parameters = [
+                { key: 'ach_revenue_plan', label: 'Revenue' },
+                { key: 'ach_scaling', label: 'Scaling' },
+                { key: 'ach_sales_datin', label: 'Sales Datin' },
+                { key: 'ach_hsi', label: 'HSI' },
+                { key: 'ach_wireline', label: 'Wireline' },
+                { key: 'ach_wifi', label: 'WiFi' },
+                { key: 'ach_cyc', label: 'CYC' },
+                { key: 'ach_cr', label: 'CR' },
+                { key: 'ach_profit', label: 'Profit' },
+                { key: 'ach_nps', label: 'NPS' },
+                { key: 'ach_maps', label: 'MAPS' },
+                { key: 'ach_lop', label: 'LOP' },
+                { key: 'ach_capability', label: 'Capability' },
+                { key: 'ach_cc', label: 'CC' }
+            ];
+
+            return parameters.map(param => ({
+                parameter: param.label,
+                ...Object.fromEntries(
+                    last3Quarters.map((period) => [
+                        `Q${period.quarter} ${period.year}`,
+                        period[param.key as keyof PeriodData]
+                    ])
+                )
+            }));
+        }
+    };
+
+    // Get max value from quarterly data for dynamic Y-axis
+    const getMaxValueFromQuarterlyData = () => {
+        if (!data || !data.historical_data) return 120;
+        
+        const last3Quarters = data.historical_data.slice(0, 3);
+        const paramKeys = [
+            'ach_revenue_plan', 'ach_scaling', 'ach_sales_datin', 'ach_hsi', 
+            'ach_wireline', 'ach_wifi', 'ach_cyc', 'ach_cr', 'ach_profit', 
+            'ach_nps', 'ach_maps', 'ach_lop', 'ach_capability', 'ach_cc'
+        ];
+
+        let maxValue = 0;
+        last3Quarters.forEach(period => {
+            paramKeys.forEach(key => {
+                const value = period[key as keyof PeriodData] as number;
+                if (value && value > maxValue) {
+                    maxValue = value;
+                }
+            });
+        });
+
+        // Round up to nearest 10 for cleaner display
+        return Math.ceil(maxValue / 10) * 10;
+    };
+
+    // Generate dynamic ticks for quarterly mode (10 iterations)
+    const getQuarterlyTicks = () => {
+        const maxValue = getMaxValueFromQuarterlyData();
+        const step = maxValue / 10;
+        return Array.from({ length: 11 }, (_, i) => Math.round(step * i * 100) / 100);
+    };
+
+    // Get years for legend (only current year and 2 previous years)
+    const getYearsFromData = () => {
+        return [year, year - 1, year - 2];
+    };
+
+    // Get quarters for legend (quarterly mode)
+    const getQuartersFromData = () => {
+        if (!data || !data.historical_data) return [];
+        const last3 = data.historical_data.slice(0, 3);
+        return last3.map(p => `Q${p.quarter} ${p.year}`);
     };
 
     const formatNumber = (value: number | string, decimals: number = 2, isCurrency: boolean = true) => {
@@ -576,6 +734,104 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
                                 mode={chartFilter}
                                 currentYear={parseInt(String(year))}
                             />
+                            <div className="h-[400px] w-full">
+                                {chartFilter === 'year' ? (
+                                    prepareChartData().length > 0 ? (
+                                        <ResponsiveContainer width="100%" height={400} minWidth={300}>
+                                            <LineChart data={prepareChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-300 dark:stroke-gray-700" />
+                                            <XAxis 
+                                                dataKey="quarter" 
+                                                label={{ value: 'Quartal', position: 'insideBottom', offset: -10 }}
+                                                className="text-gray-700 dark:text-gray-300"
+                                            />
+                                            <YAxis 
+                                                label={{ value: 'NKI (%)', angle: -90, position: 'insideLeft' }}
+                                                className="text-gray-700 dark:text-gray-300"
+                                                ticks={[0, 15, 30, 45, 60, 75, 90, 105, 120]}
+                                                domain={[0, 120]}
+                                            />
+                                            <Tooltip 
+                                                contentStyle={{ 
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                                                    border: '1px solid #ccc',
+                                                    borderRadius: '8px'
+                                                }}
+                                                formatter={(value: any) => `${value?.toFixed(2)}%`}
+                                            />
+                                            <Legend layout="horizontal" verticalAlign="bottom" align="left" wrapperStyle={{ paddingLeft: '50px' }} />
+                                            {getYearsFromData().map((yearItem, index) => {
+                                                // Check if this year has any non-null data
+                                                const hasData = prepareChartData().some(point => point[`year${yearItem}`] != null);
+                                                
+                                                return (
+                                                    <Line
+                                                        key={yearItem}
+                                                        type="monotone"
+                                                        dataKey={`year${yearItem}`}
+                                                        name={`${yearItem}`}
+                                                        stroke={yearItem === year ? '#3b82f6' : '#10b981'}
+                                                        strokeWidth={2}
+                                                        dot={hasData ? { fill: yearItem === year ? '#3b82f6' : '#10b981', r: 4 } : false}
+                                                        activeDot={{ r: 6 }}
+                                                        connectNulls={false}
+                                                        strokeDasharray={hasData ? "0" : "5 5"}
+                                                    />
+                                                );
+                                            })}
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full text-gray-500">No data available for yearly chart</div>
+                                    )
+                                ) : (
+                                    prepareChartData().length > 0 ? (
+                                        <ResponsiveContainer width="100%" height={400} minWidth={300}>
+                                            <LineChart data={prepareChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-300 dark:stroke-gray-700" />
+                                            <XAxis 
+                                                dataKey="parameter" 
+                                                label={{ value: 'Parameter', position: 'insideBottom', offset: -10 }}
+                                                className="text-gray-700 dark:text-gray-300"
+                                            />
+                                            <YAxis 
+                                                label={{ value: 'Achievement (%)', angle: -90, position: 'insideLeft' }}
+                                                className="text-gray-700 dark:text-gray-300"
+                                                ticks={getQuarterlyTicks()}
+                                                domain={[0, getMaxValueFromQuarterlyData()]}
+                                            />
+                                            <Tooltip 
+                                                contentStyle={{ 
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                                                    border: '1px solid #ccc',
+                                                    borderRadius: '8px'
+                                                }}
+                                                formatter={(value: any) => `${value?.toFixed(2)}%`}
+                                            />
+                                            <Legend layout="horizontal" verticalAlign="bottom" align="left" wrapperStyle={{ paddingLeft: '50px' }} />
+                                            {getQuartersFromData().map((quarterLabel, index) => {
+                                                // First quarter is the selected period (green), others are previous quarters (black)
+                                                const isCurrentQuarter = index === 0;
+                                                return (
+                                                    <Line
+                                                        key={quarterLabel}
+                                                        type="monotone"
+                                                        dataKey={quarterLabel}
+                                                        name={quarterLabel}
+                                                        stroke={isCurrentQuarter ? '#10b981' : '#000000'}
+                                                        strokeWidth={2}
+                                                        dot={{ fill: isCurrentQuarter ? '#10b981' : '#000000', r: 4 }}
+                                                        activeDot={{ r: 6 }}
+                                                    />
+                                                );
+                                            })}
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full text-gray-500">No data available for quarterly chart</div>
+                                    )
+                                )}
+                            </div>
                         </div>
                     </>
                 )}

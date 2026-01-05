@@ -47,12 +47,12 @@ return new class extends Migration
             
             // CODE: Kode region dengan ENUM
             $table->enum('code', [
-                'HQ TREG2',  // Headquarters
-                'TREG1',     // Regional 1
-                'TREG2',     // Regional 2
-                'TREG3',     // Regional 3
-                'TREG4',     // Regional 4
-                'TREG5'      // Regional 5
+                'TREG 1',      // Regional 1 - Sumatera
+                'TREG HQ 2',   // Regional HQ 2 - Jakarta HQ
+                'TREG 2',      // Regional 2 - Jakarta & Jabar
+                'TREG 3',      // Regional 3 - Jateng, Jatim & Balnus
+                'TREG 4',      // Regional 4 - Kalimantan
+                'TREG 5'       // Regional 5 - KTI
             ])->unique()->comment('Kode region (unique identifier)');
             
             // NAME: Nama lengkap region
@@ -72,44 +72,44 @@ return new class extends Migration
         // Data ini adalah master data standar yang sudah final
         DB::table('regions')->insert([
             [
-                'code' => 'HQ TREG2',
-                'name' => 'Headquarters TREG2',
-                'description' => 'Kantor Pusat Regional 2',
+                'code' => 'TREG 1',
+                'name' => 'TREG 1',
+                'description' => 'SUMATERA',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'code' => 'TREG1',
-                'name' => 'Telkom Regional 1',
-                'description' => 'Sumatera',
+                'code' => 'TREG HQ 2',
+                'name' => 'TREG HQ 2',
+                'description' => 'JAKARTA HQ',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'code' => 'TREG2',
-                'name' => 'Telkom Regional 2',
-                'description' => 'Jakarta, Banten, Jabar',
+                'code' => 'TREG 2',
+                'name' => 'TREG 2',
+                'description' => 'JAKARTA & JABAR',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'code' => 'TREG3',
-                'name' => 'Telkom Regional 3',
-                'description' => 'Jateng & DIY',
+                'code' => 'TREG 3',
+                'name' => 'TREG 3',
+                'description' => 'JATENG, JATIM & BALNUS',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'code' => 'TREG4',
-                'name' => 'Telkom Regional 4',
-                'description' => 'Jawa Timur',
+                'code' => 'TREG 4',
+                'name' => 'TREG 4',
+                'description' => 'KALIMANTAN',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'code' => 'TREG5',
-                'name' => 'Telkom Regional 5',
-                'description' => 'Bali, NTT, Kaltim, dll',
+                'code' => 'TREG 5',
+                'name' => 'TREG 5',
+                'description' => 'KTI',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
