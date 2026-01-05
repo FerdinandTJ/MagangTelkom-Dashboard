@@ -191,10 +191,6 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         }
     };
 
-    const handleDownloadTemplate = () => {
-        window.location.href = template.url({ query: { year: selectedYear } });
-    };
-
     // Handler untuk Replace/Update
     const handleReplaceClick = (month: number) => {
         const fileInput = document.getElementById(`replace-file-${month}`) as HTMLInputElement;
@@ -261,6 +257,45 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
     // Handler untuk Download
     const handleDownload = (month: number) => {
         window.location.href = `/data-import/revenue/download/${selectedYear}/${month}`;
+    };
+
+    // Handler untuk Delete Year
+    const handleDeleteYear = async () => {
+        const confirmed = window.confirm(
+            `⚠️ PERINGATAN: Hapus Data Tahun ${selectedYear}\n\n` +
+            `Anda akan menghapus SEMUA data revenue tahun ${selectedYear}:\n` +
+            `• ${uploadedCount} bulan data\n` +
+            `• File Excel yang tersimpan\n` +
+            `• Data revenue dan target\n\n` +
+            `Tindakan ini TIDAK DAPAT DIBATALKAN!\n\n` +
+            `Ketik "HAPUS" untuk konfirmasi:`
+        );
+        
+        if (!confirmed) return;
+        
+        const confirmation = window.prompt(`Ketik "HAPUS" untuk mengkonfirmasi penghapusan data tahun ${selectedYear}:`);
+        
+        if (confirmation !== 'HAPUS') {
+            alert('Konfirmasi tidak sesuai. Penghapusan dibatalkan.');
+            return;
+        }
+
+        setIsUploading(true);
+
+        try {
+            await axios.delete(`/data-import/revenue/delete/${selectedYear}`);
+            
+            // Success - redirect ke current year atau tahun sebelumnya
+            const targetYear = selectedYear === currentYear ? currentYear - 1 : currentYear;
+            window.location.href = revenue.url({ query: { year: targetYear } });
+        } catch (error: any) {
+            console.error('Delete error:', error);
+            
+            const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat menghapus data';
+            alert(`Gagal menghapus data:\n${errorMessage}`);
+            
+            setIsUploading(false);
+        }
     };
 
     const getStatusBadge = (status: MonthData['status']) => {
@@ -361,14 +396,34 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                 {/* Monthly Upload List */}
                 <Card>
                     <CardHeader>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                                <FileSpreadsheet className="w-6 h-6 text-red-600 dark:text-red-400" />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                                    <FileSpreadsheet className="w-6 h-6 text-red-600 dark:text-red-400" />
+                                </div>
+                                <div>
+                                    <CardTitle>Monthly Data Upload - {selectedYear}</CardTitle>
+                                    <CardDescription>
+                                        {uploadedCount}/12 months uploaded • {progressPercentage.toFixed(0)}% complete
+                                    </CardDescription>
+                                </div>
                             </div>
-                            <div>
-                                <CardTitle>Monthly Data Upload</CardTitle>
-                                <CardDescription>Upload revenue data for each month of {selectedYear}</CardDescription>
-                            </div>
+                            
+                            {/* Yearly Action Buttons */}
+                            {uploadedCount > 0 && (
+                                <div className="flex items-center gap-2">
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        className="text-red-600 hover:text-red-700 hover:border-red-600 dark:text-red-400 dark:hover:text-red-300"
+                                        onClick={handleDeleteYear}
+                                        disabled={isUploading}
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete {selectedYear}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
@@ -429,53 +484,6 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                                                             </div>
                                                         </div>
                                                         <span className="text-sm text-gray-500 dark:text-gray-500">{monthData.uploadInfo.uploadDate}</span>
-                                                    </div>
-
-                                                    {/* Actions */}
-                                                    <div className="flex gap-2 pt-2">
-                                                        {/* Hidden file input untuk Replace */}
-                                                        <input
-                                                            type="file"
-                                                            id={`replace-file-${monthData.month}`}
-                                                            className="hidden"
-                                                            accept=".xlsx,.xls,.csv"
-                                                            onChange={(e) => handleReplaceFileSelect(monthData.month, e)}
-                                                            disabled={isUploading}
-                                                        />
-                                                        
-                                                        {/* Update Button */}
-                                                        <Button 
-                                                            size="sm" 
-                                                            variant="outline" 
-                                                            className="flex-1"
-                                                            onClick={() => handleReplaceClick(monthData.month)}
-                                                            disabled={isUploading}
-                                                        >
-                                                            <Upload className="w-4 h-4 mr-2" />
-                                                            Update
-                                                        </Button>
-                                                        
-                                                        {/* Preview Button - Belum diimplementasi */}
-                                                        <Button size="sm" variant="outline" disabled>
-                                                            <Eye className="w-4 h-4 mr-2" />
-                                                            Preview
-                                                        </Button>
-                                                        
-                                                        {/* Download Button */}
-                                                        <Button 
-                                                            size="sm" 
-                                                            variant="outline"
-                                                            onClick={() => handleDownload(monthData.month)}
-                                                            disabled={isUploading}
-                                                        >
-                                                            <Download className="w-4 h-4 mr-2" />
-                                                            Download
-                                                        </Button>
-                                                        
-                                                        {/* Delete Button - Belum diimplementasi */}
-                                                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" disabled>
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </Button>
                                                     </div>
 
                                                     {/* Activity Log */}
@@ -589,17 +597,7 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex gap-2 pt-2">
-                                                        <Button 
-                                                            size="sm" 
-                                                            variant="outline" 
-                                                            className="flex-1"
-                                                            onClick={handleDownloadTemplate}
-                                                        >
-                                                            <Download className="w-4 h-4 mr-2" />
-                                                            Download Template
-                                                        </Button>
-                                                    </div>
+
                                                 </div>
                                             )}
                                         </div>

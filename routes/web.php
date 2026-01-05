@@ -21,8 +21,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Data Import - Upload & Template Download
     Route::post('data-import/revenue/upload', [RevenueImportController::class, 'store'])->name('data-import.revenue.upload');
-    Route::get('data-import/revenue/template', [RevenueImportController::class, 'downloadTemplate'])->name('data-import.revenue.template');
     Route::get('data-import/revenue/download/{year}/{month}', [RevenueImportController::class, 'downloadFile'])->name('data-import.revenue.download');
+    Route::delete('data-import/revenue/delete/{year}', [RevenueImportController::class, 'deleteYear'])->name('data-import.revenue.delete');
     
     // API routes for dashboard analytics
     Route::prefix('api/dashboard')->group(function () {

@@ -238,150 +238,6 @@ class RevenueImportController extends Controller
     }
 
     /**
-     * Download template Excel file for revenue import
-     */
-    public function downloadTemplate(Request $request)
-    {
-        $year = $request->input('year', date('Y'));
-        
-        try {
-            $spreadsheet = new Spreadsheet();
-            
-            // Remove default sheet
-            $spreadsheet->removeSheetByIndex(0);
-            
-            // Create sheet for the specified year
-            $sheet = $spreadsheet->createSheet();
-            $sheet->setTitle("Rev {$year}");
-            
-            // Set up headers
-            $headers = [
-                'A1' => 'SUB_SEGMENT',
-                'B1' => 'NIP_NAS',
-                'C1' => 'STANDARD_NAME',
-                'D1' => 'SOURCE_DATA',
-                'E1' => 'GROUP1',
-                'F1' => 'GROUP2',
-                'G1' => 'GROUP3',
-                'H1' => 'GROUP4',
-            ];
-            
-            // Add month columns (1-12)
-            $monthColumns = range('I', 'T'); // I=1, J=2, ..., T=12
-            for ($i = 0; $i < 12; $i++) {
-                $headers[$monthColumns[$i] . '1'] = (string)($i + 1);
-            }
-            
-            // Apply headers
-            foreach ($headers as $cell => $value) {
-                $sheet->setCellValue($cell, $value);
-            }
-            
-            // Style header row
-            $headerStyle = [
-                'font' => [
-                    'bold' => true,
-                    'color' => ['rgb' => 'FFFFFF'],
-                    'size' => 11
-                ],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '4472C4']
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => '000000']
-                    ]
-                ]
-            ];
-            
-            $sheet->getStyle('A1:T1')->applyFromArray($headerStyle);
-            
-            // Set column widths
-            $sheet->getColumnDimension('A')->setWidth(20); // SUB_SEGMENT
-            $sheet->getColumnDimension('B')->setWidth(15); // NIP_NAS
-            $sheet->getColumnDimension('C')->setWidth(35); // STANDARD_NAME
-            $sheet->getColumnDimension('D')->setWidth(15); // SOURCE_DATA
-            $sheet->getColumnDimension('E')->setWidth(25); // GROUP1
-            $sheet->getColumnDimension('F')->setWidth(25); // GROUP2
-            $sheet->getColumnDimension('G')->setWidth(25); // GROUP3
-            $sheet->getColumnDimension('H')->setWidth(25); // GROUP4
-            
-            // Month columns width
-            foreach ($monthColumns as $col) {
-                $sheet->getColumnDimension($col)->setWidth(12);
-            }
-            
-            // Add example row with instructions
-            $exampleRow = 2;
-            $sheet->setCellValue("A{$exampleRow}", "AIRLINES");
-            $sheet->setCellValue("B{$exampleRow}", "760618");
-            $sheet->setCellValue("C{$exampleRow}", "PELITA AIR SERVICE PT");
-            $sheet->setCellValue("D{$exampleRow}", "TIBS-NP");
-            $sheet->setCellValue("E{$exampleRow}", "CONNECTIVITY");
-            $sheet->setCellValue("F{$exampleRow}", "Fixed Broadband");
-            $sheet->setCellValue("G{$exampleRow}", "High Speed Internet");
-            $sheet->setCellValue("H{$exampleRow}", "Abo HSI");
-            
-            // Add example revenue values for months
-            for ($i = 0; $i < 12; $i++) {
-                $sheet->setCellValue($monthColumns[$i] . $exampleRow, rand(1000000, 10000000));
-            }
-            
-            // Style example row
-            $sheet->getStyle("A{$exampleRow}:T{$exampleRow}")->applyFromArray([
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'E7E6E6']
-                ],
-                'font' => [
-                    'italic' => true,
-                    'color' => ['rgb' => '666666']
-                ]
-            ]);
-            
-            // Add notes
-            $notesRow = 4;
-            $sheet->setCellValue("A{$notesRow}", "NOTES:");
-            $sheet->getStyle("A{$notesRow}")->getFont()->setBold(true);
-            
-            $sheet->setCellValue("A" . ($notesRow + 1), "1. NIP_NAS is required and must be unique (max 25 characters)");
-            $sheet->setCellValue("A" . ($notesRow + 2), "2. STANDARD_NAME (company name) is required (max 55 characters)");
-            $sheet->setCellValue("A" . ($notesRow + 3), "3. SOURCE_DATA must be: TIBS-NP, SISKA, or NGTMA");
-            $sheet->setCellValue("A" . ($notesRow + 4), "4. All GROUP fields (1-4) are required (max 45 characters each)");
-            $sheet->setCellValue("A" . ($notesRow + 5), "5. Month columns (1-12) should contain revenue values (numbers only)");
-            $sheet->setCellValue("A" . ($notesRow + 6), "6. Empty or zero revenue values will be skipped");
-            $sheet->setCellValue("A" . ($notesRow + 7), "7. For Quick Upload: Create sheets named 'Rev 2024', 'Rev 2025', etc.");
-            
-            $sheet->getStyle("A{$notesRow}:A" . ($notesRow + 7))->getFont()->setSize(9);
-            
-            // Freeze header row
-            $sheet->freezePane('A2');
-            
-            // Create writer and download
-            $writer = new Xlsx($spreadsheet);
-            $filename = "revenue_import_template_{$year}.xlsx";
-            $tempFile = tempnam(sys_get_temp_dir(), 'revenue_template');
-            
-            $writer->save($tempFile);
-            
-            return response()->download($tempFile, $filename)->deleteFileAfterSend(true);
-            
-        } catch (\Exception $e) {
-            Log::error('Template generation failed', [
-                'error' => $e->getMessage()
-            ]);
-            
-            return back()->with('error', 'Failed to generate template: ' . $e->getMessage());
-        }
-    }
-
-    /**
      * Download uploaded revenue file
      */
     public function downloadFile(Request $request, int $year, int $month)
@@ -418,6 +274,85 @@ class RevenueImportController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan saat mengunduh file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Delete all revenue data for a specific year
+     */
+    public function deleteYear(Request $request, int $year)
+    {
+        try {
+            DB::beginTransaction();
+            
+            // Get all uploads for this year
+            $uploads = RevenueUpload::where('tahun', $year)->get();
+            
+            if ($uploads->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Tidak ada data untuk tahun ' . $year
+                ], 404);
+            }
+            
+            $deletedFiles = 0;
+            $deletedRevenues = 0;
+            $deletedTargets = 0;
+            
+            // Delete files from storage
+            foreach ($uploads as $upload) {
+                if ($upload->stored_path && Storage::exists($upload->stored_path)) {
+                    Storage::delete($upload->stored_path);
+                    $deletedFiles++;
+                }
+            }
+            
+            // Delete revenues
+            $deletedRevenues = DB::table('revenues')
+                ->where('tahun', $year)
+                ->delete();
+            
+            // Delete company targets
+            $deletedTargets = DB::table('company_targets')
+                ->where('tahun', $year)
+                ->delete();
+            
+            // Delete upload records
+            RevenueUpload::where('tahun', $year)->delete();
+            
+            DB::commit();
+            
+            Log::info('Revenue data deleted for year', [
+                'year' => $year,
+                'deleted_files' => $deletedFiles,
+                'deleted_revenues' => $deletedRevenues,
+                'deleted_targets' => $deletedTargets,
+                'deleted_by' => auth()->user()->name ?? 'system'
+            ]);
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => "Data tahun {$year} berhasil dihapus",
+                'details' => [
+                    'files' => $deletedFiles,
+                    'revenues' => $deletedRevenues,
+                    'targets' => $deletedTargets
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Revenue year deletion failed', [
+                'year' => $year,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menghapus data: ' . $e->getMessage()
             ], 500);
         }
     }
