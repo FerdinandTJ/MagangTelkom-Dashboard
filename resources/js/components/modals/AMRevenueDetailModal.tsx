@@ -20,14 +20,22 @@ interface CompanyDetail {
     region_code: string;
     t_revenue: number;
     formatted_revenue: string;
+    r_revenue: number;
+    formatted_r_revenue: string;
     pembagian: string;
     proporsi: number;
     t_sustain: number;
     t_scalling: number;
     t_ngtma: number;
+    r_sustain: number;
+    r_scalling: number;
+    r_ngtma: number;
     formatted_sustain: string;
     formatted_scalling: string;
     formatted_ngtma: string;
+    formatted_r_sustain: string;
+    formatted_r_scalling: string;
+    formatted_r_ngtma: string;
 }
 
 interface RegionDistribution {
@@ -46,6 +54,8 @@ interface AMRevenueDetailData {
     am_region: string;
     total_target_revenue: number;
     formatted_total_revenue: string;
+    total_realisasi_revenue: number;
+    formatted_total_realisasi: string;
     total_companies: number;
     year: number;
     quartal: string;
@@ -79,6 +89,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
     const [activeChartTab, setActiveChartTab] = useState<'witel' | 'breakdown'>('witel');
+    const [revenueMode, setRevenueMode] = useState<'target' | 'actual'>('target');
 
     useEffect(() => {
         const checkDarkMode = () => {
@@ -149,17 +160,18 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                     <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
                         <User className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
                         <span className="truncate">
-                            Target Revenue Details - {data?.am_name || 'Loading...'}
+                            AM Revenue Details - {data?.am_name || 'Loading...'}
                         </span>
                     </DialogTitle>
                     <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
-                        Target revenue breakdown and company distribution analysis
+                        Revenue breakdown and company distribution analysis
                     </DialogDescription>
                 </DialogHeader>
 
                 {/* AM Info Card */}
                 {!loading && !error && data && (
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-red-600 dark:border-red-500 shadow-sm p-6 mb-6">
+                    <>
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-red-600 dark:border-red-500 shadow-sm p-6 mb-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
@@ -175,7 +187,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                     <div className="p-1.5 bg-red-50 dark:bg-red-950 rounded">
                                         <Briefcase className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
                                     </div>
-                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">Posisi</span>
+                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">Position</span>
                                 </div>
                                 <p className="text-sm text-gray-900 dark:text-gray-100">{data.am_posisi || '-'}</p>
                             </div>
@@ -219,6 +231,41 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                             </div>
                         </div>
                     </div>
+
+                    {/* Toggle Mode Section */}
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm p-4 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Revenue Mode</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Switch between {revenueMode === 'target' ? 'target' : 'actual'} and {revenueMode === 'target' ? 'actual' : 'target'} revenue view
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setRevenueMode('target')}
+                                    className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+                                        revenueMode === 'target'
+                                            ? 'bg-red-600 text-white shadow-md scale-105'
+                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                    Target
+                                </button>
+                                <button
+                                    onClick={() => setRevenueMode('actual')}
+                                    className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+                                        revenueMode === 'actual'
+                                            ? 'bg-red-600 text-white shadow-md scale-105'
+                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                    Actual
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    </>
                 )}
 
                 {loading && (
@@ -246,16 +293,20 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                     <>
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            {/* Card 1: Target Revenue */}
+                            {/* Card 1: Target/Actual Revenue */}
                             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
                                 <div className="p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Target Revenue AM</p>
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                                                {data.formatted_total_revenue}
+                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                                {revenueMode === 'target' ? 'Target Revenue AM' : 'Actual Revenue AM'}
                                             </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Total target periode ini</p>
+                                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                                                {revenueMode === 'target' ? data.formatted_total_revenue : data.formatted_total_realisasi}
+                                            </p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {revenueMode === 'target' ? 'Total target periode ini' : 'Total realisasi periode ini'}
+                                            </p>
                                         </div>
                                         <div className="flex-shrink-0 ml-4">
                                             <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
@@ -275,7 +326,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                                                 {data.total_companies}
                                             </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Perusahaan terdaftar</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Registered Companies</p>
                                         </div>
                                         <div className="flex-shrink-0 ml-4">
                                             <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
@@ -306,7 +357,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                     {data.period_display}
                                                 </p>
                                             )}
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Periode aktif</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Active Period</p>
                                         </div>
                                         <div className="flex-shrink-0 ml-4">
                                             <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
@@ -326,7 +377,9 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                         <MapPin className="h-5 w-5 text-red-600 dark:text-red-400" />
-                                        {activeChartTab === 'witel' ? 'Company Distribution By Region' : 'Target Revenue Details'}
+                                        {activeChartTab === 'witel' 
+                                            ? 'Company Distribution By Region' 
+                                            : `${revenueMode === 'target' ? 'Target' : 'Actual'} Revenue Details`}
                                     </h3>
                                     <div className="flex gap-2">
                                         <button
@@ -480,9 +533,24 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                     layout="horizontal"
                                                     wrapperStyle={{ paddingLeft: '160px' }}
                                                 />
-                                                <Bar dataKey="t_sustain" fill="#3b82f6" name="Sustain" radius={[0, 4, 4, 0]} />
-                                                <Bar dataKey="t_scalling" fill="#22c55e" name="Scaling" radius={[0, 4, 4, 0]} />
-                                                <Bar dataKey="t_ngtma" fill="#a855f7" name="NGTMA" radius={[0, 4, 4, 0]} />
+                                                <Bar 
+                                                    dataKey={revenueMode === 'target' ? 't_sustain' : 'r_sustain'} 
+                                                    fill="#3b82f6" 
+                                                    name="Sustain" 
+                                                    radius={[0, 4, 4, 0]} 
+                                                />
+                                                <Bar 
+                                                    dataKey={revenueMode === 'target' ? 't_scalling' : 'r_scalling'} 
+                                                    fill="#22c55e" 
+                                                    name="Scaling" 
+                                                    radius={[0, 4, 4, 0]} 
+                                                />
+                                                <Bar 
+                                                    dataKey={revenueMode === 'target' ? 't_ngtma' : 'r_ngtma'} 
+                                                    fill="#a855f7" 
+                                                    name="NGTMA" 
+                                                    radius={[0, 4, 4, 0]} 
+                                                />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
@@ -531,15 +599,19 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                                         <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs">{company.nama_witels}</p>
                                                                     </div>
                                                                     <div className="text-center">
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target AM</p>
-                                                                        <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{company.formatted_revenue}</p>
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                                                            {revenueMode === 'target' ? 'Target AM' : 'Actual AM'}
+                                                                        </p>
+                                                                        <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">
+                                                                            {revenueMode === 'target' ? company.formatted_revenue : company.formatted_r_revenue}
+                                                                        </p>
                                                                     </div>
                                                                     <div className="text-center">
                                                                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Subsegment</p>
                                                                         <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs">{company.subsegment}</p>
                                                                     </div>
                                                                     <div className="text-center">
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pembagian</p>
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Proportion</p>
                                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                                                             company.pembagian === 'SINGLE' 
                                                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
@@ -549,7 +621,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                                         </span>
                                                                     </div>
                                                                     <div className="text-center">
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Proporsi</p>
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Proportion</p>
                                                                         <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{company.proporsi}%</p>
                                                                     </div>
                                                                 </div>
@@ -566,7 +638,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                         </div>
                                                     </div>
 
-                                                    {/* Expanded Content - Target Breakdown Table */}
+                                                    {/* Expanded Content - Target/Actual Breakdown Table */}
                                                     {isExpanded && (
                                                         <div className="bg-white dark:bg-gray-950">
                                                             <table className="w-full">
@@ -576,7 +648,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                                             Category
                                                                         </th>
                                                                         <th className="px-4 py-2 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                                            Target Amount
+                                                                            {revenueMode === 'target' ? 'Target Amount' : 'Actual Amount'}
                                                                         </th>
                                                                     </tr>
                                                                 </thead>
@@ -589,7 +661,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                                             </div>
                                                                         </td>
                                                                         <td className="px-4 py-3 text-right font-bold text-blue-900 dark:text-blue-100">
-                                                                            {company.formatted_sustain}
+                                                                            {revenueMode === 'target' ? company.formatted_sustain : company.formatted_r_sustain}
                                                                         </td>
                                                                     </tr>
                                                                     <tr className="hover:bg-green-50 dark:hover:bg-green-950/20 transition-colors">
@@ -600,7 +672,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                                             </div>
                                                                         </td>
                                                                         <td className="px-4 py-3 text-right font-bold text-green-900 dark:text-green-100">
-                                                                            {company.formatted_scalling}
+                                                                            {revenueMode === 'target' ? company.formatted_scalling : company.formatted_r_scalling}
                                                                         </td>
                                                                     </tr>
                                                                     <tr className="hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-colors">
@@ -611,7 +683,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                                             </div>
                                                                         </td>
                                                                         <td className="px-4 py-3 text-right font-bold text-purple-900 dark:text-purple-100">
-                                                                            {company.formatted_ngtma}
+                                                                            {revenueMode === 'target' ? company.formatted_ngtma : company.formatted_r_ngtma}
                                                                         </td>
                                                                     </tr>
                                                                 </tbody>

@@ -114,7 +114,7 @@ export default function TargetRevenueRegionChart({
                                         </div>
                                         
                                         <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }} className="dark:border-gray-700">
-                                            <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Realisasi Revenue</p>
+                                            <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Actual Revenue</p>
                                             <p style={{ margin: '4px 0', fontSize: '14px' }} className="text-gray-900 dark:text-gray-100">
                                                 <span style={{ 
                                                     display: 'inline-block',

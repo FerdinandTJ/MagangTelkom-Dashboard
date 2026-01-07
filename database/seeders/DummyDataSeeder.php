@@ -327,7 +327,7 @@ class DummyDataSeeder extends Seeder
         
         // Generate base targets untuk setiap assignment
         $baseRevenueRange = [40000000000, 50000000000, 60000000000, 70000000000, 80000000000, 90000000000, 100000000000];
-        $years = [2024, 2025];
+        $years = [2023, 2024, 2025];
         $quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
         
         foreach ($amCompanyAssignments as $index => $assignment) {
@@ -337,8 +337,13 @@ class DummyDataSeeder extends Seeder
             
             // Generate targets for each year and quarter for this AM-Company assignment
             foreach ($years as $year) {
-                // Yearly increase factor (2025 targets are 12% higher than 2024)
-                $yearFactor = ($year == 2024) ? 1.0 : 1.12;
+                // Yearly increase factor (2023: 0.88, 2024: 1.0, 2025: 1.12)
+                $yearFactor = match($year) {
+                    2023 => 0.88,
+                    2024 => 1.0,
+                    2025 => 1.12,
+                    default => 1.0
+                };
                 
                 foreach ($quarters as $quartal) {
                     // Quarterly variation (Q1: 90%, Q2: 100%, Q3: 105%, Q4: 110%)
@@ -409,7 +414,7 @@ class DummyDataSeeder extends Seeder
         // Create mapping: Group targets by AM NIK, Year, and Quarter
         // Structure: $targetsByAm[nik_am][year][quarter] = [target1, target2, ...]
         $targetsByAm = [];
-        $years = [2024, 2025];
+        $years = [2023, 2024, 2025];
         $quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
         
         // Group targets by AM-Company assignment
@@ -426,7 +431,7 @@ class DummyDataSeeder extends Seeder
         foreach ($targetsByAssignment as $assignmentId => $assignmentTargets) {
             $targetIndex = 0;
             
-            // Each assignment has 8 targets (2 years × 4 quarters)
+            // Each assignment has 12 targets (3 years × 4 quarters)
             foreach ($years as $year) {
                 foreach ($quarters as $quarter) {
                     if ($targetIndex < count($assignmentTargets)) {
@@ -518,6 +523,8 @@ class DummyDataSeeder extends Seeder
                         // REALISASI - Nilai Absolut (dikalikan dengan achievement rate)
                         'r_revenue' => round($target->t_revenue * $achievementRate, 2),
                         'r_scalling' => round($target->t_scalling * $achievementRate, 2),
+                        'r_sustain' => round($target->t_sustain * $achievementRate, 2),
+                        'r_ngtma' => round($target->t_ngtma * $achievementRate, 2),
                         'r_datin' => round($target->t_datin * $achievementRate, 2),
                         'r_hsi' => round($target->t_hsi * $achievementRate, 2),
                         'r_wireline' => round($target->t_wireline * $achievementRate, 2),

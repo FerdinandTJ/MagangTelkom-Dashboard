@@ -96,6 +96,9 @@ return new class extends Migration
             // REALISASI SUSTAIN: Actual Sustain
             $table->decimal('r_sustain', 15, 2)->default(0)->comment('Realisasi Sustain');
             
+            // REALISASI NGTMA: Actual NGTMA (Next Generation TMA)
+            $table->decimal('r_ngtma', 15, 2)->default(0)->comment('Realisasi NGTMA');
+            
             // REALISASI CAPABILITY: Actual capability score
             $table->decimal('r_capability', 5, 2)->default(0)->comment('Realisasi Capability');
             

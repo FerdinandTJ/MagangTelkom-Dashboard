@@ -42,6 +42,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('region-nki-periods', [\App\Http\Controllers\RegionNkiController::class, 'getAvailablePeriods'])->name('api.dashboard.region-nki-periods');
         Route::get('region-nki-chart/{regionId}', [\App\Http\Controllers\RegionNkiController::class, 'getParameterChartData'])->name('api.dashboard.region-nki-chart');
         Route::get('witel-nki-detail', [\App\Http\Controllers\RegionNkiController::class, 'getWitelNkiDetail'])->name('api.dashboard.witel-nki-detail');
+        Route::get('witel-am-details', [\App\Http\Controllers\RegionNkiController::class, 'getWitelAMDetails'])->name('api.dashboard.witel-am-details');
         Route::get('region-revenue', [\App\Http\Controllers\RegionRevenueController::class, 'getRegionRevenue'])->name('api.dashboard.region-revenue');
         Route::get('region-witel-detail', [DashboardController::class, 'getRegionWitelDetail'])->name('api.dashboard.region-witel-detail');
         Route::get('am-performance-detail', [\App\Http\Controllers\AmPerformanceDetailController::class, 'getAmPerformanceDetail'])->name('api.dashboard.am-performance-detail');

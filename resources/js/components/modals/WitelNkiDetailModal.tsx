@@ -344,7 +344,7 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                                                 {data.summary.formatted_total_target_revenue}
                                             </p>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                Realisasi: {data.summary.formatted_total_realisasi_revenue}
+                                                Actual: {data.summary.formatted_total_realisasi_revenue}
                                             </p>
                                         </div>
                                         <div className="flex-shrink-0 ml-4">

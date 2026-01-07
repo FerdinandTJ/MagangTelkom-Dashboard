@@ -1193,5 +1193,147 @@ class RegionNkiController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Get AM details by witel for region modal expansion
+     */
+    public function getWitelAMDetails(Request $request)
+    {
+        $request->validate([
+            'witel_name' => 'required|string',
+            'region_code' => 'required|string',
+            'year' => 'required|integer|min:2020',
+            'quartal' => 'required|string',
+            'ytd' => 'nullable|in:0,1'
+        ]);
+
+        $witelName = $request->witel_name;
+        $regionCode = $request->region_code;
+        $year = $request->year;
+        $quartal = $request->quartal;
+        $isYearToDate = $request->ytd === '1';
+
+        // Parse quarter
+        $quarterNumber = (int) str_replace('Q', '', $quartal);
+
+        try {
+            // Get Account Managers for this witel using JOIN with witels table
+            $accountManagers = DB::table('account_managers as am')
+                ->join('witels as w', 'am.idwitels', '=', 'w.idwitels')
+                ->join('regions as r', 'w.region_id', '=', 'r.id')
+                ->where('w.nama_witels', $witelName)
+                ->where('r.name', $regionCode)
+                ->select('am.nik', 'am.nama', 'am.posisi', 'am.no_gsm')
+                ->distinct()
+                ->get();
+
+            if ($accountManagers->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'witel_name' => $witelName,
+                        'region_code' => $regionCode,
+                        'am_list' => []
+                    ]
+                ]);
+            }
+
+            $amNiks = $accountManagers->pluck('nik')->toArray();
+            $amList = [];
+
+            foreach ($accountManagers as $am) {
+                // Build query based on YTD or single quarter
+                $liniWaktuQuery = LiniWaktu::where('tahun', $year)
+                    ->where('nik_am', $am->nik);
+
+                if ($isYearToDate) {
+                    // YTD: Q1 to current quarter
+                    $liniWaktuQuery->whereIn('quartal', range(1, $quarterNumber));
+                } else {
+                    // Single quarter
+                    $liniWaktuQuery->where('quartal', $quarterNumber);
+                }
+
+                $liniWaktuData = $liniWaktuQuery->get();
+
+                if ($liniWaktuData->isEmpty()) {
+                    continue;
+                }
+
+                $liniWaktuIds = $liniWaktuData->pluck('id')->toArray();
+
+                // Get targets and realisasi with proporsi from pivot table
+                $pivotData = DB::table('lini_waktu_target as lwt')
+                    ->join('target_account_m as tam', 'lwt.target_id', '=', 'tam.id')
+                    ->join('account_manager_company as amc', 'tam.account_manager_company_id', '=', 'amc.id')
+                    ->whereIn('lwt.lini_waktu_id', $liniWaktuIds)
+                    ->where('amc.nik_am', $am->nik)
+                    ->select('lwt.*', 'tam.*', 'amc.proporsi')
+                    ->get();
+
+                if ($pivotData->isEmpty()) {
+                    continue;
+                }
+
+                // Aggregate with proporsi
+                $totalTargetRevenue = $pivotData->sum(function($row) {
+                    return $row->t_revenue * ($row->proporsi / 100);
+                });
+
+                $totalRealisasiRevenue = $pivotData->sum(function($row) {
+                    return $row->r_revenue * ($row->proporsi / 100);
+                });
+
+                // Count unique companies
+                $companyHandled = $pivotData->pluck('nip_nas')->unique()->count();
+
+                // Calculate achievement
+                $achievement = 0;
+                if ($totalTargetRevenue > 0) {
+                    $achievement = ($totalRealisasiRevenue / $totalTargetRevenue) * 100;
+                }
+
+                $amList[] = [
+                    'am_nik' => $am->nik,
+                    'am_name' => $am->nama,
+                    'am_posisi' => $am->posisi ?? 'N/A',
+                    'target_revenue' => $totalTargetRevenue,
+                    'formatted_target_revenue' => $this->formatCurrency($totalTargetRevenue),
+                    'realisasi_revenue' => $totalRealisasiRevenue,
+                    'formatted_realisasi_revenue' => $this->formatCurrency($totalRealisasiRevenue),
+                    'company_handled' => $companyHandled,
+                    'achievement_percentage' => round($achievement, 2)
+                ];
+            }
+
+            // Sort by target revenue descending
+            usort($amList, function($a, $b) {
+                return $b['target_revenue'] <=> $a['target_revenue'];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'witel_name' => $witelName,
+                    'region_code' => $regionCode,
+                    'period' => $isYearToDate 
+                        ? "Q1 - {$quartal} {$year} (YTD)"
+                        : "{$quartal} {$year}",
+                    'am_list' => $amList
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error fetching witel AM details', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch AM details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
 

@@ -7,9 +7,10 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, MapPin, TrendingUp, Building2, Target, Users, Calendar } from 'lucide-react';
+import { Loader2, MapPin, TrendingUp, Building2, Target, Users, Calendar, ChevronDown, ChevronUp, User } from 'lucide-react';
 import axios from '@/lib/axios';
 import { formatCurrency } from '@/utils/currency';
+import AMRevenueDetailModal from './AMRevenueDetailModal';
 
 interface RegionWitelDetailModalProps {
     isOpen: boolean;
@@ -21,6 +22,18 @@ interface RegionWitelDetailModalProps {
     isYearToDate?: boolean;
 }
 
+interface AMDetail {
+    am_nik: string;
+    am_name: string;
+    am_posisi: string;
+    target_revenue: number;
+    formatted_target_revenue: string;
+    realisasi_revenue: number;
+    formatted_realisasi_revenue: string;
+    company_handled: number;
+    achievement_percentage: number;
+}
+
 interface WitelData {
     witel_name: string;
     t_revenue: number;
@@ -29,6 +42,8 @@ interface WitelData {
     formatted_r_revenue: string;
     am_count: number;
     achievement_percentage: number;
+    am_details?: AMDetail[];
+    loading_am?: boolean;
 }
 
 interface RegionWitelDetail {
@@ -59,10 +74,18 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<RegionWitelDetail | null>(null);
+    const [expandedWitels, setExpandedWitels] = useState<Set<string>>(new Set());
+    const [showAMModal, setShowAMModal] = useState(false);
+    const [selectedAmNik, setSelectedAmNik] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen && regionCode) {
             fetchRegionWitelDetail();
+        } else if (!isOpen) {
+            // Reset expanded witels when modal is closed
+            setExpandedWitels(new Set());
+            setShowAMModal(false);
+            setSelectedAmNik(null);
         }
     }, [isOpen, regionCode, year, quartal, isYearToDate]);
 
@@ -92,7 +115,72 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
         }
     };
 
+    const toggleWitel = async (witelName: string) => {
+        const newExpanded = new Set(expandedWitels);
+        
+        if (newExpanded.has(witelName)) {
+            // Collapse
+            newExpanded.delete(witelName);
+            setExpandedWitels(newExpanded);
+        } else {
+            // Expand - fetch AM details if not already loaded
+            newExpanded.add(witelName);
+            setExpandedWitels(newExpanded);
+
+            const witelIndex = data?.witels.findIndex(w => w.witel_name === witelName);
+            if (witelIndex !== undefined && witelIndex >= 0 && data?.witels[witelIndex]) {
+                const witel = data.witels[witelIndex];
+                
+                // Only fetch if not already loaded
+                if (!witel.am_details) {
+                    // Set loading state for this witel
+                    const updatedWitels = [...data.witels];
+                    updatedWitels[witelIndex] = { ...witel, loading_am: true };
+                    setData({ ...data, witels: updatedWitels });
+
+                    try {
+                        const response = await axios.get('/api/dashboard/witel-am-details', {
+                            params: {
+                                witel_name: witelName,
+                                region_code: regionCode,
+                                year: year,
+                                quartal: quartal,
+                                ytd: isYearToDate ? '1' : '0'
+                            }
+                        });
+
+                        if (response.data.success) {
+                            const updatedWitels2 = [...data.witels];
+                            updatedWitels2[witelIndex] = {
+                                ...witel,
+                                am_details: response.data.data.am_list,
+                                loading_am: false
+                            };
+                            setData({ ...data, witels: updatedWitels2 });
+                        }
+                    } catch (err) {
+                        console.error('Error fetching AM details:', err);
+                        const updatedWitels2 = [...data.witels];
+                        updatedWitels2[witelIndex] = { ...witel, loading_am: false };
+                        setData({ ...data, witels: updatedWitels2 });
+                    }
+                }
+            }
+        }
+    };
+
+    const handleAmClick = (amNik: string) => {
+        setSelectedAmNik(amNik);
+        setShowAMModal(true);
+    };
+
+    const handleCloseAMModal = () => {
+        setShowAMModal(false);
+        setSelectedAmNik(null);
+    };
+
     return (
+        <>
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="wide-modal max-w-[90vw] w-[90vw] max-h-[95vh] overflow-y-auto p-6 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
                 <DialogHeader className="pb-4">
@@ -135,7 +223,7 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                                 <div className="p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Target Revenue</p>
+                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Revenue Target</p>
                                             <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                                                 {data.summary.formatted_total_target_revenue}
                                             </p>
@@ -154,7 +242,7 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                                 <div className="p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Realisasi Revenue</p>
+                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Revenue Actual</p>
                                             <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                                                 {data.summary.formatted_total_realisasi_revenue}
                                             </p>
@@ -258,87 +346,173 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                                     Witel List in {regionName}
                                 </h3>
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-850">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                Witel
-                                            </th>
-                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                Target Revenue
-                                            </th>
-                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                Realisasi Revenue
-                                            </th>
-                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                Achievement
-                                            </th>
-                                            <th className="px-6 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                Total AM
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                        {data.witels.length > 0 ? (
-                                            data.witels.map((witel, idx) => (
-                                                <tr 
-                                                    key={idx}
-                                                    className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                                                        idx % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-850'
-                                                    }`}
+                            <div className="space-y-2 p-4">
+                                {data.witels.length > 0 ? (
+                                    data.witels.map((witel, idx) => {
+                                        const isExpanded = expandedWitels.has(witel.witel_name);
+                                        
+                                        return (
+                                            <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                                {/* Witel Header - Clickable */}
+                                                <div 
+                                                    className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-850 p-4 cursor-pointer hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-750 dark:hover:to-gray-800 transition-all"
+                                                    onClick={() => toggleWitel(witel.witel_name)}
                                                 >
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="p-1.5 bg-gray-100 dark:bg-gray-800 rounded">
-                                                                <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-4 flex-1">
+                                                            {/* Witel Name */}
+                                                            <div className="min-w-[150px]">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="p-1.5 bg-gray-100 dark:bg-gray-800 rounded">
+                                                                        <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                                                    </div>
+                                                                    <span className="font-bold text-gray-900 dark:text-gray-100">
+                                                                        {witel.witel_name}
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                            <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                                                {witel.witel_name}
-                                                            </span>
+
+                                                            {/* Stats Grid */}
+                                                            <div className="grid grid-cols-4 gap-6 flex-1">
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target Revenue</p>
+                                                                    <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">
+                                                                        {witel.formatted_t_revenue}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Actual Revenue</p>
+                                                                    <p className="font-bold text-green-600 dark:text-green-400 text-sm">
+                                                                        {witel.formatted_r_revenue}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Achievement</p>
+                                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                                                                        witel.achievement_percentage >= 100 
+                                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                                                            : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+                                                                    }`}>
+                                                                        {witel.achievement_percentage.toFixed(1)}%
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total AM</p>
+                                                                    <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 text-sm font-bold">
+                                                                        <Users className="h-3.5 w-3.5" />
+                                                                        {witel.am_count}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                                            {witel.formatted_t_revenue}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className="font-semibold text-green-600 dark:text-green-400">
-                                                            {witel.formatted_r_revenue}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                                                            witel.achievement_percentage >= 100 
-                                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                                                                : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-                                                        }`}>
-                                                            {witel.achievement_percentage.toFixed(1)}%
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 text-sm font-bold">
-                                                            <Users className="h-3.5 w-3.5" />
-                                                            {witel.am_count}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={5} className="px-6 py-12 text-center">
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <Building2 className="h-12 w-12 text-gray-300 dark:text-gray-700" />
-                                                        <p className="text-gray-500 dark:text-gray-400 font-medium">
-                                                            No witel data available for this region
-                                                        </p>
+
+                                                        {/* Chevron Icon */}
+                                                        <div className="ml-4">
+                                                            {isExpanded ? (
+                                                                <ChevronUp className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                                                            ) : (
+                                                                <ChevronDown className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                                                </div>
+
+                                                {/* Expanded Content - AM List */}
+                                                {isExpanded && (
+                                                    <div className="bg-white dark:bg-gray-950">
+                                                        {witel.loading_am ? (
+                                                            <div className="flex items-center justify-center py-8">
+                                                                <Loader2 className="h-6 w-6 animate-spin text-red-600 dark:text-red-400 mr-2" />
+                                                                <span className="text-gray-600 dark:text-gray-400">Loading AM details...</span>
+                                                            </div>
+                                                        ) : witel.am_details && witel.am_details.length > 0 ? (
+                                                            <table className="w-full">
+                                                                <thead className="bg-gray-100 dark:bg-gray-800">
+                                                                    <tr>
+                                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                            Account Manager
+                                                                        </th>
+                                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                            Target Revenue
+                                                                        </th>
+                                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                            Realisasi Revenue
+                                                                        </th>
+                                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                            Company Handled
+                                                                        </th>
+                                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                            Achievement
+                                                                        </th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                                                                    {witel.am_details.map((am, amIdx) => (
+                                                                        <tr 
+                                                                            key={amIdx}
+                                                                            className="hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
+                                                                        >
+                                                                            <td className="px-4 py-3">
+                                                                                <div className="flex flex-col">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                                                                                        <button
+                                                                                            onClick={() => handleAmClick(am.am_nik)}
+                                                                                            className="font-semibold text-gray-900 dark:text-gray-100 hover:text-red-600 dark:hover:text-red-400 hover:underline transition-colors text-left"
+                                                                                        >
+                                                                                            {am.am_name}
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-6">
+                                                                                        {am.am_nik} • {am.am_posisi}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </td>
+                                                                            <td className="px-4 py-3 text-right font-bold text-blue-900 dark:text-blue-100">
+                                                                                {am.formatted_target_revenue}
+                                                                            </td>
+                                                                            <td className="px-4 py-3 text-right font-bold text-green-900 dark:text-green-100">
+                                                                                {am.formatted_realisasi_revenue}
+                                                                            </td>
+                                                                            <td className="px-4 py-3 text-center">
+                                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold">
+                                                                                    <Building2 className="h-3 w-3" />
+                                                                                    {am.company_handled}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="px-4 py-3 text-center">
+                                                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                                                                                    am.achievement_percentage >= 100
+                                                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                                                                        : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+                                                                                }`}>
+                                                                                    {am.achievement_percentage.toFixed(1)}%
+                                                                                </span>
+                                                                            </td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        ) : (
+                                                            <div className="py-6 text-center text-gray-500 dark:text-gray-400">
+                                                                No Account Managers found for this witel
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="py-8 text-center">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Building2 className="h-12 w-12 text-gray-300 dark:text-gray-700" />
+                                            <p className="text-gray-500 dark:text-gray-400 font-medium">
+                                                No witel data available for this region
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </>
@@ -355,6 +529,17 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                 </div>
             </DialogContent>
         </Dialog>
+
+        {/* AM Revenue Detail Modal */}
+        <AMRevenueDetailModal
+            isOpen={showAMModal}
+            onClose={handleCloseAMModal}
+            amNik={selectedAmNik}
+            year={year}
+            quartal={quartal}
+            isYearToDate={isYearToDate}
+        />
+        </>
     );
 };
 
