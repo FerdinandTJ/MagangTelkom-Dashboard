@@ -7,7 +7,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building2, TrendingUp, Calendar, BarChart3, Info, User, ChevronDown } from 'lucide-react';
+import { Loader2, Building2, TrendingUp, Calendar, BarChart3, Info, User, ChevronDown, Edit2, Check, X, Target } from 'lucide-react';
 import { CompanyData, MonthlyRevenue, YearlyRevenue } from '@/types/dashboard';
 import axios from '@/lib/axios';
 import { formatCurrency, formatCurrencyShort } from '@/utils/currency';
@@ -72,6 +72,11 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     
     // Selected category from pie chart click
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    
+    // Edit target state
+    const [editingTargetId, setEditingTargetId] = useState<number | null>(null);
+    const [editingTargetValue, setEditingTargetValue] = useState<string>('');
+    const [savingTarget, setSavingTarget] = useState<number | null>(null);
     
     const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -234,6 +239,48 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     // Handle pie chart slice click to expand tree
     const handlePieSliceClick = (data: any) => {
         setSelectedCategory(data.name);
+    };
+
+    // Edit target handlers
+    const handleEditTarget = (revenueId: number, currentTarget: number) => {
+        setEditingTargetId(revenueId);
+        setEditingTargetValue(currentTarget.toString());
+    };
+
+    const handleCancelEdit = () => {
+        setEditingTargetId(null);
+        setEditingTargetValue('');
+    };
+
+    const handleSaveTarget = async (revenueId: number) => {
+        const targetValue = parseFloat(editingTargetValue);
+        
+        if (isNaN(targetValue) || targetValue < 0) {
+            alert('Please enter a valid target value');
+            return;
+        }
+
+        setSavingTarget(revenueId);
+        
+        try {
+            const response = await axios.patch(`/api/dashboard/revenue-target/${revenueId}`, {
+                revenue_target: targetValue
+            });
+
+            if (response.data.success) {
+                // Refresh data after successful update
+                fetchCompanyDetails();
+                setEditingTargetId(null);
+                setEditingTargetValue('');
+            } else {
+                alert('Failed to update target');
+            }
+        } catch (err: any) {
+            console.error('Error updating target:', err);
+            alert(err.response?.data?.message || 'Error updating target');
+        } finally {
+            setSavingTarget(null);
+        }
     };
 
     if (!company) return null;
@@ -431,6 +478,123 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                             </div>
                         )}
 
+                        {/* Monthly Target Management Section - TEMPORARILY DISABLED */}
+                        {false && monthlyData && monthlyData.length > 0 && (
+                            <div className="mt-3 mb-3">
+                                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+                                    <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <Target className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                                            Monthly Revenue & Target Details
+                                        </h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">View and edit revenue targets per product/service</p>
+                                    </div>
+                                    <div className="p-5 max-h-[500px] overflow-y-auto">
+                                        {monthlyData.map((month: any, monthIdx: number) => (
+                                            <div key={monthIdx} className="mb-6 last:mb-0">
+                                                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                                    <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200">
+                                                        {month.period_label}
+                                                    </h4>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-right">
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">Total Revenue</p>
+                                                            <p className="text-sm font-semibold text-green-600 dark:text-green-400">{month.formatted_revenue}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">Total Target</p>
+                                                            <p className="text-sm font-semibold text-orange-600 dark:text-orange-400">{month.formatted_target}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">Achievement</p>
+                                                            <p className={`text-sm font-semibold ${month.achievement_percentage >= 100 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                {month.achievement_percentage}%
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    {month.revenues && month.revenues.length > 0 ? (
+                                                        month.revenues.map((rev: any) => (
+                                                            <div 
+                                                                key={rev.id}
+                                                                className="grid grid-cols-12 gap-3 items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                                            >
+                                                                <div className="col-span-4">
+                                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{rev.product}</p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{rev.main_category} → {rev.type} → {rev.category}</p>
+                                                                </div>
+                                                                <div className="col-span-2 text-right">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Revenue</p>
+                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{rev.formatted_revenue}</p>
+                                                                </div>
+                                                                <div className="col-span-4">
+                                                                    {editingTargetId === rev.id ? (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <input
+                                                                                type="number"
+                                                                                value={editingTargetValue}
+                                                                                onChange={(e) => setEditingTargetValue(e.target.value)}
+                                                                                className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                                                                placeholder="Enter target amount"
+                                                                                disabled={savingTarget === rev.id}
+                                                                            />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-right">
+                                                                            <p className="text-xs text-gray-500 dark:text-gray-400">Target</p>
+                                                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{rev.formatted_target}</p>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="col-span-2 flex items-center justify-end gap-1">
+                                                                    {editingTargetId === rev.id ? (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => handleSaveTarget(rev.id)}
+                                                                                disabled={savingTarget === rev.id}
+                                                                                className="p-1.5 text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/30 rounded transition-colors disabled:opacity-50"
+                                                                                title="Save"
+                                                                            >
+                                                                                {savingTarget === rev.id ? (
+                                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                                ) : (
+                                                                                    <Check className="h-4 w-4" />
+                                                                                )}
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={handleCancelEdit}
+                                                                                disabled={savingTarget === rev.id}
+                                                                                className="p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 rounded transition-colors disabled:opacity-50"
+                                                                                title="Cancel"
+                                                                            >
+                                                                                <X className="h-4 w-4" />
+                                                                            </button>
+                                                                        </>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => handleEditTarget(rev.id, rev.target)}
+                                                                            className="p-1.5 text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30 rounded transition-colors"
+                                                                            title="Edit Target"
+                                                                        >
+                                                                            <Edit2 className="h-4 w-4" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No revenue data for this month</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Revenue Breakdown Section */}
                         {revenueBreakdown.length > 0 && (
                             <div className="mt-1">
@@ -496,7 +660,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                                             cx="50%"
                                                             cy="50%"
                                                             labelLine={false}
-                                                            label={({ percentage }) => `${percentage}%`}
+                                                            label={(entry: any) => `${entry.percentage}%`}
                                                             outerRadius={80}
                                                             dataKey="value"
                                                             onClick={handlePieSliceClick}

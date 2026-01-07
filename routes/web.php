@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\RevenueBreakdownDummyController;
 use App\Http\Controllers\RevenueBreakdownController;
+use App\Http\Controllers\RevenueImportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -14,6 +14,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard routes
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('performance-am', [DashboardController::class, 'performanceAM'])->name('performance-am');
+    
+    // Data Import routes
+    Route::get('data-import/revenue', [DashboardController::class, 'dataImportRevenue'])->name('data-import.revenue');
+    Route::get('data-import/performance', [DashboardController::class, 'dataImportPerformance'])->name('data-import.performance');
+    
+    // Data Import - Upload & Template Download
+    Route::post('data-import/revenue/upload', [RevenueImportController::class, 'store'])->name('data-import.revenue.upload');
+    Route::get('data-import/revenue/download/{year}/{month}', [RevenueImportController::class, 'downloadFile'])->name('data-import.revenue.download');
+    Route::delete('data-import/revenue/delete/{year}', [RevenueImportController::class, 'deleteYear'])->name('data-import.revenue.delete');
     
     // API routes for dashboard analytics
     Route::prefix('api/dashboard')->group(function () {
@@ -37,11 +46,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('region-witel-detail', [DashboardController::class, 'getRegionWitelDetail'])->name('api.dashboard.region-witel-detail');
         Route::get('am-performance-detail', [\App\Http\Controllers\AmPerformanceDetailController::class, 'getAmPerformanceDetail'])->name('api.dashboard.am-performance-detail');
         
-        // DUMMY ENDPOINT - For testing Revenue Breakdown Tree component
-        // Route::get('revenue-breakdown-dummy', [RevenueBreakdownDummyController::class, 'getDummyRevenueBreakdown'])->name('api.dashboard.revenue-breakdown-dummy');
-        
-        // PRODUCTION ENDPOINT - Revenue Breakdown from database
+        // Revenue Breakdown
         Route::get('revenue-breakdown/{companyId}', [RevenueBreakdownController::class, 'getBreakdown'])->name('api.dashboard.revenue-breakdown');
+        
+        // Revenue Target Edit - TEMPORARILY DISABLED
+        // Route::patch('revenue-target/{revenueId}', [DashboardController::class, 'updateRevenueTarget'])->name('api.dashboard.update-revenue-target');
     });
 });
 

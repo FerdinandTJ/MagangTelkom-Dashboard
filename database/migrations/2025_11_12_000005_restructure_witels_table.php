@@ -52,7 +52,7 @@ return new class extends Migration
             $table->unsignedBigInteger('idwitels')->primary()->comment('ID WITEL (Primary Key, custom)');
             
             // NAMA WITEL: Nama lengkap WITEL
-            $table->string('nama_witels', 25)->comment('Nama WITEL');
+            $table->string('nama_witels', 50)->comment('Nama WITEL');
             
             // FOREIGN KEY: Relasi Many-to-One dengan regions
             // Setiap WITEL harus berada di salah satu region
@@ -72,10 +72,57 @@ return new class extends Migration
                   ->onUpdate('cascade');
         });
         
-        // STEP 4: Migrate data dari backup ke struktur baru
-        // Mapping old ID ke new idwitels (custom)
-        // NOTE: Data akan di-seed ulang dengan ID yang benar di seeder
-        // Untuk sementara, kita skip restore data lama karena struktur berubah drastis
+        // STEP 4: Insert data witels sesuai struktur Telkom
+        // Data ini adalah master data standar yang sudah final
+        // ID menggunakan nomor urut 1-31 sesuai screenshot
+        
+        // Get region IDs
+        $regions = DB::table('regions')->get()->keyBy('code');
+        
+        DB::table('witels')->insert([
+            // TREG 1 - SUMATERA (6 witels: 1-6)
+            ['idwitels' => 1, 'nama_witels' => 'WITEL ACEH', 'region_id' => $regions['TREG 1']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 2, 'nama_witels' => 'WITEL RIAU', 'region_id' => $regions['TREG 1']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 3, 'nama_witels' => 'WITEL SUMBAGSEL', 'region_id' => $regions['TREG 1']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 4, 'nama_witels' => 'WITEL SUMBAR JAMBI', 'region_id' => $regions['TREG 1']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 5, 'nama_witels' => 'WITEL LAMPUNG BENGKULU', 'region_id' => $regions['TREG 1']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 6, 'nama_witels' => 'WITEL SUMUT', 'region_id' => $regions['TREG 1']->id, 'created_at' => now(), 'updated_at' => now()],
+            
+            // TREG HQ 2 - JAKARTA HQ (5 witels: 7-11)
+            ['idwitels' => 7, 'nama_witels' => 'WITEL JAKARTA INNER', 'region_id' => $regions['TREG HQ 2']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 8, 'nama_witels' => 'WITEL JAKARTA CENTRUM', 'region_id' => $regions['TREG HQ 2']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 9, 'nama_witels' => 'WITEL JAKARTA OUTER', 'region_id' => $regions['TREG HQ 2']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 10, 'nama_witels' => 'WITEL BANTEN', 'region_id' => $regions['TREG HQ 2']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 11, 'nama_witels' => 'WITEL PRIANGAN BRT', 'region_id' => $regions['TREG HQ 2']->id, 'created_at' => now(), 'updated_at' => now()],
+            
+            // TREG 2 - JAKARTA & JABAR (3 witels: 12-14)
+            ['idwitels' => 12, 'nama_witels' => 'WITEL BEKASI KARAWANG', 'region_id' => $regions['TREG 2']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 13, 'nama_witels' => 'WITEL BANDUNG+D20', 'region_id' => $regions['TREG 2']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 14, 'nama_witels' => 'WITEL PRIANGAN TIMUR', 'region_id' => $regions['TREG 2']->id, 'created_at' => now(), 'updated_at' => now()],
+            
+            // TREG 3 - JATENG, JATIM & BALNUS (8 witels: 15-22)
+            ['idwitels' => 15, 'nama_witels' => 'WITEL SEMARANG JATENG UTARA', 'region_id' => $regions['TREG 3']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 16, 'nama_witels' => 'WITEL YOGYAKARTA JATENG SELATAN', 'region_id' => $regions['TREG 3']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 17, 'nama_witels' => 'WITEL SOLO JATENG TIMUR', 'region_id' => $regions['TREG 3']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 18, 'nama_witels' => 'WITEL BALI', 'region_id' => $regions['TREG 3']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 19, 'nama_witels' => 'WITEL JATIM BARAT', 'region_id' => $regions['TREG 3']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 20, 'nama_witels' => 'WITEL NUSA TENGGARA', 'region_id' => $regions['TREG 3']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 21, 'nama_witels' => 'WITEL JATIM TIMUR', 'region_id' => $regions['TREG 3']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 22, 'nama_witels' => 'WITEL SURAMADU', 'region_id' => $regions['TREG 3']->id, 'created_at' => now(), 'updated_at' => now()],
+            
+            // TREG 4 - KALIMANTAN (4 witels: 23-26)
+            ['idwitels' => 23, 'nama_witels' => 'WITEL KALITIMTARA', 'region_id' => $regions['TREG 4']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 24, 'nama_witels' => 'WITEL BALIKPAPAN', 'region_id' => $regions['TREG 4']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 25, 'nama_witels' => 'WITEL KALSELTENG', 'region_id' => $regions['TREG 4']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 26, 'nama_witels' => 'WITEL KALBAR', 'region_id' => $regions['TREG 4']->id, 'created_at' => now(), 'updated_at' => now()],
+            
+            // TREG 5 - KTI (5 witels: 27-31)
+            ['idwitels' => 27, 'nama_witels' => 'WITEL SULBANGSEL', 'region_id' => $regions['TREG 5']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 28, 'nama_witels' => 'WITEL SULBANGTENG', 'region_id' => $regions['TREG 5']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 29, 'nama_witels' => 'WITEL SUMALUT', 'region_id' => $regions['TREG 5']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 30, 'nama_witels' => 'WITEL PAPUA', 'region_id' => $regions['TREG 5']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['idwitels' => 31, 'nama_witels' => 'WITEL PAPUA BARAT', 'region_id' => $regions['TREG 5']->id, 'created_at' => now(), 'updated_at' => now()],
+        ]);
         
         // Drop temporary table
         Schema::dropIfExists('witels_backup_temp');

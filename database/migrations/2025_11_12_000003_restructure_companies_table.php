@@ -53,7 +53,7 @@ return new class extends Migration
             
             // SUBSEGMENT: Kategori perusahaan
             // Contoh: PTN, PTS, Hospital, Airport, Bank, Government, dll
-            $table->string('subsegment', 25)->comment('Sub-segment perusahaan (PTN, PTS, Hospital, dll)');
+            $table->string('subsegment', 25)->nullable()->comment('Sub-segment perusahaan (PTN, PTS, Hospital, dll)');
             
             // SOURCE DATA: Sumber data perusahaan
             // Contoh: TIBS-NP, SISKA, NGTMA

@@ -88,6 +88,11 @@ interface DashboardProps {
         total_revenue: number;
         formatted_total_revenue: string;
     }>;
+    regions: Array<{
+        id: number;
+        code: string;
+        name: string;
+    }>;
     currentYear: number;
 }
 
@@ -99,6 +104,7 @@ export default function Dashboard({
     subsegmentRevenue,
     subsegmentRegionalData,
     topCompanies,
+    regions,
     currentYear,
     comparisonYear: initialComparisonYear,
     hasComparison = false
@@ -124,6 +130,7 @@ export default function Dashboard({
     // Filter states
     const [monthlySortOrder, setMonthlySortOrder] = useState<'chronological' | 'asc' | 'desc'>('chronological');
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+    const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>('ALL');
     
     // Sync selectedYear with currentYear from backend (query parameter)
     useEffect(() => {
@@ -144,6 +151,20 @@ export default function Dashboard({
     const availableYears = useMemo(() => {
         return yearlyRevenue.map(y => y.tahun).sort((a, b) => b - a);
     }, [yearlyRevenue]);
+
+    // Filter subsegment regional data by selected region
+    const filteredSubsegmentData = useMemo(() => {
+        if (selectedRegionFilter === 'ALL') {
+            return subsegmentRegionalData;
+        }
+        
+        return subsegmentRegionalData.map(subsegment => ({
+            ...subsegment,
+            regional_breakdown: subsegment.regional_breakdown.filter(
+                (region: any) => region.region_code === selectedRegionFilter
+            )
+        })).filter(subsegment => subsegment.regional_breakdown.length > 0);
+    }, [subsegmentRegionalData, selectedRegionFilter]);
 
     // Auto-adjust comparisonYear if it conflicts with selectedYear
     useEffect(() => {
@@ -328,18 +349,11 @@ export default function Dashboard({
                                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Data Actions</p>
                                 <div className="space-y-2 mt-2">
                                     <button className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium text-sm"
-                                    onClick={() => alert('Export feature coming soon')}>
+                                    onClick={() => alert('Download feature coming soon')}>
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
-                                        Export
-                                    </button>
-                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium text-sm"
-                                    onClick={() => alert('Import feature coming soon')}>
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                        </svg>
-                                        Import
+                                        Download
                                     </button>
                                 </div>
                             </div>
@@ -438,24 +452,45 @@ export default function Dashboard({
                                 )}
                             </div>
 
-                            {/* Tab Navigation - Moved below title */}
-                            <div className="flex gap-2 mb-6">
-                                <Button
-                                    variant={revenueViewTab === 'subsegment' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setRevenueViewTab('subsegment')}
-                                    className={revenueViewTab === 'subsegment' ? 'bg-red-600 hover:bg-red-700' : ''}
-                                >
-                                    Regional Performance
-                                </Button>
-                                <Button
-                                    variant={revenueViewTab === 'chart' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setRevenueViewTab('chart')}
-                                    className={revenueViewTab === 'chart' ? 'bg-red-600 hover:bg-red-700' : ''}
-                                >
-                                    Chart View
-                                </Button>
+                            {/* Tab Navigation and Region Filter */}
+                            <div className="flex items-center justify-between gap-4 mb-6">
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant={revenueViewTab === 'subsegment' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setRevenueViewTab('subsegment')}
+                                        className={revenueViewTab === 'subsegment' ? 'bg-red-600 hover:bg-red-700' : ''}
+                                    >
+                                        Regional Performance
+                                    </Button>
+                                    <Button
+                                        variant={revenueViewTab === 'chart' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setRevenueViewTab('chart')}
+                                        className={revenueViewTab === 'chart' ? 'bg-red-600 hover:bg-red-700' : ''}
+                                    >
+                                        Chart View
+                                    </Button>
+                                </div>
+
+                                {/* Region Filter - Only show in subsegment view */}
+                                {revenueViewTab === 'subsegment' && (
+                                    <div className="relative">
+                                        <select
+                                            value={selectedRegionFilter}
+                                            onChange={(e) => setSelectedRegionFilter(e.target.value)}
+                                            className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        >
+                                            <option value="ALL">All Regions</option>
+                                            {regions.map(region => (
+                                                <option key={region.id} value={region.code}>
+                                                    {region.code} - {region.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Tab Content */}
@@ -489,7 +524,7 @@ export default function Dashboard({
                                 ) : (
                                     // Subsegment Regional Performance View
                                     <SubsegmentRegionalTable 
-                                        data={subsegmentRegionalData} 
+                                        data={filteredSubsegmentData} 
                                         onRegionClick={handleRegionClick}
                                     />
                                 )}

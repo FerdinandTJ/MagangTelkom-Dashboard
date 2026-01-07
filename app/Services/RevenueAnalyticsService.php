@@ -109,13 +109,24 @@ class RevenueAnalyticsService
      */
     public function getMonthlyRevenue(int $year): array
     {
-        // Get monthly revenue and target from revenues table (normalized schema)
+        // Get monthly revenue from revenues table and target from company_targets table
+        // Need to join through group hierarchy: group4 -> group3 -> group2 -> group1 -> companies
         $monthlyData = DB::table('revenues as r')
+            ->leftJoin('group4 as g4', 'r.group4_id', '=', 'g4.idGroup4')
+            ->leftJoin('group3 as g3', 'g4.group3_id', '=', 'g3.idGroup3')
+            ->leftJoin('group2 as g2', 'g3.group2_id', '=', 'g2.idGroup2')
+            ->leftJoin('group1 as g1', 'g2.group1_id', '=', 'g1.idGroup1')
+            ->leftJoin('companies as c', 'g1.company_id', '=', 'c.nip_nas')
+            ->leftJoin('company_targets as ct', function($join) use ($year) {
+                $join->on('c.nip_nas', '=', 'ct.nip_nas')
+                     ->on('r.bulan', '=', 'ct.bulan')
+                     ->where('ct.tahun', '=', $year);
+            })
             ->where('r.tahun', $year)
             ->select(
                 'r.bulan',
                 DB::raw('SUM(r.revenue_realisasi) as total_revenue'),
-                DB::raw('SUM(r.revenue_target) as target_revenue'),
+                DB::raw('SUM(ct.target_revenue) as target_revenue'),
                 DB::raw('COUNT(DISTINCT r.group4_id) as total_entries')
             )
             ->groupBy('r.bulan')
@@ -680,10 +691,10 @@ class RevenueAnalyticsService
             ->where('r.bulan', $currentMonth)
             ->sum('r.revenue_realisasi');
 
-        $currentMonthTarget = DB::table('revenues as r')
-            ->where('r.tahun', $currentYear)
-            ->where('r.bulan', $currentMonth)
-            ->sum('r.revenue_target');
+        $currentMonthTarget = DB::table('company_targets as ct')
+            ->where('ct.tahun', $currentYear)
+            ->where('ct.bulan', $currentMonth)
+            ->sum('ct.target_revenue');
 
         return [
             'total_revenue' => (float) $totalRevenue,
@@ -846,63 +857,80 @@ class RevenueAnalyticsService
                                 $companyYoyGrowth = null;
                             }
 
-                            // Get target for achievement calculation
-                            $target = DB::table('group4 as p')
-                                ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
-                                ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
-                                ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
-                                ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-                                ->where('group1.company_id', $company->nip_nas)
-                                ->where('r.tahun', $year)
-                                ->sum('r.revenue_target');
+                            // Get target for achievement calculation (from company_targets table)
+                        // Only sum targets for months that have revenue data (YTD matching)
+                        $target = DB::table('company_targets as ct')
+                            ->where('ct.nip_nas', $company->nip_nas)
+                            ->where('ct.tahun', $year)
+                            ->whereIn('ct.bulan', function($query) use ($company, $year) {
+                                $query->select(DB::raw('DISTINCT r.bulan'))
+                                      ->from('revenues as r')
+                                      ->join('group4 as p', 'r.group4_id', '=', 'p.idGroup4')
+                                      ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                                      ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                                      ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                                      ->where('group1.company_id', $company->nip_nas)
+                                      ->where('r.tahun', $year);
+                            })
+                            ->sum('ct.target_revenue');
 
-                            $achievement = 0;
-                            if ($target > 0) {
-                                $achievement = round(($company->total_revenue / $target) * 100, 1);
-                            }
+                        $achievement = 0;
+                        if ($target > 0) {
+                            $achievement = round(($company->total_revenue / $target) * 100, 1);
+                        }
 
-                            return [
-                                'nama_perusahaan' => $company->nama_perusahaan,
-                                'revenue' => (float) $company->total_revenue,
-                                'formatted_revenue' => $this->formatCurrency($company->total_revenue, 1),
-                                'achievement' => $achievement,
-                                'growth_yoy' => $companyYoyGrowth,
-                            ];
-                        })
-                        ->toArray();
+                        return [
+                            'nama_perusahaan' => $company->nama_perusahaan,
+                            'revenue' => (float) $company->total_revenue,
+                            'formatted_revenue' => $this->formatCurrency($company->total_revenue, 1),
+                            'achievement' => $achievement,
+                            'growth_yoy' => $companyYoyGrowth,
+                        ];
+                    })
+                    ->toArray();
 
-                    $regionCompanyCount = DB::table('group4 as p')
-                        ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
-                        ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
-                        ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
-                        ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-                        ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
-                        ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
-                        ->where('witels.region_id', $region->id)
-                        ->where('companies.subsegment', $subsegment)
-                        ->where('r.tahun', $year)
-                        ->distinct('companies.nip_nas')
-                        ->count('companies.nip_nas');
+                $regionCompanyCount = DB::table('group4 as p')
+                    ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
+                    ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                    ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                    ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                    ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
+                    ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
+                    ->where('witels.region_id', $region->id)
+                    ->where('companies.subsegment', $subsegment)
+                    ->where('r.tahun', $year)
+                    ->distinct('companies.nip_nas')
+                    ->count('companies.nip_nas');
 
-                    // Get target for region achievement calculation
-                    $regionTarget = DB::table('group4 as p')
-                        ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
-                        ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
-                        ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
-                        ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-                        ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
-                        ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
-                        ->where('witels.region_id', $region->id)
-                        ->where('companies.subsegment', $subsegment)
-                        ->where('r.tahun', $year)
-                        ->sum('r.revenue_target');
+                // Get target for region achievement calculation (from company_targets table)
+                // Only sum targets for months that have revenue data (YTD matching)
+                $regionTarget = DB::table('company_targets as ct')
+                    ->join('companies', 'ct.nip_nas', '=', 'companies.nip_nas')
+                    ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
+                    ->where('witels.region_id', $region->id)
+                    ->where('companies.subsegment', $subsegment)
+                    ->where('ct.tahun', $year)
+                    ->whereIn('ct.bulan', function($query) use ($subsegment, $region, $year) {
+                        $query->select(DB::raw('DISTINCT r.bulan'))
+                              ->from('revenues as r')
+                              ->join('group4 as p', 'r.group4_id', '=', 'p.idGroup4')
+                              ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                              ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                              ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                              ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
+                              ->join('witels', 'companies.idwitels', '=', 'witels.idwitels')
+                              ->where('witels.region_id', $region->id)
+                              ->where('companies.subsegment', $subsegment)
+                              ->where('r.tahun', $year);
+                    })
+                    ->sum('ct.target_revenue');
 
-                    $regionAchievement = 0;
-                    if ($regionTarget > 0) {
-                        $regionAchievement = round(($regionRevenue / $regionTarget) * 100, 1);
-                    }
+                $regionAchievement = 0;
+                if ($regionTarget > 0) {
+                    $regionAchievement = round(($regionRevenue / $regionTarget) * 100, 1);
+                }
 
-                    $regionalBreakdown[] = [
+                $regionalBreakdown[] = [
                         'region_code' => $region->code,
                         'region_name' => $region->description,
                         'revenue' => (float) $regionRevenue,
@@ -917,16 +945,24 @@ class RevenueAnalyticsService
             }
 
             if ($subsegmentRevenue > 0) {
-                // Get target for subsegment achievement calculation
-                $subsegmentTarget = DB::table('group4 as p')
-                    ->join('revenues as r', 'p.idGroup4', '=', 'r.group4_id')
-                    ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
-                    ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
-                    ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
-                    ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
+                // Get target for subsegment achievement calculation (from company_targets table)
+                // Only sum targets for months that have revenue data (YTD matching)
+                $subsegmentTarget = DB::table('company_targets as ct')
+                    ->join('companies', 'ct.nip_nas', '=', 'companies.nip_nas')
                     ->where('companies.subsegment', $subsegment)
-                    ->where('r.tahun', $year)
-                    ->sum('r.revenue_target');
+                    ->where('ct.tahun', $year)
+                    ->whereIn('ct.bulan', function($query) use ($subsegment, $year) {
+                        $query->select(DB::raw('DISTINCT r.bulan'))
+                              ->from('revenues as r')
+                              ->join('group4 as p', 'r.group4_id', '=', 'p.idGroup4')
+                              ->join('group3', 'p.group3_id', '=', 'group3.idGroup3')
+                              ->join('group2', 'group3.group2_id', '=', 'group2.idGroup2')
+                              ->join('group1', 'group2.group1_id', '=', 'group1.idGroup1')
+                              ->join('companies', 'group1.company_id', '=', 'companies.nip_nas')
+                              ->where('companies.subsegment', $subsegment)
+                              ->where('r.tahun', $year);
+                    })
+                    ->sum('ct.target_revenue');
 
                 $subsegmentAchievement = 0;
                 if ($subsegmentTarget > 0) {
