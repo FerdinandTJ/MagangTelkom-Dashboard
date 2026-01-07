@@ -27,9 +27,57 @@ class RevenueImportController extends Controller
             'file' => 'required|file|mimes:xlsx,xls,csv|max:10240', // 10MB max
             'year' => 'nullable|integer|min:2020|max:2030',
             'month' => 'nullable|integer|min:1|max:12',
+        ], [
+            'file.required' => 'File harus diupload',
+            'file.file' => 'File yang diupload tidak valid',
+            'file.mimes' => 'Format file harus Excel (.xlsx, .xls) atau CSV (.csv)',
+            'file.max' => 'Ukuran file maksimal 10 MB',
+            'year.integer' => 'Tahun harus berupa angka',
+            'year.min' => 'Tahun minimal 2020',
+            'year.max' => 'Tahun maksimal 2030',
+            'month.integer' => 'Bulan harus berupa angka',
+            'month.min' => 'Bulan harus antara 1-12',
+            'month.max' => 'Bulan harus antara 1-12',
         ]);
 
         $file = $request->file('file');
+        
+        // Additional validation: Check file extension explicitly
+        $allowedExtensions = ['xlsx', 'xls', 'csv'];
+        $fileExtension = strtolower($file->getClientOriginalExtension());
+        
+        if (!in_array($fileExtension, $allowedExtensions)) {
+            return response()->json([
+                'message' => 'Format file tidak didukung',
+                'error' => "File dengan ekstensi .{$fileExtension} tidak diperbolehkan. Hanya menerima: .xlsx, .xls, .csv",
+                'errors' => [
+                    'file' => ["Format file .{$fileExtension} tidak valid. Gunakan Excel (.xlsx, .xls) atau CSV (.csv)"]
+                ]
+            ], 422);
+        }
+        
+        // Validate actual file content (MIME type)
+        $allowedMimeTypes = [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+            'application/vnd.ms-excel', // .xls
+            'text/csv', // .csv
+            'text/plain', // some CSV files
+            'application/csv',
+            'application/excel',
+        ];
+        
+        $fileMimeType = $file->getMimeType();
+        
+        if (!in_array($fileMimeType, $allowedMimeTypes)) {
+            return response()->json([
+                'message' => 'Tipe file tidak valid',
+                'error' => "File yang diupload bukan file Excel atau CSV yang valid (MIME: {$fileMimeType})",
+                'errors' => [
+                    'file' => ['File yang diupload bukan file Excel atau CSV yang valid. Pastikan file tidak corrupt atau diubah ekstensinya.']
+                ]
+            ], 422);
+        }
+        
         $year = $request->input('year');
         $month = $request->input('month');
         
@@ -47,8 +95,8 @@ class RevenueImportController extends Controller
         DB::beginTransaction();
         
         try {
-            // Create importer instance
-            $importer = new RevenueImport($year);
+            // Create importer instance with year and month (if specified)
+            $importer = new RevenueImport($year, $month);
             
             // Import the file
             Excel::import($importer, $file);
@@ -56,6 +104,30 @@ class RevenueImportController extends Controller
             // Get import statistics
             $stats = $importer->getStats();
             $errors = $importer->getErrorReport();
+            
+            // Validasi: Cek apakah ada data yang berhasil di-import
+            if ($stats['total_records'] === 0 || empty($stats['years_imported'])) {
+                DB::rollBack();
+                
+                Log::warning('No valid data imported from file', [
+                    'filename' => $file->getClientOriginalName(),
+                    'stats' => $stats
+                ]);
+                
+                return response()->json([
+                    'message' => 'Tidak ada data yang berhasil di-import',
+                    'error' => 'File yang Anda upload tidak memiliki struktur revenue yang valid. ' .
+                              'Pastikan file Excel memiliki sheet dengan nama "Rev YYYY" (contoh: Rev 2024) ' .
+                              'dan memiliki kolom: NIP_NAS, STANDARD_NAME, SOURCE_DATA, GROUP1-GROUP4, serta kolom bulan 1-12.',
+                    'errors' => [
+                        'file' => [
+                            'File tidak memiliki data revenue yang valid',
+                            'Pastikan file menggunakan template yang benar dengan kolom: NIP_NAS, STANDARD_NAME, SOURCE_DATA, GROUP1-4, dan bulan 1-12',
+                            'File harus memiliki sheet bernama "Rev YYYY" (contoh: Rev 2024, Rev 2025)'
+                        ]
+                    ]
+                ], 422);
+            }
             
             // Check if import was successful
             if ($stats['total_errors'] > 0) {
@@ -198,86 +270,373 @@ class RevenueImportController extends Controller
             $errorMessages = [];
             
             foreach ($failures as $failure) {
-                $errorMessages[] = "Row {$failure->row()}: " . implode(', ', $failure->errors());
+                $errorMessages[] = "Baris {$failure->row()}: " . implode(', ', $failure->errors());
             }
             
             Log::error('Revenue import validation failed', [
-                'errors' => $errorMessages
+                'errors' => $errorMessages,
+                'file' => $file->getClientOriginalName()
             ]);
             
             if (request()->expectsJson() || request()->ajax()) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Import validation failed. Please check your file format.',
-                    'validation_errors' => $errorMessages
+                    'message' => 'Validasi data gagal',
+                    'error' => 'File Excel mengandung data yang tidak valid. Silakan periksa format dan isi data Anda.',
+                    'errors' => [
+                        'file' => $errorMessages
+                    ]
                 ], 422);
             }
             
             return back()->with([
-                'error' => 'Import validation failed. Please check your file format.',
+                'error' => 'Validasi data gagal. File Excel mengandung data yang tidak valid.',
                 'validation_errors' => $errorMessages
             ]);
             
         } catch (\Exception $e) {
             DB::rollBack();
             
+            $errorMessage = $e->getMessage();
+            
             Log::error('Revenue import failed', [
-                'error' => $e->getMessage(),
+                'error' => $errorMessage,
+                'file' => $file->getClientOriginalName(),
                 'trace' => $e->getTraceAsString()
             ]);
             
+            // Cek apakah ini error validasi struktur
+            $isStructureError = str_contains($errorMessage, 'Struktur Excel') || 
+                               str_contains($errorMessage, 'Kolom yang hilang') ||
+                               str_contains($errorMessage, 'tidak memiliki data') ||
+                               str_contains($errorMessage, 'File Excel kosong') ||
+                               str_contains($errorMessage, 'tidak lengkap');
+            
             if (request()->expectsJson() || request()->ajax()) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Import failed: ' . $e->getMessage()
-                ], 500);
+                    'message' => $isStructureError ? 'Struktur file tidak sesuai' : 'Import gagal',
+                    'error' => $errorMessage,
+                    'errors' => [
+                        'file' => [$errorMessage]
+                    ]
+                ], $isStructureError ? 422 : 500);
             }
             
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+            return back()->with('error', 'Import gagal: ' . $errorMessage);
         }
     }
 
     /**
-     * Download uploaded revenue file
+     * Download revenue data for a specific month (generated from database)
      */
     public function downloadFile(Request $request, int $year, int $month)
     {
         try {
-            $upload = RevenueUpload::where('tahun', $year)
-                ->where('bulan', $month)
-                ->firstOrFail();
-            
-            // Check if file path exists
-            if (!$upload->stored_path) {
+            // Get revenue data for the specific month
+            $revenues = DB::table('revenues as r')
+                ->join('group4 as g4', 'r.group4_id', '=', 'g4.idGroup4')
+                ->join('group3 as g3', 'g4.group3_id', '=', 'g3.idGroup3')
+                ->join('group2 as g2', 'g3.group2_id', '=', 'g2.idGroup2')
+                ->join('group1 as g1', 'g2.group1_id', '=', 'g1.idGroup1')
+                ->join('companies as c', 'g1.company_id', '=', 'c.nip_nas')
+                ->leftJoin('company_targets as ct', function($join) use ($year, $month) {
+                    $join->on('c.nip_nas', '=', 'ct.nip_nas')
+                         ->where('ct.tahun', '=', $year)
+                         ->where('ct.bulan', '=', $month);
+                })
+                ->where('r.tahun', $year)
+                ->where('r.bulan', $month)
+                ->select(
+                    'c.nip_nas as NIP_NAS',
+                    'c.nama_perusahaan as STANDARD_NAME',
+                    'c.source_data as SOURCE_DATA',
+                    'g1.nama_group1 as GROUP1',
+                    'g2.nama_group2 as GROUP2',
+                    'g3.nama_group3 as GROUP3',
+                    'g4.nama_group4 as GROUP4',
+                    'r.revenue_realisasi',
+                    DB::raw('COALESCE(ct.target_revenue, 0) as revenue_target')
+                )
+                ->orderBy('c.nip_nas')
+                ->orderBy('g1.nama_group1')
+                ->get();
+
+            if ($revenues->isEmpty()) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'File tidak tersedia. Data diimport sebelum fitur penyimpanan file diaktifkan.'
+                    'message' => "Tidak ada data revenue untuk bulan {$month} tahun {$year}"
                 ], 404);
             }
-            
-            // Check if file exists in storage
-            if (!Storage::exists($upload->stored_path)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'File tidak ditemukan di server. Mungkin sudah dihapus.'
-                ], 404);
+
+            // Create Excel file
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $monthName = date('F', mktime(0, 0, 0, $month, 1));
+            $sheet->setTitle("{$monthName} {$year}");
+
+            // Set headers
+            $headers = ['NIP_NAS', 'STANDARD_NAME', 'SOURCE_DATA', 'GROUP1', 'GROUP2', 'GROUP3', 'GROUP4', $month, 'TARGET_' . $month];
+
+            // Write headers
+            $col = 'A';
+            foreach ($headers as $header) {
+                $sheet->setCellValue($col . '1', $header);
+                $sheet->getStyle($col . '1')->getFont()->setBold(true);
+                $col++;
             }
+
+            // Write data rows with grouping
+            $row = 2;
+            $prevNipNas = null;
+            $prevGroup1 = null;
+            $prevGroup2 = null;
             
-            return Storage::download($upload->stored_path, $upload->original_filename);
+            foreach ($revenues as $data) {
+                $col = 'A';
+                
+                // NIP_NAS - show only if different
+                $sheet->setCellValue($col . $row, 
+                    ($data->NIP_NAS !== $prevNipNas) ? $data->NIP_NAS : '');
+                $col++;
+                
+                // STANDARD_NAME - show only if NIP_NAS different
+                $sheet->setCellValue($col . $row, 
+                    ($data->NIP_NAS !== $prevNipNas) ? $data->STANDARD_NAME : '');
+                $col++;
+                
+                // SOURCE_DATA - show only if NIP_NAS different
+                $sheet->setCellValue($col . $row, 
+                    ($data->NIP_NAS !== $prevNipNas) ? $data->SOURCE_DATA : '');
+                $col++;
+                
+                // GROUP1 - show only if different
+                $sheet->setCellValue($col . $row, 
+                    ($data->NIP_NAS !== $prevNipNas || $data->GROUP1 !== $prevGroup1) ? $data->GROUP1 : '');
+                $col++;
+                
+                // GROUP2 - show only if different
+                $sheet->setCellValue($col . $row, 
+                    ($data->NIP_NAS !== $prevNipNas || $data->GROUP1 !== $prevGroup1 || $data->GROUP2 !== $prevGroup2) ? $data->GROUP2 : '');
+                $col++;
+                
+                // GROUP3 and GROUP4 - always show
+                $sheet->setCellValue($col . $row, $data->GROUP3);
+                $col++;
+                $sheet->setCellValue($col . $row, $data->GROUP4);
+                $col++;
+                
+                // Revenue for this month
+                $sheet->setCellValue($col . $row, $data->revenue_realisasi);
+                $col++;
+                
+                // Target for this month - show only if NIP_NAS different (target is per company per month)
+                $sheet->setCellValue($col . $row, 
+                    ($data->NIP_NAS !== $prevNipNas) ? $data->revenue_target : '');
+                
+                // Update previous values
+                $prevNipNas = $data->NIP_NAS;
+                $prevGroup1 = $data->GROUP1;
+                $prevGroup2 = $data->GROUP2;
+                
+                $row++;
+            }
+
+            // Save to temporary file
+            $filename = "Revenue_{$year}_{$monthName}_" . date('Ymd_His') . ".xlsx";
+            $tempPath = storage_path('app/temp/' . $filename);
             
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Data upload tidak ditemukan untuk bulan dan tahun tersebut.'
-            ], 404);
+            if (!file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save($tempPath);
+
+            return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
+            
         } catch (\Exception $e) {
+            Log::error('Error downloading month data', [
+                'year' => $year,
+                'month' => $month,
+                'error' => $e->getMessage()
+            ]);
             return response()->json([
                 'status' => 'error',
-                'message' => 'Terjadi kesalahan saat mengunduh file: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
     }
     
+    /**
+     * Download all revenue data for a year (combined 12 months in one Excel)
+     */
+    public function downloadYear(Request $request, int $year)
+    {
+        try {
+            // Get revenue data for the year with company details
+            $revenues = DB::table('revenues as r')
+                ->join('group4 as g4', 'r.group4_id', '=', 'g4.idGroup4')
+                ->join('group3 as g3', 'g4.group3_id', '=', 'g3.idGroup3')
+                ->join('group2 as g2', 'g3.group2_id', '=', 'g2.idGroup2')
+                ->join('group1 as g1', 'g2.group1_id', '=', 'g1.idGroup1')
+                ->join('companies as c', 'g1.company_id', '=', 'c.nip_nas')
+                ->leftJoin('company_targets as ct', function($join) use ($year) {
+                    $join->on('c.nip_nas', '=', 'ct.nip_nas')
+                         ->on('r.bulan', '=', 'ct.bulan')
+                         ->where('ct.tahun', '=', $year);
+                })
+                ->where('r.tahun', $year)
+                ->select(
+                    'c.nip_nas as NIP_NAS',
+                    'c.nama_perusahaan as STANDARD_NAME',
+                    'c.source_data as SOURCE_DATA',
+                    'g1.nama_group1 as GROUP1',
+                    'g2.nama_group2 as GROUP2',
+                    'g3.nama_group3 as GROUP3',
+                    'g4.nama_group4 as GROUP4',
+                    'r.bulan',
+                    'r.revenue_realisasi',
+                    DB::raw('COALESCE(ct.target_revenue, 0) as revenue_target')
+                )
+                ->orderBy('c.nip_nas')
+                ->orderBy('g1.nama_group1')
+                ->orderBy('r.bulan')
+                ->get();
+
+            if ($revenues->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Tidak ada data revenue untuk tahun {$year}"
+                ], 404);
+            }
+
+            // Transform data to pivot format (one row per company-group combination)
+            $pivotData = [];
+            foreach ($revenues as $revenue) {
+                $key = $revenue->NIP_NAS . '|' . $revenue->GROUP1 . '|' . $revenue->GROUP2 . '|' . $revenue->GROUP3 . '|' . $revenue->GROUP4;
+                
+                if (!isset($pivotData[$key])) {
+                    $pivotData[$key] = [
+                        'NIP_NAS' => $revenue->NIP_NAS,
+                        'STANDARD_NAME' => $revenue->STANDARD_NAME,
+                        'SOURCE_DATA' => $revenue->SOURCE_DATA,
+                        'GROUP1' => $revenue->GROUP1,
+                        'GROUP2' => $revenue->GROUP2,
+                        'GROUP3' => $revenue->GROUP3,
+                        'GROUP4' => $revenue->GROUP4,
+                    ];
+                    // Initialize all 12 months to 0
+                    for ($m = 1; $m <= 12; $m++) {
+                        $pivotData[$key][$m] = 0;
+                        $pivotData[$key]['TARGET_' . $m] = 0;
+                    }
+                }
+                // Set the revenue and target for this specific month
+                $pivotData[$key][$revenue->bulan] = $revenue->revenue_realisasi;
+                $pivotData[$key]['TARGET_' . $revenue->bulan] = $revenue->revenue_target;
+            }
+
+            // Create Excel file with PhpSpreadsheet
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle("Rev {$year}");
+
+            // Set headers
+            $headers = ['NIP_NAS', 'STANDARD_NAME', 'SOURCE_DATA', 'GROUP1', 'GROUP2', 'GROUP3', 'GROUP4'];
+            for ($m = 1; $m <= 12; $m++) {
+                $headers[] = (string)$m;
+                $headers[] = 'TARGET_' . $m;
+            }
+
+            // Write headers
+            $col = 'A';
+            foreach ($headers as $header) {
+                $sheet->setCellValue($col . '1', $header);
+                $sheet->getStyle($col . '1')->getFont()->setBold(true);
+                $col++;
+            }
+
+            // Write data rows with grouping (hide duplicate company info)
+            $row = 2;
+            $prevNipNas = null;
+            $prevGroup1 = null;
+            $prevGroup2 = null;
+            
+            foreach ($pivotData as $data) {
+                $col = 'A';
+                
+                // NIP_NAS - show only if different from previous
+                $sheet->setCellValue($col . $row, 
+                    ($data['NIP_NAS'] !== $prevNipNas) ? $data['NIP_NAS'] : '');
+                $col++;
+                
+                // STANDARD_NAME - show only if NIP_NAS different
+                $sheet->setCellValue($col . $row, 
+                    ($data['NIP_NAS'] !== $prevNipNas) ? $data['STANDARD_NAME'] : '');
+                $col++;
+                
+                // SOURCE_DATA - show only if NIP_NAS different
+                $sheet->setCellValue($col . $row, 
+                    ($data['NIP_NAS'] !== $prevNipNas) ? $data['SOURCE_DATA'] : '');
+                $col++;
+                
+                // GROUP1 - show only if NIP_NAS or GROUP1 different
+                $sheet->setCellValue($col . $row, 
+                    ($data['NIP_NAS'] !== $prevNipNas || $data['GROUP1'] !== $prevGroup1) ? $data['GROUP1'] : '');
+                $col++;
+                
+                // GROUP2 - show only if NIP_NAS, GROUP1, or GROUP2 different
+                $sheet->setCellValue($col . $row, 
+                    ($data['NIP_NAS'] !== $prevNipNas || $data['GROUP1'] !== $prevGroup1 || $data['GROUP2'] !== $prevGroup2) ? $data['GROUP2'] : '');
+                $col++;
+                
+                // GROUP3 and GROUP4 - always show
+                $sheet->setCellValue($col . $row, $data['GROUP3']);
+                $col++;
+                $sheet->setCellValue($col . $row, $data['GROUP4']);
+                $col++;
+                
+                // Month columns with target - revenue always show, target only if NIP_NAS different
+                for ($m = 1; $m <= 12; $m++) {
+                    $sheet->setCellValue($col . $row, $data[$m] ?? 0);
+                    $col++;
+                    // Target per company per month - only show on first row of each company
+                    $sheet->setCellValue($col . $row, 
+                        ($data['NIP_NAS'] !== $prevNipNas) ? ($data['TARGET_' . $m] ?? 0) : '');
+                    $col++;
+                }
+                
+                // Update previous values
+                $prevNipNas = $data['NIP_NAS'];
+                $prevGroup1 = $data['GROUP1'];
+                $prevGroup2 = $data['GROUP2'];
+                
+                $row++;
+            }
+
+            // Save to temporary file
+            $filename = "Revenue_{$year}_Full_Export_" . date('Ymd_His') . ".xlsx";
+            $tempPath = storage_path('app/temp/' . $filename);
+            
+            if (!file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save($tempPath);
+
+            return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            Log::error('Error downloading year data', [
+                'year' => $year,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Delete all revenue data for a specific year
      */

@@ -1,0 +1,341 @@
+@startuml Dashboard TWS - Physical Data Model
+
+!define PRIMARY_KEY(x) <b><color:red>🔑 x</color></b>
+!define FOREIGN_KEY(x) <color:blue>🔗 x</color>
+!define UNIQUE(x) <color:green>⚡ x</color>
+
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+' ============================================
+' CORE TABLES - User Management & Auth
+' ============================================
+
+class users {
+  PRIMARY_KEY(id): bigint
+  --
+  name: varchar(255)
+  username: varchar(255) UNIQUE
+  email: varchar(255) UNIQUE
+  email_verified_at: timestamp
+  password: varchar(255)
+  two_factor_secret: text
+  two_factor_recovery_codes: text
+  two_factor_confirmed_at: timestamp
+  remember_token: varchar(100)
+  current_team_id: bigint
+  profile_photo_path: varchar(2048)
+  created_at: timestamp
+  updated_at: timestamp
+}
+
+class cache {
+  PRIMARY_KEY(key): varchar(255)
+  --
+  value: mediumtext
+  expiration: int
+}
+
+class cache_locks {
+  PRIMARY_KEY(key): varchar(255)
+  --
+  owner: varchar(255)
+  expiration: int
+}
+
+class sessions {
+  PRIMARY_KEY(id): varchar(255)
+  --
+  user_id: bigint (nullable)
+  ip_address: varchar(45)
+  user_agent: text
+  payload: longtext
+  last_activity: int
+  --
+  INDEX: user_id
+  INDEX: last_activity
+}
+
+class password_reset_tokens {
+  PRIMARY_KEY(email): varchar(255)
+  --
+  token: varchar(255)
+  created_at: timestamp
+}
+
+' ============================================
+' MASTER DATA - Geography & Organization
+' ============================================
+
+class regions {
+  PRIMARY_KEY(idregional): bigint
+  --
+  kode_regional: varchar(5) UNIQUE
+  nama_regional: varchar(50)
+  created_at: timestamp
+  updated_at: timestamp
+}
+
+class witels {
+  PRIMARY_KEY(idwitel): bigint
+  --
+  FOREIGN_KEY(idregional): bigint
+  kode_witel: varchar(10) UNIQUE
+  nama_witel: varchar(100)
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  INDEX: idregional
+}
+
+' ============================================
+' MASTER DATA - Companies & Products
+' ============================================
+
+class companies {
+  PRIMARY_KEY(nip_nas): varchar(25)
+  --
+  nama_perusahaan: varchar(55)
+  subsegment: varchar(25)
+  source_data: varchar(15)
+  FOREIGN_KEY(idwitels): bigint (nullable)
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  INDEX: subsegment
+  INDEX: source_data
+  INDEX: idwitels
+}
+
+class group1 {
+  PRIMARY_KEY(idGroup1): bigint
+  --
+  nama_group1: varchar(45)
+  FOREIGN_KEY(company_id): varchar(25)
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  INDEX: company_id
+}
+
+class group2 {
+  PRIMARY_KEY(idGroup2): bigint
+  --
+  nama_group2: varchar(45)
+  FOREIGN_KEY(group1_id): bigint
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  INDEX: group1_id
+}
+
+class group3 {
+  PRIMARY_KEY(idGroup3): bigint
+  --
+  nama_group3: varchar(45)
+  FOREIGN_KEY(group2_id): bigint
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  INDEX: group2_id
+}
+
+class group4 {
+  PRIMARY_KEY(idGroup4): bigint
+  --
+  nama_group4: varchar(45)
+  FOREIGN_KEY(group3_id): bigint
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  INDEX: group3_id
+}
+
+' ============================================
+' TRANSACTION DATA - Revenue & Targets
+' ============================================
+
+class revenues {
+  PRIMARY_KEY(id): bigint
+  --
+  tahun: int
+  bulan: int
+  FOREIGN_KEY(group4_id): bigint
+  revenue_realisasi: decimal(15,2)
+  revenue_target: decimal(15,2)
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  <i>UNIQUE: (tahun, bulan, group4_id)</i>
+  INDEX: tahun
+  INDEX: bulan
+  INDEX: group4_id
+}
+
+class company_targets {
+  PRIMARY_KEY(id): bigint
+  --
+  FOREIGN_KEY(nip_nas): varchar(255)
+  tahun: int
+  bulan: int
+  target_revenue: decimal(15,2) DEFAULT 0
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  <i>UNIQUE: (nip_nas, tahun, bulan)</i>
+  INDEX: nip_nas
+  INDEX: tahun
+  INDEX: bulan
+  INDEX: (tahun, bulan)
+}
+
+class revenue_uploads {
+  PRIMARY_KEY(id): bigint
+  --
+  tahun: int
+  bulan: int
+  original_filename: varchar(255)
+  stored_path: varchar(500)
+  FOREIGN_KEY(uploaded_by): bigint
+  row_count: int
+  file_size_kb: decimal(10,2)
+  uploaded_at: timestamp
+  --
+  <i>UNIQUE: (tahun, bulan)</i>
+  INDEX: tahun
+  INDEX: bulan
+  INDEX: uploaded_by
+}
+
+' ============================================
+' ACCOUNT MANAGER MANAGEMENT
+' ============================================
+
+class account_managers {
+  PRIMARY_KEY(idam): bigint
+  --
+  nama_am: varchar(55)
+  FOREIGN_KEY(idregional): bigint
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  INDEX: idregional
+}
+
+class account_manager_company {
+  PRIMARY_KEY(id): bigint
+  --
+  FOREIGN_KEY(account_manager_id): bigint
+  FOREIGN_KEY(company_id): varchar(25)
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  <i>UNIQUE: (account_manager_id, company_id)</i>
+  INDEX: account_manager_id
+  INDEX: company_id
+}
+
+' ============================================
+' TARGET MANAGEMENT
+' ============================================
+
+class target_account_m {
+  PRIMARY_KEY(id): bigint
+  --
+  FOREIGN_KEY(account_manager_id): bigint
+  tahun: int
+  target_revenue: decimal(15,2) DEFAULT 0
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  <i>UNIQUE: (account_manager_id, tahun)</i>
+  INDEX: account_manager_id
+  INDEX: tahun
+}
+
+class target_regional {
+  PRIMARY_KEY(id): bigint
+  --
+  FOREIGN_KEY(idregional): bigint
+  tahun: int
+  target_revenue: decimal(15,2) DEFAULT 0
+  created_at: timestamp
+  updated_at: timestamp
+  --
+  <i>UNIQUE: (idregional, tahun)</i>
+  INDEX: idregional
+  INDEX: tahun
+}
+
+' ============================================
+' RELATIONSHIPS
+' ============================================
+
+' Geography Hierarchy
+regions ||--o{ witels : "has many"
+witels ||--o{ companies : "has many"
+
+' Company to Product Hierarchy
+companies ||--o{ group1 : "has many"
+group1 ||--o{ group2 : "has many"
+group2 ||--o{ group3 : "has many"
+group3 ||--o{ group4 : "has many"
+
+' Revenue & Targets
+group4 ||--o{ revenues : "has many"
+companies ||--o{ company_targets : "has many"
+
+' Account Manager Relations
+regions ||--o{ account_managers : "has many"
+account_managers ||--o{ account_manager_company : "has many"
+companies ||--o{ account_manager_company : "has many"
+
+' Target Management
+account_managers ||--o{ target_account_m : "has many"
+regions ||--o{ target_regional : "has many"
+
+' Revenue Uploads
+users ||--o{ revenue_uploads : "uploads"
+
+' Session Management
+users ||--o{ sessions : "has many"
+
+note right of revenues
+  **Revenue Transaction**
+  - Stores actual revenue realization
+  - Has built-in target (deprecated, use company_targets instead)
+  - Unique per (year, month, group4)
+  - group4_id links to product hierarchy
+end note
+
+note right of company_targets
+  **Company Target**
+  - New target management system
+  - Stores target per company per month
+  - Unique per (company, year, month)
+  - Used in download features
+end note
+
+note right of group1
+  **Product Hierarchy**
+  group1 → group2 → group3 → group4
+  
+  Each level represents product/service categorization
+  Links to company via company_id (nip_nas)
+end note
+
+note right of revenue_uploads
+  **Upload Tracking**
+  - Tracks all revenue imports
+  - Stores original filename and path
+  - One upload per (year, month)
+  - Used for audit trail
+end note
+
+note right of account_manager_company
+  **AM Assignment**
+  Many-to-Many relationship
+  Links Account Managers to Companies
+end note
+
+@enduml
