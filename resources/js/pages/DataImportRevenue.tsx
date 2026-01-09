@@ -23,6 +23,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Toast, ConfirmDialog } from '@/components/ui/notifications';
 
 interface ActivityLog {
     action: 'uploaded' | 'replaced' | 'deleted';
@@ -67,6 +68,38 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
     const [monthsData, setMonthsData] = useState<MonthData[]>(initialMonthsData);
     const [fileInputKey, setFileInputKey] = useState(Date.now()); // Key to force input re-render
 
+    // Toast and Confirm Dialog states
+    const [toast, setToast] = useState<{show: boolean; type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string}>({
+        show: false, 
+        type: 'info', 
+        title: '', 
+        message: ''
+    });
+    const [confirm, setConfirm] = useState<{
+        show: boolean; 
+        title: string; 
+        message: string; 
+        onConfirm: () => void; 
+        type: 'danger' | 'warning' | 'info'; 
+        requireTyping: boolean;
+    }>({
+        show: false, 
+        title: '', 
+        message: '', 
+        onConfirm: () => {}, 
+        type: 'warning', 
+        requireTyping: false
+    });
+
+    // Helper functions for notifications
+    const showToast = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
+        setToast({show: true, type, title, message});
+    };
+
+    const showConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' = 'warning', requireTyping = false) => {
+        setConfirm({show: true, title, message, onConfirm, type, requireTyping});
+    };
+
     // Sync monthsData when initialMonthsData prop changes
     useEffect(() => {
         setMonthsData(initialMonthsData);
@@ -109,12 +142,8 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
         
         if (!allowedExtensions.includes(fileExtension)) {
-            alert(
-                '❌ Format File Tidak Valid\n\n' +
-                `File: ${file.name}\n` +
-                `Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)\n\n` +
-                'Silakan pilih file dengan format yang benar.'
-            );
+            showToast('error', 'Format File Tidak Valid', 
+                `File "${file.name}" tidak valid. Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)`);
             event.target.value = ''; // Reset input
             setFileInputKey(Date.now());
             return;
@@ -124,13 +153,8 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
         if (file.size > maxSizeInBytes) {
             const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            alert(
-                '❌ Ukuran File Terlalu Besar\n\n' +
-                `File: ${file.name}\n` +
-                `Ukuran: ${fileSizeMB} MB\n` +
-                `Maksimal: 10 MB\n\n` +
-                'Silakan gunakan file yang lebih kecil atau kompres data Anda.'
-            );
+            showToast('error', 'Ukuran File Terlalu Besar', 
+                `File "${file.name}" berukuran ${fileSizeMB} MB. Ukuran maksimal adalah 10 MB.`);
             event.target.value = ''; // Reset input
             setFileInputKey(Date.now());
             return;
@@ -160,12 +184,8 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
             const importStats = response.data?.import_stats;
             const yearsImported = importStats?.years_imported || [];
             
-            alert(
-                '✅ Upload Berhasil!\n\n' +
-                `File: ${file.name}\n` +
-                `Tahun: ${yearsImported.join(', ')}\n\n` +
-                'Data berhasil diimpor ke database.'
-            );
+            showToast('success', 'Upload Berhasil!', 
+                `File "${file.name}" berhasil diimpor untuk tahun: ${yearsImported.join(', ')}`);
             
             setIsUploading(false);
             setUploadProgress(0);
@@ -197,25 +217,22 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
             // Tambahkan detail validasi errors jika ada
             let validationErrors = '';
             if (errorResponse?.errors && typeof errorResponse.errors === 'object') {
-                validationErrors = '\n\nDetail Error:\n';
+                validationErrors = ' Detail: ';
+                const errorMessages: string[] = [];
                 Object.entries(errorResponse.errors).forEach(([field, messages]) => {
                     if (Array.isArray(messages)) {
                         messages.forEach((msg: string) => {
-                            validationErrors += `• ${msg}\n`;
+                            errorMessages.push(msg);
                         });
                     } else {
-                        validationErrors += `• ${messages}\n`;
+                        errorMessages.push(messages as string);
                     }
                 });
+                validationErrors += errorMessages.join('; ');
             }
             
-            alert(
-                '❌ Upload Gagal\n\n' +
-                `File: ${file.name}\n` +
-                `Error: ${errorMessage}` +
-                validationErrors +
-                '\n\nSilakan periksa file Anda dan coba lagi.'
-            );
+            showToast('error', 'Upload Gagal', 
+                `File "${file.name}" gagal diupload. ${errorMessage}${validationErrors}`);
             
             setIsUploading(false);
             setUploadProgress(0);
@@ -231,12 +248,8 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
         
         if (!allowedExtensions.includes(fileExtension)) {
-            alert(
-                '❌ Format File Tidak Valid\n\n' +
-                `File: ${file.name}\n` +
-                `Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)\n\n` +
-                'Silakan pilih file dengan format yang benar.'
-            );
+            showToast('error', 'Format File Tidak Valid', 
+                `File "${file.name}" tidak valid. Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)`);
             setSelectedFiles(prev => ({ ...prev, [month]: null }));
             return;
         }
@@ -245,13 +258,8 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
         if (file.size > maxSizeInBytes) {
             const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            alert(
-                '❌ Ukuran File Terlalu Besar\n\n' +
-                `File: ${file.name}\n` +
-                `Ukuran: ${fileSizeMB} MB\n` +
-                `Maksimal: 10 MB\n\n` +
-                'Silakan gunakan file yang lebih kecil atau kompres data Anda.'
-            );
+            showToast('error', 'Ukuran File Terlalu Besar', 
+                `File "${file.name}" berukuran ${fileSizeMB} MB. Ukuran maksimal adalah 10 MB.`);
             setSelectedFiles(prev => ({ ...prev, [month]: null }));
             return;
         }
@@ -281,12 +289,8 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
             // Success - tampilkan pesan sukses
             const monthName = monthsData.find(m => m.month === month)?.name || month;
             
-            alert(
-                '✅ Upload Berhasil!\n\n' +
-                `File: ${file.name}\n` +
-                `Bulan: ${monthName} ${selectedYear}\n\n` +
-                'Data berhasil diimpor ke database.'
-            );
+            showToast('success', 'Upload Berhasil!', 
+                `File "${file.name}" berhasil diimpor untuk bulan ${monthName} ${selectedYear}`);
 
             // Success - reload data with full page reload
             setIsUploading(false);
@@ -315,28 +319,24 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
             // Tambahkan detail validasi errors jika ada
             let validationErrors = '';
             if (errorResponse?.errors && typeof errorResponse.errors === 'object') {
-                validationErrors = '\n\nDetail Error:\n';
+                validationErrors = ' Detail: ';
+                const errorMessages: string[] = [];
                 Object.entries(errorResponse.errors).forEach(([field, messages]) => {
                     if (Array.isArray(messages)) {
                         messages.forEach((msg: string) => {
-                            validationErrors += `• ${msg}\n`;
+                            errorMessages.push(msg);
                         });
                     } else {
-                        validationErrors += `• ${messages}\n`;
+                        errorMessages.push(messages as string);
                     }
                 });
+                validationErrors += errorMessages.join('; ');
             }
             
             const monthName = monthsData.find(m => m.month === month)?.name || month;
             
-            alert(
-                '❌ Upload Gagal\n\n' +
-                `File: ${file.name}\n` +
-                `Bulan: ${monthName} ${selectedYear}\n` +
-                `Error: ${errorMessage}` +
-                validationErrors +
-                '\n\nSilakan periksa file Anda dan coba lagi.'
-            );
+            showToast('error', 'Upload Gagal', 
+                `File "${file.name}" untuk bulan ${monthName} ${selectedYear} gagal diupload. ${errorMessage}${validationErrors}`);
             
             setIsUploading(false);
             setUploadingMonth(null);
@@ -352,6 +352,8 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
 
     const handleReplaceFileSelect = async (month: number, event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
+        const inputElement = event.target; // Store reference to input element
+        
         if (!file) return;
 
         // Validasi format file
@@ -359,13 +361,9 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
         
         if (!allowedExtensions.includes(fileExtension)) {
-            alert(
-                '❌ Format File Tidak Valid\n\n' +
-                `File: ${file.name}\n` +
-                `Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)\n\n` +
-                'Silakan pilih file dengan format yang benar.'
-            );
-            event.target.value = ''; // Reset input
+            showToast('error', 'Format File Tidak Valid', 
+                `File "${file.name}" tidak valid. Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)`);
+            inputElement.value = ''; // Reset input
             return;
         }
 
@@ -373,70 +371,87 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
         if (file.size > maxSizeInBytes) {
             const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            alert(
-                '❌ Ukuran File Terlalu Besar\n\n' +
-                `File: ${file.name}\n` +
-                `Ukuran: ${fileSizeMB} MB\n` +
-                `Maksimal: 10 MB\n\n` +
-                'Silakan gunakan file yang lebih kecil atau kompres data Anda.'
-            );
-            event.target.value = ''; // Reset input
+            showToast('error', 'Ukuran File Terlalu Besar', 
+                `File "${file.name}" berukuran ${fileSizeMB} MB. Ukuran maksimal adalah 10 MB.`);
+            inputElement.value = ''; // Reset input
             return;
         }
 
         const monthData = monthsData.find(m => m.month === month);
-        const confirmed = window.confirm(
-            `⚠️ Konfirmasi Replace Data\n\n` +
-            `Bulan: ${monthData?.name} ${selectedYear}\n` +
-            `File lama: ${monthData?.uploadInfo?.fileName}\n` +
-            `File baru: ${file.name}\n\n` +
-            `Data yang sudah ada akan DIHAPUS dan diganti dengan data baru.\n\n` +
-            `Apakah Anda yakin ingin melanjutkan?`
+        
+        showConfirm(
+            'Konfirmasi Replace Data',
+            `Bulan: ${monthData?.name} ${selectedYear}
+File lama: ${monthData?.uploadInfo?.fileName}
+File baru: ${file.name}
+
+Data yang sudah ada akan DIHAPUS dan diganti dengan data baru. Apakah Anda yakin?`,
+            async () => {
+                // User confirmed, proceed with upload
+                setConfirm(prev => ({...prev, show: false}));
+                setIsUploading(true);
+                setUploadingMonth(month);
+                setUploadProgress(0);
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('year', selectedYear.toString());
+                formData.append('month', month.toString());
+
+                try {
+                    await axios.post(upload.url(), formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                        onUploadProgress: (progressEvent) => {
+                            if (progressEvent.total) {
+                                const percentCompleted = Math.round(
+                                    (progressEvent.loaded * 100) / progressEvent.total
+                                );
+                                setUploadProgress(percentCompleted);
+                            }
+                        },
+                    });
+
+                    // Success - reload data with full page reload
+                    window.location.href = revenue.url({ query: { year: selectedYear } });
+                } catch (error: any) {
+                    console.error('Replace error:', error);
+                    
+                    // Tampilkan error message dengan detail
+                    const errorResponse = error.response?.data;
+                    let errorMessage = errorResponse?.message || errorResponse?.error || 'Terjadi kesalahan saat mengganti file';
+                    
+                    // Tambahkan detail validasi jika ada
+                    if (errorResponse?.errors && typeof errorResponse.errors === 'object') {
+                        const errorMessages: string[] = [];
+                        Object.entries(errorResponse.errors).forEach(([field, messages]) => {
+                            if (Array.isArray(messages)) {
+                                messages.forEach((msg: string) => errorMessages.push(msg));
+                            } else {
+                                errorMessages.push(messages as string);
+                            }
+                        });
+                        if (errorMessages.length > 0) {
+                            errorMessage += '. ' + errorMessages.join('; ');
+                        }
+                    }
+                    
+                    showToast('error', 'Gagal Mengganti File', errorMessage);
+                    
+                    setIsUploading(false);
+                    setUploadingMonth(null);
+                    setUploadProgress(0);
+                    inputElement.value = ''; // Reset input
+                }
+            },
+            'warning',
+            false
         );
         
-        if (!confirmed) {
-            event.target.value = ''; // Reset input
-            return;
-        }
-
-        setIsUploading(true);
-        setUploadingMonth(month);
-        setUploadProgress(0);
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('year', selectedYear.toString());
-        formData.append('month', month.toString());
-
-        try {
-            await axios.post(upload.url(), formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-                onUploadProgress: (progressEvent) => {
-                    if (progressEvent.total) {
-                        const percentCompleted = Math.round(
-                            (progressEvent.loaded * 100) / progressEvent.total
-                        );
-                        setUploadProgress(percentCompleted);
-                    }
-                },
-            });
-
-            // Success - reload data with full page reload
-            window.location.href = revenue.url({ query: { year: selectedYear } });
-        } catch (error: any) {
-            console.error('Replace error:', error);
-            
-            // Tampilkan error message
-            const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat mengganti file';
-            alert(`Gagal mengganti file:\n${errorMessage}`);
-            
-            setIsUploading(false);
-            setUploadingMonth(null);
-            setUploadProgress(0);
-            event.target.value = ''; // Reset input
-        }
+        // Reset input immediately after showing confirm dialog
+        // This allows user to select the same file again if they cancel
+        inputElement.value = '';
     };
 
     // Handler untuk Download
@@ -446,41 +461,72 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
 
     // Handler untuk Delete Year
     const handleDeleteYear = async () => {
-        const confirmed = window.confirm(
-            `⚠️ PERINGATAN: Hapus Data Tahun ${selectedYear}\n\n` +
-            `Anda akan menghapus SEMUA data revenue tahun ${selectedYear}:\n` +
-            `• ${uploadedCount} bulan data\n` +
-            `• File Excel yang tersimpan\n` +
-            `• Data revenue dan target\n\n` +
-            `Tindakan ini TIDAK DAPAT DIBATALKAN!\n\n` +
-            `Ketik "HAPUS" untuk konfirmasi:`
+        showConfirm(
+            `Hapus Data Tahun ${selectedYear}`,
+            `Anda akan menghapus SEMUA data revenue tahun ${selectedYear}:
+
+• ${uploadedCount} bulan data
+• File Excel yang tersimpan
+• Data revenue dan target
+
+Tindakan ini TIDAK DAPAT DIBATALKAN!`,
+            async () => {
+                setConfirm(prev => ({...prev, show: false}));
+                setIsUploading(true);
+
+                try {
+                    await axios.delete(`/data-import/revenue/delete/${selectedYear}`);
+                    
+                    // Success - redirect ke current year atau tahun sebelumnya
+                    const targetYear = selectedYear === currentYear ? currentYear - 1 : currentYear;
+                    window.location.href = revenue.url({ query: { year: targetYear } });
+                } catch (error: any) {
+                    console.error('Delete error:', error);
+                    
+                    const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat menghapus data';
+                    showToast('error', 'Gagal Menghapus Data', errorMessage);
+                    
+                    setIsUploading(false);
+                }
+            },
+            'danger',
+            true  // Require typing "HAPUS"
         );
-        
-        if (!confirmed) return;
-        
-        const confirmation = window.prompt(`Ketik "HAPUS" untuk mengkonfirmasi penghapusan data tahun ${selectedYear}:`);
-        
-        if (confirmation !== 'HAPUS') {
-            alert('Konfirmasi tidak sesuai. Penghapusan dibatalkan.');
-            return;
-        }
+    };
 
-        setIsUploading(true);
+    const handleDeleteMonth = async (month: number) => {
+        const monthName = new Date(selectedYear, month - 1).toLocaleString('default', { month: 'long' });
+        
+        showConfirm(
+            `Hapus Data ${monthName} ${selectedYear}`,
+            `Anda akan menghapus:
 
-        try {
-            await axios.delete(`/data-import/revenue/delete/${selectedYear}`);
-            
-            // Success - redirect ke current year atau tahun sebelumnya
-            const targetYear = selectedYear === currentYear ? currentYear - 1 : currentYear;
-            window.location.href = revenue.url({ query: { year: targetYear } });
-        } catch (error: any) {
-            console.error('Delete error:', error);
-            
-            const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat menghapus data';
-            alert(`Gagal menghapus data:\n${errorMessage}`);
-            
-            setIsUploading(false);
-        }
+• Data revenue ${monthName} ${selectedYear}
+• File Excel yang tersimpan
+• Data target untuk bulan ini
+
+Tindakan ini TIDAK DAPAT DIBATALKAN!`,
+            async () => {
+                setConfirm(prev => ({...prev, show: false}));
+                setIsUploading(true);
+
+                try {
+                    await axios.delete(`/data-import/revenue/delete/${selectedYear}/${month}`);
+                    
+                    // Refresh page to update data
+                    window.location.reload();
+                } catch (error: any) {
+                    console.error('Delete error:', error);
+                    
+                    const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat menghapus data';
+                    showToast('error', 'Gagal Menghapus Data', errorMessage);
+                } finally {
+                    setIsUploading(false);
+                }
+            },
+            'danger',
+            false  // No typing required for single month
+        );
     };
 
     const getStatusBadge = (status: MonthData['status']) => {
@@ -712,6 +758,17 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                                                                     <Upload className="w-4 h-4 mr-2" />
                                                                     Replace
                                                                 </Button>
+                                                                
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleDeleteMonth(monthData.month)}
+                                                                    disabled={isUploading}
+                                                                    className="text-red-600 hover:text-red-700 hover:border-red-600 dark:text-red-400"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4 mr-2" />
+                                                                    Delete
+                                                                </Button>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -858,6 +915,29 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                     </CardContent>
                 </Card>
             </div>
+            
+            {/* Toast Notification */}
+            <Toast 
+                show={toast.show}
+                type={toast.type}
+                title={toast.title}
+                message={toast.message}
+                onClose={() => setToast(prev => ({...prev, show: false}))}
+            />
+            
+            {/* Confirm Dialog */}
+            <ConfirmDialog 
+                show={confirm.show}
+                title={confirm.title}
+                message={confirm.message}
+                onConfirm={confirm.onConfirm}
+                onCancel={() => setConfirm(prev => ({...prev, show: false}))}
+                type={confirm.type}
+                requireTyping={confirm.requireTyping}
+                typingConfirmation="HAPUS"
+                confirmText="Hapus"
+                cancelText="Batal"
+            />
         </AppLayout>
     );
 }

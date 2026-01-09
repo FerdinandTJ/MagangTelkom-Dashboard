@@ -467,6 +467,95 @@ class RevenueImportController extends Controller
     }
     
     /**
+     * Delete revenue data for a specific month
+     */
+    public function deleteMonth(Request $request, int $year, int $month)
+    {
+        try {
+            DB::beginTransaction();
+            
+            // Get upload record for this month
+            $upload = RevenueUpload::where('tahun', $year)
+                ->where('bulan', $month)
+                ->first();
+            
+            if (!$upload) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Tidak ada data untuk bulan {$month} tahun {$year}"
+                ], 404);
+            }
+            
+            // Get all group4 IDs that belong to companies in this month's data
+            $group4Ids = DB::table('revenues as r')
+                ->join('group4 as g4', 'r.group4_id', '=', 'g4.idGroup4')
+                ->join('group3 as g3', 'g4.group3_id', '=', 'g3.idGroup3')
+                ->join('group2 as g2', 'g3.group2_id', '=', 'g2.idGroup2')
+                ->join('group1 as g1', 'g2.group1_id', '=', 'g1.idGroup1')
+                ->where('r.tahun', $year)
+                ->where('r.bulan', $month)
+                ->pluck('r.group4_id')
+                ->unique();
+            
+            // Delete revenues for this month
+            $deletedRevenues = DB::table('revenues')
+                ->where('tahun', $year)
+                ->where('bulan', $month)
+                ->delete();
+            
+            // Delete company targets for this month
+            $deletedTargets = DB::table('company_targets')
+                ->where('tahun', $year)
+                ->where('bulan', $month)
+                ->delete();
+            
+            // Delete file from storage
+            if ($upload->stored_path && Storage::exists($upload->stored_path)) {
+                Storage::delete($upload->stored_path);
+            }
+            
+            // Delete upload record
+            $upload->delete();
+            
+            DB::commit();
+            
+            $monthName = date('F', mktime(0, 0, 0, $month, 1));
+            
+            Log::info('Revenue data deleted for month', [
+                'year' => $year,
+                'month' => $month,
+                'deleted_revenues' => $deletedRevenues,
+                'deleted_targets' => $deletedTargets,
+                'deleted_by' => auth()->user()->name ?? 'system'
+            ]);
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => "Data {$monthName} {$year} berhasil dihapus",
+                'details' => [
+                    'revenues' => $deletedRevenues,
+                    'targets' => $deletedTargets
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Revenue month deletion failed', [
+                'year' => $year,
+                'month' => $month,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Download all revenue data for a year (combined 12 months in one Excel)
      */
     public function downloadYear(Request $request, int $year)
