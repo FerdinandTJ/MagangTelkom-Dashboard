@@ -10,13 +10,15 @@ class RevenueImport implements WithMultipleSheets, SkipsUnknownSheets
 {
     protected array $sheetImporters = [];
     protected ?int $specifiedYear = null;
+    protected ?int $specifiedMonth = null;
 
     /**
-     * Constructor - can specify a year for single sheet import
+     * Constructor - can specify a year and month for single month import
      */
-    public function __construct(?int $year = null)
+    public function __construct(?int $year = null, ?int $month = null)
     {
         $this->specifiedYear = $year;
+        $this->specifiedMonth = $month;
     }
 
     /**
@@ -27,7 +29,7 @@ class RevenueImport implements WithMultipleSheets, SkipsUnknownSheets
     {
         // If a specific year is provided, only import that sheet
         if ($this->specifiedYear) {
-            $sheetImporter = new RevenueSheetImport($this->specifiedYear);
+            $sheetImporter = new RevenueSheetImport($this->specifiedYear, $this->specifiedMonth);
             $this->sheetImporters[$this->specifiedYear] = $sheetImporter;
             
             return [
@@ -42,7 +44,7 @@ class RevenueImport implements WithMultipleSheets, SkipsUnknownSheets
         $years = range($startYear, $currentYear + 5); // Current year + 5 years future
         
         foreach ($years as $year) {
-            $sheetImporter = new RevenueSheetImport($year);
+            $sheetImporter = new RevenueSheetImport($year, null);
             $this->sheetImporters[$year] = $sheetImporter;
             $sheets["Rev {$year}"] = $sheetImporter;
         }
