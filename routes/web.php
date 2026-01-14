@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Data Import - Upload & Template Download
     Route::post('data-import/revenue/upload', [RevenueImportController::class, 'store'])->name('data-import.revenue.upload');
+    Route::get('data-import/revenue/download-template/{year}', [RevenueImportController::class, 'downloadTemplate'])->name('data-import.revenue.download-template');
     Route::get('data-import/revenue/download/{year}/{month}', [RevenueImportController::class, 'downloadFile'])->name('data-import.revenue.download');
     Route::get('data-import/revenue/download-year/{year}', [RevenueImportController::class, 'downloadYear'])->name('data-import.revenue.download-year');
     Route::delete('data-import/revenue/delete/{year}/{month}', [RevenueImportController::class, 'deleteMonth'])->name('data-import.revenue.delete-month');

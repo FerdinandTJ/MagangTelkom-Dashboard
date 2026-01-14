@@ -126,41 +126,18 @@ class RevenueBreakdownController extends Controller
                         'r.revenue_realisasi'
                     )->get();
 
-                    // If no month filter, aggregate by nama_group4
-                    if (!$bulan) {
-                        $aggregated = [];
-                        foreach ($group4s as $g4) {
-                            $key = $g4->nama_group4;
-                            if (!isset($aggregated[$key])) {
-                                $aggregated[$key] = [
-                                    'id' => 'group4-' . $g4->idGroup4,
-                                    'name' => $g4->nama_group4,
-                                    'revenue' => 0,
-                                    'children' => [],
-                                ];
-                            }
-                            $aggregated[$key]['revenue'] += (float) $g4->revenue_realisasi;
-                        }
-                        
-                        // Add aggregated items to group3
-                        foreach ($aggregated as $item) {
-                            $group3Data['children'][] = $item;
-                            $group3Data['revenue'] += $item['revenue'];
-                        }
-                    } else {
-                        // With month filter, show individual entries
-                        foreach ($group4s as $g4) {
-                            $group4Data = [
-                                'id' => 'group4-' . $g4->idGroup4,
-                                'name' => $g4->nama_group4 . ' (' . $this->getMonthName($g4->bulan) . ' ' . $g4->tahun . ')',
-                                'revenue' => (float) $g4->revenue_realisasi,
-                                'children' => [],
-                            ];
+                    // Always show individual entries per month (no aggregation)
+                    foreach ($group4s as $g4) {
+                        $group4Data = [
+                            'id' => 'group4-' . $g4->idGroup4 . '-' . $g4->tahun . '-' . $g4->bulan,
+                            'name' => $g4->nama_group4 . ' (' . $this->getMonthName($g4->bulan) . ' ' . $g4->tahun . ')',
+                            'revenue' => (float) $g4->revenue_realisasi,
+                            'children' => [],
+                        ];
 
-                            // Add to group3 children
-                            $group3Data['children'][] = $group4Data;
-                            $group3Data['revenue'] += (float) $g4->revenue_realisasi;
-                        }
+                        // Add to group3 children
+                        $group3Data['children'][] = $group4Data;
+                        $group3Data['revenue'] += (float) $g4->revenue_realisasi;
                     }
 
                     // Add to group2 children if has data

@@ -69,6 +69,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
     const [selectedYear, setSelectedYear] = useState<number>(defaultYear || currentYear || new Date().getFullYear());
     const [availableYears, setAvailableYears] = useState<number[]>([]);
     const [availableMonths, setAvailableMonths] = useState<number[]>([]);
+    const [isFullYear, setIsFullYear] = useState<boolean>(false);
     
     // Selected category from pie chart click
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -122,7 +123,7 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
         if (isOpen && company) {
             fetchCompanyDetails();
         }
-    }, [isOpen, company, selectedYear, selectedMonth]);
+    }, [isOpen, company, selectedYear, selectedMonth, isFullYear]);
 
     // Separate effect to update available months when year changes OR modal opens
     useEffect(() => {
@@ -174,7 +175,8 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
             if (selectedYear) {
                 params.year = selectedYear;
             }
-            if (selectedMonth) {
+            // Only add month if NOT in full year mode
+            if (!isFullYear && selectedMonth) {
                 params.month = selectedMonth;
             }
             
@@ -218,7 +220,8 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
             if (selectedYear) {
                 breakdownParams.tahun = selectedYear;
             }
-            if (selectedMonth) {
+            // Only add month if NOT in full year mode
+            if (!isFullYear && selectedMonth) {
                 breakdownParams.bulan = selectedMonth;
             }
             
@@ -303,6 +306,17 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                     <div className="flex items-center gap-4 flex-wrap">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter Periode:</span>
                         
+                        {/* Full Year Checkbox */}
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={isFullYear}
+                                onChange={(e) => setIsFullYear(e.target.checked)}
+                                className="w-4 h-4 text-red-600 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-red-500 focus:ring-2"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">Full Year</span>
+                        </label>
+                        
                         {/* Year Dropdown */}
                         <div className="relative">
                             <select
@@ -324,27 +338,41 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                             <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
                         </div>
 
-                        {/* Month Dropdown */}
-                        <div className="relative">
-                            <select
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                disabled={availableMonths.length === 0}
-                            >
-                                {availableMonths.length > 0 ? (
-                                    availableMonths.map(month => (
-                                        <option key={month} value={month}>
-                                            {monthLabels[month]}
-                                        </option>
-                                    ))
-                                ) : (
-                                    <option value="">No data available</option>
-                                )}
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
-                        </div>
+                        {/* Month Dropdown - Hidden when Full Year is checked */}
+                        {!isFullYear && (
+                            <div className="relative">
+                                <select
+                                    value={selectedMonth}
+                                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                                    className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                    disabled={availableMonths.length === 0}
+                                >
+                                    {availableMonths.length > 0 ? (
+                                        availableMonths.map(month => (
+                                            <option key={month} value={month}>
+                                                {monthLabels[month]}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <option value="">No data available</option>
+                                    )}
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                            </div>
+                        )}
                     </div>
+                    
+                    {/* Info Badge - Show what data is being displayed */}
+                    {isFullYear && summary?.month_range && (
+                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2 text-sm">
+                                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <span className="text-gray-600 dark:text-gray-400">
+                                    Menampilkan data agregat: <span className="font-semibold text-blue-600 dark:text-blue-400">{summary.month_range}</span>
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Company Info Card */}
@@ -469,6 +497,11 @@ const CompanyDetailModal: React.FC<CompanyDetailModalProps> = ({
                                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                         {summary.period || 'All Time'}
                                     </p>
+                                    {summary.month_range && (
+                                        <p className="text-sm text-blue-600 dark:text-blue-400 mt-1 font-medium">
+                                            {summary.month_range}
+                                        </p>
+                                    )}
                                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Analysis timeframe</p>
                                 </div>
                             </div>

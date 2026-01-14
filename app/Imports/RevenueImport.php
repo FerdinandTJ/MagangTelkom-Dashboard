@@ -11,6 +11,7 @@ class RevenueImport implements WithMultipleSheets, SkipsUnknownSheets
     protected array $sheetImporters = [];
     protected ?int $specifiedYear = null;
     protected ?int $specifiedMonth = null;
+    protected ?RegionWitelSheetImport $regionWitelImporter = null;
 
     /**
      * Constructor - can specify a year and month for single month import
@@ -23,22 +24,29 @@ class RevenueImport implements WithMultipleSheets, SkipsUnknownSheets
 
     /**
      * Define which sheets to process
-     * Automatically detects sheets named "Rev YYYY" or uses specified year
+     * Automatically detects sheets named "Rev YYYY" or "Revenue YYYY"
      */
     public function sheets(): array
     {
+        $sheets = [];
+        
+        // Always try to process Region_and_Witel sheet first
+        $this->regionWitelImporter = new RegionWitelSheetImport();
+        $sheets['Region_and_Witel'] = $this->regionWitelImporter;
+        
         // If a specific year is provided, only import that sheet
         if ($this->specifiedYear) {
             $sheetImporter = new RevenueSheetImport($this->specifiedYear, $this->specifiedMonth);
             $this->sheetImporters[$this->specifiedYear] = $sheetImporter;
             
-            return [
-                "Rev {$this->specifiedYear}" => $sheetImporter
-            ];
+            // Support both "Rev YYYY" and "Revenue YYYY" formats
+            $sheets["Rev {$this->specifiedYear}"] = $sheetImporter;
+            $sheets["Revenue {$this->specifiedYear}"] = $sheetImporter;
+            
+            return $sheets;
         }
 
         // Otherwise, try to import sheets for multiple years (dynamic range)
-        $sheets = [];
         $currentYear = (int) date('Y');
         $startYear = 2020; // Earliest year in historical data
         $years = range($startYear, $currentYear + 5); // Current year + 5 years future
@@ -46,7 +54,9 @@ class RevenueImport implements WithMultipleSheets, SkipsUnknownSheets
         foreach ($years as $year) {
             $sheetImporter = new RevenueSheetImport($year, null);
             $this->sheetImporters[$year] = $sheetImporter;
+            // Support both "Rev YYYY" and "Revenue YYYY" formats
             $sheets["Rev {$year}"] = $sheetImporter;
+            $sheets["Revenue {$year}"] = $sheetImporter;
         }
         
         return $sheets;
@@ -86,13 +96,20 @@ class RevenueImport implements WithMultipleSheets, SkipsUnknownSheets
             }
         }
 
+        // Add region/witel stats if available
+        $regionWitelStats = null;
+        if ($this->regionWitelImporter) {
+            $regionWitelStats = $this->regionWitelImporter->getStats();
+        }
+
         return [
             'total_success' => $totalSuccess,
             'total_errors' => $totalErrors,
             'total_skipped' => $totalSkipped,
             'total_records' => $totalRecords,
             'years_imported' => array_keys($yearStats),
-            'year_stats' => $yearStats
+            'year_stats' => $yearStats,
+            'region_witel_stats' => $regionWitelStats
         ];
     }
 

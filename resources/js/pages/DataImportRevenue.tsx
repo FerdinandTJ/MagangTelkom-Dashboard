@@ -26,10 +26,11 @@ import {
 import { Toast, ConfirmDialog } from '@/components/ui/notifications';
 
 interface ActivityLog {
-    action: 'uploaded' | 'replaced' | 'deleted';
-    fileName: string;
+    action: 'upload' | 'replace' | 'delete';
+    description: string;
     user: string;
     timestamp: string;
+    ip_address?: string;
 }
 
 interface MonthData {
@@ -45,7 +46,7 @@ interface MonthData {
         dateRange: string;
         totalRevenue: string;
         subsegmentCount: number;
-    };
+        description?: string;        action?: 'upload' | 'replace' | 'delete';    };
     activityLogs?: ActivityLog[];
 }
 
@@ -61,6 +62,7 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
     
     const [selectedYear, setSelectedYear] = useState(initialYear);
     const [expandedMonths, setExpandedMonths] = useState<number[]>([]);
+    const [expandedActivities, setExpandedActivities] = useState<number[]>([]); // Track which months have expanded activity logs
     const [selectedFiles, setSelectedFiles] = useState<Record<number, File | null>>({});
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -352,8 +354,6 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
 
     const handleReplaceFileSelect = async (month: number, event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        const inputElement = event.target; // Store reference to input element
-        
         if (!file) return;
 
         // Validasi format file
@@ -363,7 +363,7 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         if (!allowedExtensions.includes(fileExtension)) {
             showToast('error', 'Format File Tidak Valid', 
                 `File "${file.name}" tidak valid. Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)`);
-            inputElement.value = ''; // Reset input
+            event.target.value = ''; // Reset input
             return;
         }
 
@@ -373,7 +373,7 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
             const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
             showToast('error', 'Ukuran File Terlalu Besar', 
                 `File "${file.name}" berukuran ${fileSizeMB} MB. Ukuran maksimal adalah 10 MB.`);
-            inputElement.value = ''; // Reset input
+            event.target.value = ''; // Reset input
             return;
         }
 
@@ -381,11 +381,7 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         
         showConfirm(
             'Konfirmasi Replace Data',
-            `Bulan: ${monthData?.name} ${selectedYear}
-File lama: ${monthData?.uploadInfo?.fileName}
-File baru: ${file.name}
-
-Data yang sudah ada akan DIHAPUS dan diganti dengan data baru. Apakah Anda yakin?`,
+            `Bulan: ${monthData?.name} ${selectedYear}\nFile lama: ${monthData?.uploadInfo?.fileName}\nFile baru: ${file.name}\n\nData yang sudah ada akan DIHAPUS dan diganti dengan data baru. Apakah Anda yakin?`,
             async () => {
                 // User confirmed, proceed with upload
                 setConfirm(prev => ({...prev, show: false}));
@@ -418,40 +414,19 @@ Data yang sudah ada akan DIHAPUS dan diganti dengan data baru. Apakah Anda yakin
                 } catch (error: any) {
                     console.error('Replace error:', error);
                     
-                    // Tampilkan error message dengan detail
-                    const errorResponse = error.response?.data;
-                    let errorMessage = errorResponse?.message || errorResponse?.error || 'Terjadi kesalahan saat mengganti file';
-                    
-                    // Tambahkan detail validasi jika ada
-                    if (errorResponse?.errors && typeof errorResponse.errors === 'object') {
-                        const errorMessages: string[] = [];
-                        Object.entries(errorResponse.errors).forEach(([field, messages]) => {
-                            if (Array.isArray(messages)) {
-                                messages.forEach((msg: string) => errorMessages.push(msg));
-                            } else {
-                                errorMessages.push(messages as string);
-                            }
-                        });
-                        if (errorMessages.length > 0) {
-                            errorMessage += '. ' + errorMessages.join('; ');
-                        }
-                    }
-                    
+                    // Tampilkan error message
+                    const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat mengganti file';
                     showToast('error', 'Gagal Mengganti File', errorMessage);
                     
                     setIsUploading(false);
                     setUploadingMonth(null);
                     setUploadProgress(0);
-                    inputElement.value = ''; // Reset input
+                    event.target.value = ''; // Reset input
                 }
             },
             'warning',
             false
         );
-        
-        // Reset input immediately after showing confirm dialog
-        // This allows user to select the same file again if they cancel
-        inputElement.value = '';
     };
 
     // Handler untuk Download
@@ -463,13 +438,7 @@ Data yang sudah ada akan DIHAPUS dan diganti dengan data baru. Apakah Anda yakin
     const handleDeleteYear = async () => {
         showConfirm(
             `Hapus Data Tahun ${selectedYear}`,
-            `Anda akan menghapus SEMUA data revenue tahun ${selectedYear}:
-
-• ${uploadedCount} bulan data
-• File Excel yang tersimpan
-• Data revenue dan target
-
-Tindakan ini TIDAK DAPAT DIBATALKAN!`,
+            `Anda akan menghapus SEMUA data revenue tahun ${selectedYear}:\n\n• ${uploadedCount} bulan data\n• File Excel yang tersimpan\n• Data revenue dan target\n\nTindakan ini TIDAK DAPAT DIBATALKAN!`,
             async () => {
                 setConfirm(prev => ({...prev, show: false}));
                 setIsUploading(true);
@@ -499,13 +468,7 @@ Tindakan ini TIDAK DAPAT DIBATALKAN!`,
         
         showConfirm(
             `Hapus Data ${monthName} ${selectedYear}`,
-            `Anda akan menghapus:
-
-• Data revenue ${monthName} ${selectedYear}
-• File Excel yang tersimpan
-• Data target untuk bulan ini
-
-Tindakan ini TIDAK DAPAT DIBATALKAN!`,
+            `Anda akan menghapus:\\n\\n• Data revenue ${monthName} ${selectedYear}\\n• File Excel yang tersimpan\\n• Data target untuk bulan ini\\n\\nTindakan ini TIDAK DAPAT DIBATALKAN!`,
             async () => {
                 setConfirm(prev => ({...prev, show: false}));
                 setIsUploading(true);
@@ -589,37 +552,52 @@ Tindakan ini TIDAK DAPAT DIBATALKAN!`,
                             </div>
                         </div>
 
-                        {/* General Upload Button */}
-                        <div>
-                            <input
-                                type="file"
-                                id="general-upload"
-                                className="hidden"
-                                accept=".xlsx,.xls,.csv"
-                                onChange={handleGeneralUpload}
-                                key={fileInputKey}
+                        {/* Download Template and Quick Upload Buttons */}
+                        <div className="flex items-center gap-2">
+                            {/* Download Template Button */}
+                            <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-purple-600 hover:text-purple-700 hover:border-purple-600 dark:text-purple-400 dark:hover:text-purple-300"
+                                onClick={() => window.location.href = `/data-import/revenue/download-template/${selectedYear}`}
                                 disabled={isUploading}
-                            />
-                            <label htmlFor="general-upload">
-                                <Button 
-                                    size="sm" 
-                                    className="cursor-pointer" 
-                                    disabled={isUploading && uploadingMonth === null}
-                                    asChild={!isUploading || uploadingMonth !== null}
-                                >
-                                    {isUploading && uploadingMonth === null ? (
-                                        <div className="flex items-center">
-                                            <span className="mr-2">Uploading...</span>
-                                            <span>{uploadProgress}%</span>
-                                        </div>
-                                    ) : (
-                                        <span>
-                                            <Upload className="w-4 h-4 mr-2" />
-                                            Quick Upload
-                                        </span>
-                                    )}
-                                </Button>
-                            </label>
+                            >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download Template
+                            </Button>
+                            
+                            {/* General Upload Button */}
+                            <div>
+                                <input
+                                    type="file"
+                                    id="general-upload"
+                                    className="hidden"
+                                    accept=".xlsx,.xls,.csv"
+                                    onChange={handleGeneralUpload}
+                                    key={fileInputKey}
+                                    disabled={isUploading}
+                                />
+                                <label htmlFor="general-upload">
+                                    <Button 
+                                        size="sm" 
+                                        className="cursor-pointer" 
+                                        disabled={isUploading && uploadingMonth === null}
+                                        asChild={!isUploading || uploadingMonth !== null}
+                                    >
+                                        {isUploading && uploadingMonth === null ? (
+                                            <div className="flex items-center">
+                                                <span className="mr-2">Uploading...</span>
+                                                <span>{uploadProgress}%</span>
+                                            </div>
+                                        ) : (
+                                            <span>
+                                                <Upload className="w-4 h-4 mr-2" />
+                                                Quick Upload
+                                            </span>
+                                        )}
+                                    </Button>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -683,6 +661,12 @@ Tindakan ini TIDAK DAPAT DIBATALKAN!`,
                                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                                                     {monthData.name} {selectedYear}
                                                 </span>
+                                                {/* Activity indicator */}
+                                                {monthData.activityLogs && monthData.activityLogs.length > 0 && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                                        {monthData.activityLogs.length} activities
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 {getStatusBadge(monthData.status)}
@@ -722,6 +706,12 @@ Tindakan ini TIDAK DAPAT DIBATALKAN!`,
                                                                     <span>•</span>
                                                                     <span>{monthData.uploadInfo.dateRange}</span>
                                                                 </div>
+                                                                {/* Description with Master Data Stats */}
+                                                                {monthData.uploadInfo.description && (
+                                                                    <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/30 px-2 py-1 rounded">
+                                                                        {monthData.uploadInfo.description}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -776,33 +766,74 @@ Tindakan ini TIDAK DAPAT DIBATALKAN!`,
                                                     {/* Activity Log */}
                                                     {monthData.activityLogs && monthData.activityLogs.length > 0 && (
                                                         <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Activity Log</h4>
-                                                            <div className="space-y-2">
-                                                                {monthData.activityLogs.map((log, index) => (
-                                                                    <div key={index} className="flex items-start gap-3 text-sm">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                    Activity History ({monthData.activityLogs.length})
+                                                                </h4>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setExpandedActivities(prev => 
+                                                                            prev.includes(monthData.month)
+                                                                                ? prev.filter(m => m !== monthData.month)
+                                                                                : [...prev, monthData.month]
+                                                                        );
+                                                                    }}
+                                                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                                                                >
+                                                                    {expandedActivities.includes(monthData.month) ? (
+                                                                        <>
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                                                            </svg>
+                                                                            Hide
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                            </svg>
+                                                                            Show
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                            
+                                                            {/* Show all activities when expanded */}
+                                                            {expandedActivities.includes(monthData.month) && (
+                                                                <div className="space-y-2">
+                                                                    {monthData.activityLogs.map((log, index) => (
+                                                                    <div key={index} className="flex items-start gap-3 text-sm bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
                                                                         <div className="mt-0.5">
-                                                                            {log.action === 'uploaded' && (
-                                                                                <div className="p-1.5 bg-blue-50 dark:bg-blue-950/30 rounded">
-                                                                                    <Upload className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                                                            {log.action === 'upload' && (
+                                                                                <div className="p-1.5 bg-green-50 dark:bg-green-950/30 rounded">
+                                                                                    <Upload className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
                                                                                 </div>
                                                                             )}
-                                                                            {log.action === 'replaced' && (
+                                                                            {log.action === 'replace' && (
                                                                                 <div className="p-1.5 bg-orange-50 dark:bg-orange-950/30 rounded">
                                                                                     <Upload className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                                                                                 </div>
                                                                             )}
-                                                                            {log.action === 'deleted' && (
+                                                                            {log.action === 'delete' && (
                                                                                 <div className="p-1.5 bg-red-50 dark:bg-red-950/30 rounded">
                                                                                     <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                                                                                 </div>
                                                                             )}
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
-                                                                            <p className="text-gray-900 dark:text-gray-100">
-                                                                                <span className="font-medium capitalize">{log.action}</span> by <span className="font-medium">{log.user}</span>
-                                                                            </p>
-                                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                                                {log.fileName}
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                                                    log.action === 'upload' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                                                    log.action === 'replace' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                                                                }`}>
+                                                                                    {log.action.toUpperCase()}
+                                                                                </span>
+                                                                                <span className="text-gray-500 dark:text-gray-400">by</span>
+                                                                                <span className="font-medium text-gray-900 dark:text-gray-100">{log.user}</span>
+                                                                            </div>
+                                                                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                                                {log.description}
                                                                             </p>
                                                                         </div>
                                                                         <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
@@ -811,13 +842,99 @@ Tindakan ini TIDAK DAPAT DIBATALKAN!`,
                                                                         </div>
                                                                     </div>
                                                                 ))}
-                                                            </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
                                             ) : (
-                                                // Upload Form View
+                                                // Upload Form View (Pending)
                                                 <div className="space-y-4">
+                                                    {/* Show activity history even for pending months */}
+                                                    {monthData.activityLogs && monthData.activityLogs.length > 0 && (
+                                                        <div className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                    Activity History ({monthData.activityLogs.length})
+                                                                </h4>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setExpandedActivities(prev => 
+                                                                            prev.includes(monthData.month)
+                                                                                ? prev.filter(m => m !== monthData.month)
+                                                                                : [...prev, monthData.month]
+                                                                        );
+                                                                    }}
+                                                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                                                                >
+                                                                    {expandedActivities.includes(monthData.month) ? (
+                                                                        <>
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                                                            </svg>
+                                                                            Hide
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                            </svg>
+                                                                            Show
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                            
+                                                            {/* Show all activities when expanded */}
+                                                            {expandedActivities.includes(monthData.month) && (
+                                                                <div className="space-y-2">
+                                                                    {monthData.activityLogs.map((log, index) => (
+                                                                    <div key={index} className="flex items-start gap-3 text-sm bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+                                                                        <div className="mt-0.5">
+                                                                            {log.action === 'upload' && (
+                                                                                <div className="p-1.5 bg-green-50 dark:bg-green-950/30 rounded">
+                                                                                    <Upload className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                                                                </div>
+                                                                            )}
+                                                                            {log.action === 'replace' && (
+                                                                                <div className="p-1.5 bg-orange-50 dark:bg-orange-950/30 rounded">
+                                                                                    <Upload className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+                                                                                </div>
+                                                                            )}
+                                                                            {log.action === 'delete' && (
+                                                                                <div className="p-1.5 bg-red-50 dark:bg-red-950/30 rounded">
+                                                                                    <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                                                    log.action === 'upload' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                                                    log.action === 'replace' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                                                                }`}>
+                                                                                    {log.action.toUpperCase()}
+                                                                                </span>
+                                                                                <span className="text-gray-500 dark:text-gray-400">by</span>
+                                                                                <span className="font-medium text-gray-900 dark:text-gray-100">{log.user}</span>
+                                                                            </div>
+                                                                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                                                {log.description}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                                                            <Clock className="w-3 h-3" />
+                                                                            <span>{log.timestamp}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Upload form */}
                                                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
                                                         <Upload className="w-10 h-10 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
                                                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
