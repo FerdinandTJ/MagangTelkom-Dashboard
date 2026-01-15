@@ -558,7 +558,7 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                             <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="text-purple-600 hover:text-purple-700 hover:border-purple-600 dark:text-purple-400 dark:hover:text-purple-300"
+                                className="text-red-600 hover:text-red-700 hover:border-red-600 dark:text-red-400 dark:hover:text-red-300"
                                 onClick={() => window.location.href = `/data-import/revenue/download-template/${selectedYear}`}
                                 disabled={isUploading}
                             >
@@ -624,7 +624,7 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                                     <Button 
                                         size="sm" 
                                         variant="outline"
-                                        className="text-blue-600 hover:text-blue-700 hover:border-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                                        className="text-red-600 hover:text-red-700 hover:border-red-600 dark:text-red-400 dark:hover:text-red-300"
                                         onClick={() => window.location.href = `/data-import/revenue/download-year/${selectedYear}`}
                                         disabled={isUploading}
                                     >
