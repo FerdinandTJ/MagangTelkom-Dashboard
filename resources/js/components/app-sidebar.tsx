@@ -13,7 +13,7 @@ import {
 import { dashboard, performanceAm } from '@/routes';
 import { dataImportRevenue, dataImportPerformance } from '@/actions/App/Http/Controllers/DashboardController';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, TrendingUp, Upload } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -59,6 +59,17 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage().props as { auth: { user: { role: string } } };
+    
+    // Filter navigation items based on user role
+    const filteredNavItems = mainNavItems.filter(item => {
+        // Data Upload menu only for admin
+        if (item.title === 'Data Upload') {
+            return auth.user.role === 'admin';
+        }
+        return true;
+    });
+    
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -74,7 +85,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={filteredNavItems} />
             </SidebarContent>
 
             <SidebarFooter>
