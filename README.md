@@ -1,13 +1,193 @@
 # Dashboard TWS - Telkom Revenue Analytics
 
-Dashboard analitik revenue untuk monitoring performa perusahaan subsegment Telkom dengan visualisasi data yang interaktif, dan role-based access control.
+## 📋 Daftar Isi
+- [Pendahuluan](#-pendahuluan)
+- [Latar Belakang](#-latar-belakang)
+- [Tujuan Aplikasi](#-tujuan-aplikasi)
+- [Fitur Utama](#-fitur-utama)
+- [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
+- [Arsitektur Sistem](#-arsitektur-sistem)
+- [Database Design](#-database-design)
+- [Implementasi Fitur](#-implementasi-fitur)
+- [User Interface](#-user-interface)
+- [Security Implementation](#-security-implementation)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
+- [Panduan Penggunaan](#-panduan-penggunaan)
+- [Kesimpulan](#-kesimpulan)
 
-## 🚀 Features
+---
 
-### 📊 Core Analytics
-- **Revenue Dashboard**: Visualisasi revenue bulanan, tahunan, dan YTD comparison dengan drill-down capability
-- **Target vs Actual**: Real-time monitoring pencapaian target revenue per bulan dengan achievement percentage
-- **Company Management**: Detail revenue per perusahaan dengan subsegment breakdown dan regional analysis
+## 📖 Pendahuluan
+
+Dashboard TWS (Telkom Wilayah Sumatera) adalah aplikasi web berbasis dashboard analitik yang dirancang untuk memonitor dan menganalisis revenue perusahaan subsegment Telkom serta mengevaluasi performance Account Manager. Aplikasi ini dibangun menggunakan teknologi modern dengan pendekatan full-stack development, menggabungkan Laravel sebagai backend framework dan React dengan TypeScript untuk frontend, dihubungkan melalui Inertia.js untuk seamless single-page application experience.
+
+### Informasi Proyek
+- **Nama Aplikasi**: Dashboard TWS - Revenue Analytics & AM Performance
+- **Versi**: 1.0.0
+- **Tanggal Pengembangan**: Oktober 2025 - Januari 2026
+- **Platform**: Web Application (Desktop & Mobile Responsive)
+- **Organisasi**: PT Telkom Indonesia - Divisi TWS (Telkom Wilayah Sumatera)
+
+---
+
+## 🎯 Latar Belakang
+
+### Permasalahan yang Dihadapi
+
+Divisi TWS (Telkom Wilayah Sumatera) mengelola ratusan perusahaan subsegment dengan revenue yang mencapai triliunan rupiah per tahun. Sebelum aplikasi ini dikembangkan, terdapat beberapa permasalahan dalam pengelolaan dan monitoring revenue:
+
+1. **Data Tersebar**: Revenue data tersimpan dalam berbagai file Excel yang terpisah, menyulitkan analisis komprehensif
+2. **Proses Manual**: Perhitungan achievement, ranking, dan analisis trend dilakukan secara manual menggunakan spreadsheet
+3. **Tidak Real-time**: Laporan revenue dan performance AM membutuhkan waktu lama untuk dikompilasi
+4. **Kesulitan Visualisasi**: Data dalam format tabel sulit dipahami untuk decision making cepat
+5. **Akses Terbatas**: Tidak ada sistem yang memungkinkan stakeholder untuk melihat data kapan saja
+6. **Lack of Audit Trail**: Tidak ada tracking siapa yang mengubah atau menghapus data
+7. **No Role Management**: Semua user memiliki akses yang sama, tidak ada pembatasan berdasarkan role
+
+### Kebutuhan Solusi
+
+Berdasarkan analisis kebutuhan, diperlukan sistem yang dapat:
+- Menyimpan dan mengelola data revenue secara terpusat
+- Menyediakan visualisasi data yang interaktif dan mudah dipahami
+- Melakukan perhitungan otomatis untuk metrics dan KPI
+- Memberikan akses real-time kepada stakeholder
+- Menyediakan audit trail untuk accountability
+- Mengimplementasikan role-based access control untuk keamanan
+- Support untuk import data dari Excel yang sudah ada
+- Responsive untuk akses dari berbagai device
+
+---
+
+## 🎯 Tujuan Aplikasi
+
+### Tujuan Umum
+Membangun aplikasi dashboard analitik yang dapat membantu management Telkom TWS dalam monitoring revenue dan evaluasi performance Account Manager secara real-time, efisien, dan akurat.
+
+### Tujuan Khusus
+
+1. **Revenue Management**
+   - Menyediakan platform terpusat untuk data revenue semua perusahaan subsegment
+   - Memfasilitasi upload dan update data revenue secara batch
+   - Menyimpan historical data untuk analisis trend jangka panjang
+
+2. **Performance Monitoring**
+   - Menampilkan metrics performance Account Manager secara real-time
+   - Menyediakan ranking dan comparison antar AM
+   - Tracking achievement terhadap target yang ditetapkan
+
+3. **Data Visualization**
+   - Menyajikan data dalam bentuk charts yang interaktif dan mudah dipahami
+   - Menyediakan drill-down capability untuk analisis detail
+   - Support multiple view modes (monthly, yearly, comparison)
+
+4. **Access Control**
+   - Implementasi role-based access (Admin dan Viewer)
+   - Protect sensitive operations (upload, delete) untuk admin only
+   - Audit trail untuk compliance dan accountability
+
+5. **User Experience**
+   - Interface yang intuitive dan mudah digunakan
+   - Responsive design untuk akses dari desktop dan mobile
+   - Dark mode untuk kenyamanan pengguna
+
+---
+
+---
+**Komponen Utama:**
+- **Summary Cards**: 4 card yang menampilkan metrics kunci
+- **Monthly Revenue Chart**: Bar chart dengan target line
+- **Subsegment Pie Chart**: Distribusi revenue per subsegment
+- **5-Year Trend**: Historical analysis dengan line chart
+- **Top Performers**: Best dan worst performing companies
+
+**Fitur Interaktif:**
+- Year filter untuk membandingkan data antar tahun
+- Revenue sorting (chronological, highest, lowest)
+- Drill-down ke detail per month, subsegment, atau company
+**Komponen Utama:**
+- **AM Summary Cards**: Total revenue managed, companies handled, achievement
+- **Performance Ranking Chart**: Bar chart ranking semua AM
+- **Distribution Pie Chart**: Distribusi companies per AM
+- **Detailed Performance Table**: Complete metrics dengan sorting
+
+**Metrics yang Ditampilkan:**
+- ✅ View all dashboards (Revenue & Performance AM)
+- ✅ Upload revenue data via Excel import
+- ✅ Replace existing data dengan konfirmasi
+- ✅ Delete data (per month atau per year)
+- ✅ Download Excel templates
+- ✅ Download uploaded files
+- ✅ View complete activity logs
+- ✅ Access all features without restriction
+
+**Viewer Role:**
+- ✅ View all dashboards (Revenue & Performance AM)
+- ✅ View company details dengan drill-down
+- ✅ Access all charts dan visualizations
+- ✅ Export data untuk reporting
+- ❌ Cannot upload data
+- ❌ Cannot delete data
+- ❌ Cannot access Data Upload menu (hidden dari sidebar)
+
+**Implementasi Keamanan:**
+- Middleware `CheckRole` untuk validasi role pada setiap request
+- Frontend conditional rendering berdasarkan user role
+- Backend route protection dengan `middleware(['role:admin'])`
+- Custom 403 error page untuk unauthorized access
+**Upload Process:**
+1. User selects Excel file (drag & drop atau browse)
+2. System validates file format dan size (max 10MB)
+3. Backend reads Excel dan validates:
+   - Company NIP-NAS exists di master data
+   - Year dan month dalam range valid
+**Cara Akses:**
+- Click company name dari dashboard
+- Click pie chart segment (subsegment drill-down)
+- Click monthly bar chart (month drill-down → company list)
+
+**Information Displayed:**NAS harus ada di master companies table
+- **Year Validation**: Year harus dalam range 2020-2030
+- **Month Validation**: Month harus 1-12
+- **Amount Validation**: Revenue dan target harus numeric dan positive
+- **Group Validation**: Product groups harus exist di Group1-4 tables
+- **Duplicate Check**: Check existing data untuk prevent accidental overwrite
+
+**Upload Modes:**
+- **Quick Upload**: Upload data untuk 1 bulan atau multiple months dalam 1 file
+- **Replace Mode**: 
+  - Checkbox untuk enable replace mode
+  - Konfirmasi dialog sebelum replace
+  - Old data dihapus, new data di-insert
+  - Activity log mencatat "REPLACE" action
+
+**Activity Logs:**
+- **Upload Log**: Filename, tahun, bulan, row count, file size, timestamp, user
+- **Replace Log**: Same as upload dengan indication "REPLACE" action
+- **Delete Log**: Tahun, bulan, deleted records count, timestamp, user
+- **Audit Information**: IP address, user agent, device information
+
+**Template & Downloads:**
+- **Template Download**: Excel template dengan:
+  - Correct column headers
+  - Sample data untuk reference
+  - Instructions sheet
+  - Data validation rules
+- **File Download**: 
+  - Download specific month's uploaded file
+  - Download all files untuk specific year (zip)
+  - Original filename preserved
+
+### 5. 🗑️ Data Deletion (Admin Only)lysis
+- Regional performance analysis
+
+### 3. 🔐 Role-Based Access Control
+
+**Admin Role:**
+- Achievement percentage vs target
+- Ranking companies berdasarkan revenue
+
+### 2. 👨‍💼 Performance AM Dashboard revenue per perusahaan dengan subsegment breakdown dan regional analysis
 - **Interactive Charts**: Drill-down charts untuk analisis mendalam dengan tooltip detail dan hover effects
 - **Performance AM**: Dashboard khusus untuk Account Manager performance tracking
 
