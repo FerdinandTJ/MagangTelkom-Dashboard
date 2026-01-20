@@ -52,8 +52,8 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
-            WitelSeeder::class,
-            AccountManagerSeeder::class,     
+            // WitelSeeder::class,
+            // AccountManagerSeeder::class,     
             DummyDataSeeder::class,
         ]);
     }
