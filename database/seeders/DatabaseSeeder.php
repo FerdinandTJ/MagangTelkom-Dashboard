@@ -52,9 +52,9 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
-         //   WitelSeeder::class,              // Depends on: regions (auto-seeded)
-          //  AccountManagerSeeder::class,     // Depends on: witels
-            DummyDataSeeder::class,          // Insert dummy data for testing
+            WitelSeeder::class,
+            AccountManagerSeeder::class,     
+            DummyDataSeeder::class,
         ]);
     }
 }

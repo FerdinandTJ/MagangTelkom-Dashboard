@@ -24,6 +24,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('data-import/revenue/upload', [RevenueImportController::class, 'store'])->name('data-import.revenue.upload');
     Route::get('data-import/revenue/download/{year}/{month}', [RevenueImportController::class, 'downloadFile'])->name('data-import.revenue.download');
     Route::delete('data-import/revenue/delete/{year}', [RevenueImportController::class, 'deleteYear'])->name('data-import.revenue.delete');
+    
+    // Data Import - Performance AM
+    Route::post('/api/data-import/performance/upload', [DataImportPerformanceController::class, 'upload'])->name('data-import.performance.upload');
+    Route::get('/api/data-import/performance/template', [DataImportPerformanceController::class, 'downloadTemplate'])->name('data-import.performance.template');
+    Route::delete('/api/data-import/performance/delete/{year}/{quarter?}', [DataImportPerformanceController::class, 'delete'])->name('data-import.performance.delete');
     Route::get('daily-monitoring', [DashboardController::class, 'dailymonitoring'])->name('daily-monitoring');
 
     // Data Import routes - only accessible by admin
