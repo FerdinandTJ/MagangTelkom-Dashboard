@@ -186,7 +186,7 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                 <DialogHeader className="pb-4">
                     <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
                         <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
-                        <span className="truncate">{regionName} - Witel Details</span>
+                        <span className="truncate">{regionName} - Witel Details - {data?.summary.period || `${quartal} ${year}`}</span>
                     </DialogTitle>
                     <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
                         Witel performance and Account Manager distribution in this region
@@ -328,16 +328,6 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                             </div>
                         </div>
 
-                        {/* Period Info */}
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4 mb-6">
-                            <div className="flex items-center gap-2">
-                                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                                    Period: <span className="font-bold">{data.summary.period}</span>
-                                </p>
-                            </div>
-                        </div>
-
                         {/* Witel Table */}
                         <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
                             <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -355,7 +345,7 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                                             <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                                 {/* Witel Header - Clickable */}
                                                 <div 
-                                                    className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-850 p-4 cursor-pointer hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-750 dark:hover:to-gray-800 transition-all"
+                                                    className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 cursor-pointer hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/40 dark:hover:to-indigo-900/40 transition-all"
                                                     onClick={() => toggleWitel(witel.witel_name)}
                                                 >
                                                     <div className="flex items-center justify-between">
@@ -363,10 +353,10 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                                                             {/* Witel Name */}
                                                             <div className="min-w-[150px]">
                                                                 <div className="flex items-center gap-2">
-                                                                    <div className="p-1.5 bg-gray-100 dark:bg-gray-800 rounded">
-                                                                        <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                                                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900 rounded">
+                                                                        <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                                                     </div>
-                                                                    <span className="font-bold text-gray-900 dark:text-gray-100">
+                                                                    <span className="font-bold text-blue-900 dark:text-blue-100">
                                                                         {witel.witel_name}
                                                                     </span>
                                                                 </div>
@@ -426,23 +416,30 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                                                                 <span className="text-gray-600 dark:text-gray-400">Loading AM details...</span>
                                                             </div>
                                                         ) : witel.am_details && witel.am_details.length > 0 ? (
-                                                            <table className="w-full">
+                                                            <table className="w-full table-fixed">
+                                                                <colgroup>
+                                                                    <col style={{width: '180px'}} />
+                                                                    <col style={{width: 'calc((100% - 180px) / 4)'}} />
+                                                                    <col style={{width: 'calc((100% - 180px) / 4)'}} />
+                                                                    <col style={{width: 'calc((100% - 180px) / 4)'}} />
+                                                                    <col style={{width: 'calc((100% - 180px) / 4)'}} />
+                                                                </colgroup>
                                                                 <thead className="bg-gray-100 dark:bg-gray-800">
                                                                     <tr>
                                                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                                                             Account Manager
                                                                         </th>
-                                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                                                             Target Revenue
                                                                         </th>
-                                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                                            Realisasi Revenue
-                                                                        </th>
                                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                                            Company Handled
+                                                                            Actual Revenue
                                                                         </th>
                                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                                                             Achievement
+                                                                        </th>
+                                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                                            Company Handled
                                                                         </th>
                                                                     </tr>
                                                                 </thead>
@@ -468,16 +465,14 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                                                                                     </span>
                                                                                 </div>
                                                                             </td>
-                                                                            <td className="px-4 py-3 text-right font-bold text-blue-900 dark:text-blue-100">
-                                                                                {am.formatted_target_revenue}
-                                                                            </td>
-                                                                            <td className="px-4 py-3 text-right font-bold text-green-900 dark:text-green-100">
-                                                                                {am.formatted_realisasi_revenue}
+                                                                            <td className="px-4 py-3 text-center">
+                                                                                <span className="font-bold text-gray-900 dark:text-gray-100">
+                                                                                    {am.formatted_target_revenue}
+                                                                                </span>
                                                                             </td>
                                                                             <td className="px-4 py-3 text-center">
-                                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold">
-                                                                                    <Building2 className="h-3 w-3" />
-                                                                                    {am.company_handled}
+                                                                                <span className="font-bold text-green-600 dark:text-green-400">
+                                                                                    {am.formatted_realisasi_revenue}
                                                                                 </span>
                                                                             </td>
                                                                             <td className="px-4 py-3 text-center">
@@ -487,6 +482,12 @@ const RegionWitelDetailModal: React.FC<RegionWitelDetailModalProps> = ({
                                                                                         : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
                                                                                 }`}>
                                                                                     {am.achievement_percentage.toFixed(1)}%
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="px-4 py-3 text-center">
+                                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold">
+                                                                                    <Building2 className="h-3 w-3" />
+                                                                                    {am.company_handled}
                                                                                 </span>
                                                                             </td>
                                                                         </tr>

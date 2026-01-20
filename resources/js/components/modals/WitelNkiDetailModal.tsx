@@ -132,20 +132,45 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
     const [isAMModalOpen, setIsAMModalOpen] = useState(false);
 
     const handleAMClick = (nikAm: string) => {
+        console.log('AM clicked:', nikAm);
         setSelectedAM(nikAm);
         setIsAMModalOpen(true);
+        console.log('Modal state set:', { selectedAM: nikAm, isAMModalOpen: true });
     };
 
     const closeAMModal = () => {
+        console.log('Closing AM modal');
         setIsAMModalOpen(false);
         setSelectedAM(null);
     };
 
+    // Reset data when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setData(null);
+            setError(null);
+        }
+    }, [isOpen]);
+
     useEffect(() => {
         if (isOpen) {
+            // Reset data before fetching to ensure clean state
+            setData(null);
+            setError(null);
             fetchWitelDetails();
+            // Close AM modal when period changes
+            if (isAMModalOpen) {
+                closeAMModal();
+            }
         }
     }, [isOpen, regionId, quarter, year, segment, witelId]);
+    
+    // Close AM modal when parent modal closes
+    useEffect(() => {
+        if (!isOpen && isAMModalOpen) {
+            closeAMModal();
+        }
+    }, [isOpen]);
 
     const fetchWitelDetails = async () => {
         setLoading(true);
@@ -251,8 +276,9 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="wide-modal max-w-[98vw] w-[98vw] max-h-[95vh] overflow-y-auto p-6 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+        <>
+            <Dialog open={isOpen} onOpenChange={onClose}>
+                <DialogContent className="wide-modal max-w-[98vw] w-[98vw] max-h-[95vh] overflow-y-auto p-6 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
                 <DialogHeader className="pb-4">
                     <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
                         <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
@@ -641,19 +667,19 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                     </Button>
                 </div>
             </DialogContent>
-
-            {/* AM Performance Detail Modal */}
-            {selectedAM && (
-                <AmPerformanceDetailModal
-                    isOpen={isAMModalOpen}
-                    onClose={closeAMModal}
-                    nikAm={selectedAM}
-                    quarter={quarter}
-                    year={year}
-                    segment={segment}
-                />
-            )}
         </Dialog>
+
+            {/* AM Performance Detail Modal - Outside main dialog to avoid nesting issues */}
+            {console.log('Rendering AM Modal?', { selectedAM, isAMModalOpen })}
+            <AmPerformanceDetailModal
+                isOpen={isAMModalOpen && selectedAM !== null}
+                onClose={closeAMModal}
+                nikAm={selectedAM || ''}
+                quarter={quarter}
+                year={year}
+                segment={segment}
+            />
+        </>
     );
 };
 

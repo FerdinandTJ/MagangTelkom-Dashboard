@@ -119,8 +119,19 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [chartFilter, setChartFilter] = useState<'quarter' | 'year'>('quarter');
 
+    // Reset data when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setData(null);
+            setError(null);
+        }
+    }, [isOpen]);
+
     useEffect(() => {
         if (isOpen && nikAm) {
+            // Reset data before fetching to ensure clean state
+            setData(null);
+            setError(null);
             fetchAMDetails();
         }
     }, [isOpen, nikAm, quarter, year, segment]);
@@ -156,7 +167,8 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
         }
     };
 
-    const formatNumber = (value: number | string, decimals: number = 2, isCurrency: boolean = true) => {
+    const formatNumber = (value: number | string | null | undefined, decimals: number = 2, isCurrency: boolean = true) => {
+        if (value === null || value === undefined) return isCurrency ? 'Rp 0' : '0';
         const num = typeof value === 'string' ? parseFloat(value) : value;
         if (isNaN(num)) return isCurrency ? 'Rp 0' : '0';
         const formatted = num.toLocaleString('id-ID', {

@@ -196,7 +196,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                     <div className="p-1.5 bg-red-50 dark:bg-red-950 rounded">
                                         <User className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
                                     </div>
-                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">EAM</span>
+                                    <span className="text-[15px] font-bold text-gray-700 dark:text-gray-300">Name</span>
                                 </div>
                                 <p className="text-sm text-gray-900 dark:text-gray-100">{data.am_name || '-'}</p>
                             </div>
@@ -370,9 +370,9 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                         </div>
 
                         {/* Content: Pie Chart and Table */}
-                        <div className="grid grid-cols-1 lg:grid-cols-20 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-20 gap-6 items-start">
                             {/* Left: Charts - Region Distribution & Target Breakdown (45%) */}
-                            <div className="lg:col-span-9 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                            <div className="lg:col-span-9 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 shadow-sm" style={{ minHeight: '450px', maxHeight: activeChartTab === 'witel' ? '450px' : 'none' }}>
                                 {/* Tab Navigation */}
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -409,7 +409,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                 {activeChartTab === 'witel' ? (
                                     // Region Distribution Pie Chart
                                     data.region_distribution && data.region_distribution.length > 0 ? (
-                                        <ResponsiveContainer width="100%" height={300}>
+                                        <ResponsiveContainer width="100%" height={370}>
                                         <PieChart>
                                             <Pie
                                                 data={data.region_distribution}
@@ -484,7 +484,7 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                         </PieChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="flex items-center justify-center h-[400px] text-gray-500 dark:text-gray-400">
+                                    <div className="flex items-center justify-center h-[370px] text-gray-500 dark:text-gray-400">
                                         No distribution data available
                                     </div>
                                 )
@@ -517,7 +517,19 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                     width={150}
                                                 />
                                                 <Tooltip 
-                                                    formatter={(value: any) => formatCurrency(value, 2)}
+                                                    formatter={(value: any, name: string) => {
+                                                        const numValue = typeof value === 'number' ? value : parseFloat(value) || 0;
+                                                        if (numValue >= 1000000000000) {
+                                                            return [`Rp ${(numValue / 1000000000000).toFixed(2)} T`, name];
+                                                        } else if (numValue >= 1000000000) {
+                                                            return [`Rp ${(numValue / 1000000000).toFixed(2)} M`, name];
+                                                        } else if (numValue >= 1000000) {
+                                                            return [`Rp ${(numValue / 1000000).toFixed(0)} Jt`, name];
+                                                        } else if (numValue >= 1000) {
+                                                            return [`Rp ${(numValue / 1000).toFixed(0)} Rb`, name];
+                                                        }
+                                                        return [`Rp ${numValue.toFixed(0)}`, name];
+                                                    }}
                                                     contentStyle={{
                                                         backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
                                                         border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
@@ -585,45 +597,43 @@ const AMRevenueDetailModal: React.FC<AMRevenueDetailModalProps> = ({
                                                         onClick={() => toggleCompany(company.nip_nas)}
                                                     >
                                                         <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-3 flex-1">
+                                                            <div className="grid grid-cols-[minmax(300px,auto)_repeat(5,minmax(0,1fr))] gap-6 flex-1 items-center">
                                                                 {/* Company Info */}
-                                                                <div className="min-w-[200px]">
-                                                                    <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{company.nama_perusahaan}</h4>
+                                                                <div className="flex-shrink-0">
+                                                                    <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm whitespace-nowrap">{company.nama_perusahaan}</h4>
                                                                     <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{company.nip_nas}</p>
                                                                 </div>
 
                                                                 {/* Stats Grid */}
-                                                                <div className="grid grid-cols-5 gap-3 flex-1">
-                                                                    <div className="text-center">
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Witel</p>
-                                                                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs">{company.nama_witels}</p>
-                                                                    </div>
-                                                                    <div className="text-center">
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                                                                            {revenueMode === 'target' ? 'Target AM' : 'Actual AM'}
-                                                                        </p>
-                                                                        <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">
-                                                                            {revenueMode === 'target' ? company.formatted_revenue : company.formatted_r_revenue}
-                                                                        </p>
-                                                                    </div>
-                                                                    <div className="text-center">
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Subsegment</p>
-                                                                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs">{company.subsegment}</p>
-                                                                    </div>
-                                                                    <div className="text-center">
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Proportion</p>
-                                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                                                            company.pembagian === 'SINGLE' 
-                                                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                                        }`}>
-                                                                            {company.pembagian}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="text-center">
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Proportion</p>
-                                                                        <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{company.proporsi}%</p>
-                                                                    </div>
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Witel</p>
+                                                                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs">{company.nama_witels}</p>
+                                                                </div>
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                                                        {revenueMode === 'target' ? 'Target AM' : 'Actual AM'}
+                                                                    </p>
+                                                                    <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">
+                                                                        {revenueMode === 'target' ? company.formatted_revenue : company.formatted_r_revenue}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Subsegment</p>
+                                                                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs">{company.subsegment}</p>
+                                                                </div>
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Division</p>
+                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                                        company.pembagian === 'SINGLE' 
+                                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                                    }`}>
+                                                                        {company.pembagian}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-center">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Proportion</p>
+                                                                    <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{company.proporsi}%</p>
                                                                 </div>
                                                             </div>
 

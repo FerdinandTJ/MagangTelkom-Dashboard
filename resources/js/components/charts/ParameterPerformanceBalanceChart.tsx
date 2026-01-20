@@ -132,9 +132,13 @@ export default function ParameterPerformanceBalanceChart({
     // Memoize filtered data to prevent recalculation on every render
     const filteredData = useMemo(() => {
         if (activeChartTab === 'result') {
-            return chartData.filter((item) => resultParamNames.includes(item.parameter));
+            const filtered = chartData.filter((item) => resultParamNames.includes(item.parameter));
+            console.log('📊 Chart Data (Result):', filtered);
+            return filtered;
         } else {
-            return chartData.filter((item) => prosesParamNames.includes(item.parameter));
+            const filtered = chartData.filter((item) => prosesParamNames.includes(item.parameter));
+            console.log('📊 Chart Data (Proses):', filtered);
+            return filtered;
         }
     }, [chartData, activeChartTab, resultParamNames, prosesParamNames]);
     

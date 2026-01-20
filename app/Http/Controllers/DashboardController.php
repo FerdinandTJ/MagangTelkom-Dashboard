@@ -233,14 +233,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * Display Data Import Performance page
-     */
-    public function dataImportPerformance()
-    {
-        return Inertia::render('DataImportPerformance');
-    }
-
-    /**
      * Fungsi ini untuk mendapatkan total Account Manager yang terdaftar di database
      * Bisa difilter berdasarkan region
      */
@@ -1063,18 +1055,18 @@ class DashboardController extends Controller
                 'c.nama_perusahaan',
                 'c.subsegment',
                 'w.nama_witels',
-                \DB::raw('SUM(t.t_revenue * (amc.proporsi / 100)) as t_revenue'),
-                \DB::raw('SUM(lwt.r_revenue * (amc.proporsi / 100)) as r_revenue'),
+                \DB::raw('SUM(t.t_revenue) as t_revenue'),
+                \DB::raw('SUM(lwt.r_revenue) as r_revenue'),
                 'w.idwitels',
                 'r.code as region_code',
                 'amc.pembagian',
                 'amc.proporsi',
-                \DB::raw('SUM(t.t_sustain * (amc.proporsi / 100)) as t_sustain'),
-                \DB::raw('SUM(t.t_scalling * (amc.proporsi / 100)) as t_scalling'),
-                \DB::raw('SUM(t.t_ngtma * (amc.proporsi / 100)) as t_ngtma'),
-                \DB::raw('SUM(lwt.r_sustain * (amc.proporsi / 100)) as r_sustain'),
-                \DB::raw('SUM(lwt.r_scalling * (amc.proporsi / 100)) as r_scalling'),
-                \DB::raw('SUM(lwt.r_ngtma * (amc.proporsi / 100)) as r_ngtma')
+                \DB::raw('SUM(t.t_sustain) as t_sustain'),
+                \DB::raw('SUM(t.t_scalling) as t_scalling'),
+                \DB::raw('SUM(t.t_ngtma) as t_ngtma'),
+                \DB::raw('SUM(lwt.r_sustain) as r_sustain'),
+                \DB::raw('SUM(lwt.r_scalling) as r_scalling'),
+                \DB::raw('SUM(lwt.r_ngtma) as r_ngtma')
             )
             ->groupBy('c.nip_nas', 'c.nama_perusahaan', 'c.subsegment', 'w.nama_witels', 'w.idwitels', 'r.code', 'amc.pembagian', 'amc.proporsi')
             ->get();
@@ -1490,9 +1482,15 @@ class DashboardController extends Controller
         if ($value >= 1000000000000) {
             // Triliun (>= 1000 Miliar)
             return 'Rp ' . number_format($value / 1000000000000, $decimals) . 'T';
-        } else {
-            // Miliar
+        } elseif ($value >= 1000000000) {
+            // Miliar (>= 1 Miliar)
             return 'Rp ' . number_format($value / 1000000000, $decimals) . 'M';
+        } elseif ($value >= 1000000) {
+            // Juta (>= 1 Juta)
+            return 'Rp ' . number_format($value / 1000000, $decimals) . ' Jt';
+        } else {
+            // Ribuan atau di bawahnya
+            return 'Rp ' . number_format($value, 0, ',', '.');
         }
     }
 
@@ -1758,8 +1756,8 @@ class DashboardController extends Controller
                     'witels.idwitels',
                     'witels.nama_witels as witel_name',
                     DB::raw('COUNT(DISTINCT am.nik) as am_count'),
-                    DB::raw('COALESCE(SUM(tam.t_revenue * (amc.proporsi / 100)), 0) as t_revenue'),
-                    DB::raw('COALESCE(SUM(lwt.r_revenue * (amc.proporsi / 100)), 0) as r_revenue')
+                    DB::raw('COALESCE(SUM(tam.t_revenue), 0) as t_revenue'),
+                    DB::raw('COALESCE(SUM(lwt.r_revenue), 0) as r_revenue')
                 )
                 ->groupBy('witels.idwitels', 'witels.nama_witels')
                 ->orderBy('witels.nama_witels')

@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RevenueBreakdownController;
 use App\Http\Controllers\RevenueImportController;
+use App\Http\Controllers\DataImportPerformanceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -17,12 +18,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Data Import routes
     Route::get('data-import/revenue', [DashboardController::class, 'dataImportRevenue'])->name('data-import.revenue');
-    Route::get('data-import/performance', [DashboardController::class, 'dataImportPerformance'])->name('data-import.performance');
+    Route::get('data-import/performance', [DataImportPerformanceController::class, 'index'])->name('data-import.performance');
     
-    // Data Import - Upload & Template Download
+    // Data Import - Upload & Template Download (Revenue)
     Route::post('data-import/revenue/upload', [RevenueImportController::class, 'store'])->name('data-import.revenue.upload');
     Route::get('data-import/revenue/download/{year}/{month}', [RevenueImportController::class, 'downloadFile'])->name('data-import.revenue.download');
     Route::delete('data-import/revenue/delete/{year}', [RevenueImportController::class, 'deleteYear'])->name('data-import.revenue.delete');
+    
+    // Data Import - Performance AM
+    Route::post('/api/data-import/performance/upload', [DataImportPerformanceController::class, 'upload'])->name('data-import.performance.upload');
+    Route::get('/api/data-import/performance/template', [DataImportPerformanceController::class, 'downloadTemplate'])->name('data-import.performance.template');
+    Route::delete('/api/data-import/performance/delete/{year}/{quarter?}', [DataImportPerformanceController::class, 'delete'])->name('data-import.performance.delete');
     
     // API routes for dashboard analytics
     Route::prefix('api/dashboard')->group(function () {

@@ -197,8 +197,23 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
             setCompareYear(quarter > 1 ? year : year - 1);
             fetchData();
             fetchChartData();
+            // Close detail modal when period changes
+            if (showDetailModal) {
+                setShowDetailModal(false);
+                setSelectedSegment('');
+                setSelectedWitelId(undefined);
+            }
         }
     }, [isOpen, regionId, quarter, year]);
+    
+    // Close detail modal when parent modal closes
+    useEffect(() => {
+        if (!isOpen && showDetailModal) {
+            setShowDetailModal(false);
+            setSelectedSegment('');
+            setSelectedWitelId(undefined);
+        }
+    }, [isOpen]);
 
     // Refetch chart data when compare mode or compare period changes
     useEffect(() => {
@@ -273,7 +288,9 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                     bobot: curr.bobot,
                                     ach: curr.ach,
                                     ach_current: curr.ach,
+                                    avg_ach_per_am: curr.avg_ach_per_am,  // NEW: Include avg_ach_per_am
                                     ach_compare: comp ? comp.ach : 0,
+                                    avg_ach_per_am_compare: comp ? comp.avg_ach_per_am : 0,  // NEW: Include compare value
                                     target_compare: comp ? comp.target : 0,
                                     realisasi_compare: comp ? comp.realisasi : 0,
                                     bobot_compare: comp ? comp.bobot : 0
@@ -295,7 +312,8 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                     realisasi: item.realisasi,
                     bobot: item.bobot,
                     ach: item.ach,
-                    ach_current: item.ach
+                    ach_current: item.ach,
+                    avg_ach_per_am: item.avg_ach_per_am  // NEW: Include avg_ach_per_am
                     // Explicitly not including ach_compare, target_compare, etc.
                 }));
                 setChartData(dataWithCurrent);
@@ -1011,7 +1029,11 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                 );
                                             }
                                             
-                                            const achievementPercentage = Number(topParam.ach_current || topParam.ach || 0);
+                                            // Use avg_ach_per_am if available (in decimal format, needs * 100)
+                                            // Otherwise use ach_current/ach which is already in percentage format
+                                            const achievementPercentage = topParam.avg_ach_per_am 
+                                                ? Number(topParam.avg_ach_per_am) * 100 
+                                                : Number(topParam.ach_current || topParam.ach || 0);
                                             
                                             // Format realisasi based on parameter type
                                             const formatRealisasi = (value: number, parameter: string) => {
@@ -1079,7 +1101,11 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                                 );
                                             }
                                             
-                                            const achievementPercentage = Number(topParam.ach_current || topParam.ach || 0);
+                                            // Use avg_ach_per_am if available (in decimal format, needs * 100)
+                                            // Otherwise use ach_current/ach which is already in percentage format
+                                            const achievementPercentage = topParam.avg_ach_per_am 
+                                                ? Number(topParam.avg_ach_per_am) * 100 
+                                                : Number(topParam.ach_current || topParam.ach || 0);
                                             
                                             // Format realisasi based on parameter type
                                             const formatRealisasi = (value: number, parameter: string) => {
