@@ -16,7 +16,7 @@ class DashboardController extends Controller
     {
         $this->analyticsService = $analyticsService;
     }
-
+    
     /**
      * Display main dashboard page
      */

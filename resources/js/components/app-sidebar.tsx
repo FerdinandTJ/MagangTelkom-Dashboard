@@ -14,14 +14,19 @@ import { dashboard, performanceAm } from '@/routes';
 import { dataImportRevenue, dataImportPerformance } from '@/actions/App/Http/Controllers/DashboardController';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, TrendingUp, Upload } from 'lucide-react';
+import { BookOpen, Folder, Gauge, GaugeIcon, LayoutDashboardIcon, LayoutGrid, Monitor, MonitorCheck, TrendingUp, TvIcon, Upload } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
+        title: 'Daily Monitoring',
+        href: '/daily-monitoring',
+        icon: MonitorCheck,
+    },
+    {
         title: 'Revenue Dashboard',
         href: dashboard(),
-        icon: LayoutGrid,
+        icon: LayoutDashboardIcon,
     },
     {
         title: 'Performance AM',

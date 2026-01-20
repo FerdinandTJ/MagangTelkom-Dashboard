@@ -14,7 +14,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard routes - accessible by all authenticated users
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('performance-am', [DashboardController::class, 'performanceAM'])->name('performance-am');
-    
+    Route::get('daily-monitoring', [DashboardController::class, 'dailymonitoring'])->name('daily-monitoring');
+
     // Data Import routes - only accessible by admin
     Route::middleware(['role:admin'])->group(function () {
         Route::get('data-import/revenue', [DashboardController::class, 'dataImportRevenue'])->name('data-import.revenue');

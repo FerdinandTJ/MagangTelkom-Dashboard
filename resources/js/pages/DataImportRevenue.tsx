@@ -62,13 +62,13 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
     
     const [selectedYear, setSelectedYear] = useState(initialYear);
     const [expandedMonths, setExpandedMonths] = useState<number[]>([]);
-    const [expandedActivities, setExpandedActivities] = useState<number[]>([]); // Track which months have expanded activity logs
+    const [expandedActivities, setExpandedActivities] = useState<number[]>([]); 
     const [selectedFiles, setSelectedFiles] = useState<Record<number, File | null>>({});
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [uploadingMonth, setUploadingMonth] = useState<number | null>(null);
     const [monthsData, setMonthsData] = useState<MonthData[]>(initialMonthsData);
-    const [fileInputKey, setFileInputKey] = useState(Date.now()); // Key to force input re-render
+    const [fileInputKey, setFileInputKey] = useState(Date.now());
 
     // Toast and Confirm Dialog states
     const [toast, setToast] = useState<{show: boolean; type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string}>({
