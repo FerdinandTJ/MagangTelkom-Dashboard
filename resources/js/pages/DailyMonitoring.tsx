@@ -65,40 +65,37 @@ export default function DailyMonitoring() {
         <AppSidebarLayout breadcrumbs={breadcrumbs}>
             <Head title="Daily Monitoring" />
 
-            <div className="min-h-screen bg-gradient-to-br from-red-50/70 via-white to-pink-50/70 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
-                <div className="p-6 space-y-6">
-                    {/* Header with Admin Buttons */}
-                    <div className="flex items-center justify-end">
-                        {isAdmin && (
-                            <div className="flex gap-3">
-                                <Button
-                                    variant="default"
-                                    className="gap-2"
-                                    onClick={() => {
-                                        // TODO: Implement update harian functionality
-                                        console.log('Update Harian clicked');
-                                    }}
-                                >
-                                    <RefreshCw className="h-4 w-4" />
-                                    Update Harian
-                                </Button>
-                                <Button
-                                    variant="default"
-                                    className="gap-2"
-                                    onClick={() => {
-                                        // TODO: Implement upload bulanan functionality
-                                        console.log('Upload Data Bulanan clicked');
-                                    }}
-                                >
-                                    <Upload className="h-4 w-4" />
-                                    Upload Data Bulanan
-                                </Button>
-                            </div>
-                        )}
+            <div className="min-h-screen bg-gradient-to-br from-red-50/70 via-white to-pink-50/70 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 p-4 sm:p-6 lg:p-6">
+                {/* Admin Buttons - Positioned at top right */}
+                {isAdmin && (
+                    <div className="flex justify-end gap-3 mb-6">
+                        <Button
+                            variant="default"
+                            className="gap-2"
+                            onClick={() => {
+                                // TODO: Implement update harian functionality
+                                console.log('Update Harian clicked');
+                            }}
+                        >
+                            <RefreshCw className="h-4 w-4" />
+                            Update Harian
+                        </Button>
+                        <Button
+                            variant="default"
+                            className="gap-2"
+                            onClick={() => {
+                                // TODO: Implement upload bulanan functionality
+                                console.log('Upload Data Bulanan clicked');
+                            }}
+                        >
+                            <Upload className="h-4 w-4" />
+                            Upload Data Bulanan
+                        </Button>
                     </div>
+                )}
 
-                    {/* Metrics Cards Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Metrics Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         {metricsData.map((metric, idx) => (
                             <Card
                                 key={idx}
@@ -118,8 +115,8 @@ export default function DailyMonitoring() {
                         ))}
                     </div>
 
-                    {/* Data Table */}
-                    <Card className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
+                {/* Data Table */}
+                <Card className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <CardHeader>
                             <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Data Monitoring
@@ -187,7 +184,6 @@ export default function DailyMonitoring() {
                             </div>
                         </CardContent>
                     </Card>
-                </div>
             </div>
         </AppSidebarLayout>
     );
