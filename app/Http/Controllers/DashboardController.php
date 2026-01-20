@@ -276,6 +276,16 @@ class DashboardController extends Controller
     }
 
     /**
+     * Display Daily Monitoring page
+     */
+    public function dailymonitoring(Request $request)
+    {
+        // Currently just rendering the page with no backend data
+        // Data will be displayed as dummy frontend data
+        return Inertia::render('DailyMonitoring');
+    }
+
+    /**
      * Fungsi ini untuk mendapatkan total Account Manager yang terdaftar di database
      * Bisa difilter berdasarkan region
      */
