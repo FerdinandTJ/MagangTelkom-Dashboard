@@ -23,12 +23,14 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Toast, ConfirmDialog } from '@/components/ui/notifications';
 
 interface ActivityLog {
-    action: 'uploaded' | 'replaced' | 'deleted';
-    fileName: string;
+    action: 'upload' | 'replace' | 'delete';
+    description: string;
     user: string;
     timestamp: string;
+    ip_address?: string;
 }
 
 interface MonthData {
@@ -44,7 +46,7 @@ interface MonthData {
         dateRange: string;
         totalRevenue: string;
         subsegmentCount: number;
-    };
+        description?: string;        action?: 'upload' | 'replace' | 'delete';    };
     activityLogs?: ActivityLog[];
 }
 
@@ -60,12 +62,45 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
     
     const [selectedYear, setSelectedYear] = useState(initialYear);
     const [expandedMonths, setExpandedMonths] = useState<number[]>([]);
+    const [expandedActivities, setExpandedActivities] = useState<number[]>([]); 
     const [selectedFiles, setSelectedFiles] = useState<Record<number, File | null>>({});
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [uploadingMonth, setUploadingMonth] = useState<number | null>(null);
     const [monthsData, setMonthsData] = useState<MonthData[]>(initialMonthsData);
-    const [fileInputKey, setFileInputKey] = useState(Date.now()); // Key to force input re-render
+    const [fileInputKey, setFileInputKey] = useState(Date.now());
+
+    // Toast and Confirm Dialog states
+    const [toast, setToast] = useState<{show: boolean; type: 'success' | 'error' | 'warning' | 'info'; title: string; message: string}>({
+        show: false, 
+        type: 'info', 
+        title: '', 
+        message: ''
+    });
+    const [confirm, setConfirm] = useState<{
+        show: boolean; 
+        title: string; 
+        message: string; 
+        onConfirm: () => void; 
+        type: 'danger' | 'warning' | 'info'; 
+        requireTyping: boolean;
+    }>({
+        show: false, 
+        title: '', 
+        message: '', 
+        onConfirm: () => {}, 
+        type: 'warning', 
+        requireTyping: false
+    });
+
+    // Helper functions for notifications
+    const showToast = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
+        setToast({show: true, type, title, message});
+    };
+
+    const showConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' = 'warning', requireTyping = false) => {
+        setConfirm({show: true, title, message, onConfirm, type, requireTyping});
+    };
 
     // Sync monthsData when initialMonthsData prop changes
     useEffect(() => {
@@ -104,6 +139,29 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         const file = event.target.files?.[0];
         if (!file) return;
 
+        // Validasi format file
+        const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+        const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        
+        if (!allowedExtensions.includes(fileExtension)) {
+            showToast('error', 'Format File Tidak Valid', 
+                `File "${file.name}" tidak valid. Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)`);
+            event.target.value = ''; // Reset input
+            setFileInputKey(Date.now());
+            return;
+        }
+
+        // Validasi ukuran file (max 10MB)
+        const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSizeInBytes) {
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            showToast('error', 'Ukuran File Terlalu Besar', 
+                `File "${file.name}" berukuran ${fileSizeMB} MB. Ukuran maksimal adalah 10 MB.`);
+            event.target.value = ''; // Reset input
+            setFileInputKey(Date.now());
+            return;
+        }
+
         setIsUploading(true);
         setUploadProgress(0);
         setFileInputKey(Date.now()); // Reset input immediately
@@ -124,26 +182,60 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                 },
             });
 
-            // Success - reload data
-            setIsUploading(false);
-            setUploadProgress(0);
-            
-            // Check if years_imported is available in response
+            // Success - tampilkan pesan sukses
             const importStats = response.data?.import_stats;
             const yearsImported = importStats?.years_imported || [];
             
+            showToast('success', 'Upload Berhasil!', 
+                `File "${file.name}" berhasil diimpor untuk tahun: ${yearsImported.join(', ')}`);
+            
+            setIsUploading(false);
+            setUploadProgress(0);
+            
             // If years were imported, redirect to the latest year imported with full reload
             if (yearsImported.length > 0) {
-                // Get the most recent year from imported years
                 const targetYear = Math.max(...yearsImported.map((y: any) => parseInt(y)));
-                // Use window.location for full page reload to ensure fresh data
                 window.location.href = revenue.definition.url + '?year=' + targetYear;
             } else {
-                // Fallback: reload current page
                 window.location.reload();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Upload error:', error);
+            
+            // Tampilkan error message yang detail
+            const errorResponse = error.response?.data;
+            let errorMessage = '';
+            
+            if (errorResponse?.message) {
+                errorMessage = errorResponse.message;
+            } else if (errorResponse?.error) {
+                errorMessage = errorResponse.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            } else {
+                errorMessage = 'Terjadi kesalahan yang tidak diketahui';
+            }
+            
+            // Tambahkan detail validasi errors jika ada
+            let validationErrors = '';
+            if (errorResponse?.errors && typeof errorResponse.errors === 'object') {
+                validationErrors = ' Detail: ';
+                const errorMessages: string[] = [];
+                Object.entries(errorResponse.errors).forEach(([field, messages]) => {
+                    if (Array.isArray(messages)) {
+                        messages.forEach((msg: string) => {
+                            errorMessages.push(msg);
+                        });
+                    } else {
+                        errorMessages.push(messages as string);
+                    }
+                });
+                validationErrors += errorMessages.join('; ');
+            }
+            
+            showToast('error', 'Upload Gagal', 
+                `File "${file.name}" gagal diupload. ${errorMessage}${validationErrors}`);
+            
             setIsUploading(false);
             setUploadProgress(0);
         }
@@ -152,6 +244,27 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
     const handleMonthUpload = async (month: number) => {
         const file = selectedFiles[month];
         if (!file) return;
+
+        // Validasi format file
+        const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+        const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        
+        if (!allowedExtensions.includes(fileExtension)) {
+            showToast('error', 'Format File Tidak Valid', 
+                `File "${file.name}" tidak valid. Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)`);
+            setSelectedFiles(prev => ({ ...prev, [month]: null }));
+            return;
+        }
+
+        // Validasi ukuran file (max 10MB)
+        const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSizeInBytes) {
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            showToast('error', 'Ukuran File Terlalu Besar', 
+                `File "${file.name}" berukuran ${fileSizeMB} MB. Ukuran maksimal adalah 10 MB.`);
+            setSelectedFiles(prev => ({ ...prev, [month]: null }));
+            return;
+        }
 
         setIsUploading(true);
         setUploadingMonth(month);
@@ -163,7 +276,7 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         formData.append('month', month.toString());
 
         try {
-            await axios.post(upload.url(), formData, {
+            const response = await axios.post(upload.url(), formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -175,16 +288,58 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                 },
             });
 
+            // Success - tampilkan pesan sukses
+            const monthName = monthsData.find(m => m.month === month)?.name || month;
+            
+            showToast('success', 'Upload Berhasil!', 
+                `File "${file.name}" berhasil diimpor untuk bulan ${monthName} ${selectedYear}`);
+
             // Success - reload data with full page reload
             setIsUploading(false);
             setUploadingMonth(null);
             setUploadProgress(0);
             setSelectedFiles(prev => ({ ...prev, [month]: null }));
             
-            // Use window.location for full page reload to ensure fresh data
             window.location.href = revenue.url({ query: { year: selectedYear } });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Upload error:', error);
+            
+            // Tampilkan error message yang detail
+            const errorResponse = error.response?.data;
+            let errorMessage = '';
+            
+            if (errorResponse?.message) {
+                errorMessage = errorResponse.message;
+            } else if (errorResponse?.error) {
+                errorMessage = errorResponse.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            } else {
+                errorMessage = 'Terjadi kesalahan yang tidak diketahui';
+            }
+            
+            // Tambahkan detail validasi errors jika ada
+            let validationErrors = '';
+            if (errorResponse?.errors && typeof errorResponse.errors === 'object') {
+                validationErrors = ' Detail: ';
+                const errorMessages: string[] = [];
+                Object.entries(errorResponse.errors).forEach(([field, messages]) => {
+                    if (Array.isArray(messages)) {
+                        messages.forEach((msg: string) => {
+                            errorMessages.push(msg);
+                        });
+                    } else {
+                        errorMessages.push(messages as string);
+                    }
+                });
+                validationErrors += errorMessages.join('; ');
+            }
+            
+            const monthName = monthsData.find(m => m.month === month)?.name || month;
+            
+            showToast('error', 'Upload Gagal', 
+                `File "${file.name}" untuk bulan ${monthName} ${selectedYear} gagal diupload. ${errorMessage}${validationErrors}`);
+            
             setIsUploading(false);
             setUploadingMonth(null);
             setUploadProgress(0);
@@ -201,57 +356,77 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
         const file = event.target.files?.[0];
         if (!file) return;
 
-        const monthData = monthsData.find(m => m.month === month);
-        const confirmed = window.confirm(
-            `Apakah Anda yakin ingin mengganti data ${monthData?.name} ${selectedYear}?\n\n` +
-            `File lama: ${monthData?.uploadInfo?.fileName}\n` +
-            `File baru: ${file.name}\n\n` +
-            `Data yang sudah ada akan ditimpa dengan data baru.`
-        );
+        // Validasi format file
+        const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+        const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
         
-        if (!confirmed) {
+        if (!allowedExtensions.includes(fileExtension)) {
+            showToast('error', 'Format File Tidak Valid', 
+                `File "${file.name}" tidak valid. Format yang diterima: Excel (.xlsx, .xls) atau CSV (.csv)`);
             event.target.value = ''; // Reset input
             return;
         }
 
-        setIsUploading(true);
-        setUploadingMonth(month);
-        setUploadProgress(0);
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('year', selectedYear.toString());
-        formData.append('month', month.toString());
-
-        try {
-            await axios.post(upload.url(), formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-                onUploadProgress: (progressEvent) => {
-                    if (progressEvent.total) {
-                        const percentCompleted = Math.round(
-                            (progressEvent.loaded * 100) / progressEvent.total
-                        );
-                        setUploadProgress(percentCompleted);
-                    }
-                },
-            });
-
-            // Success - reload data with full page reload
-            window.location.href = revenue.url({ query: { year: selectedYear } });
-        } catch (error: any) {
-            console.error('Replace error:', error);
-            
-            // Tampilkan error message
-            const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat mengganti file';
-            alert(`Gagal mengganti file:\n${errorMessage}`);
-            
-            setIsUploading(false);
-            setUploadingMonth(null);
-            setUploadProgress(0);
+        // Validasi ukuran file (max 10MB)
+        const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSizeInBytes) {
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            showToast('error', 'Ukuran File Terlalu Besar', 
+                `File "${file.name}" berukuran ${fileSizeMB} MB. Ukuran maksimal adalah 10 MB.`);
             event.target.value = ''; // Reset input
+            return;
         }
+
+        const monthData = monthsData.find(m => m.month === month);
+        
+        showConfirm(
+            'Konfirmasi Replace Data',
+            `Bulan: ${monthData?.name} ${selectedYear}\nFile lama: ${monthData?.uploadInfo?.fileName}\nFile baru: ${file.name}\n\nData yang sudah ada akan DIHAPUS dan diganti dengan data baru. Apakah Anda yakin?`,
+            async () => {
+                // User confirmed, proceed with upload
+                setConfirm(prev => ({...prev, show: false}));
+                setIsUploading(true);
+                setUploadingMonth(month);
+                setUploadProgress(0);
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('year', selectedYear.toString());
+                formData.append('month', month.toString());
+
+                try {
+                    await axios.post(upload.url(), formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                        onUploadProgress: (progressEvent) => {
+                            if (progressEvent.total) {
+                                const percentCompleted = Math.round(
+                                    (progressEvent.loaded * 100) / progressEvent.total
+                                );
+                                setUploadProgress(percentCompleted);
+                            }
+                        },
+                    });
+
+                    // Success - reload data with full page reload
+                    window.location.href = revenue.url({ query: { year: selectedYear } });
+                } catch (error: any) {
+                    console.error('Replace error:', error);
+                    
+                    // Tampilkan error message
+                    const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat mengganti file';
+                    showToast('error', 'Gagal Mengganti File', errorMessage);
+                    
+                    setIsUploading(false);
+                    setUploadingMonth(null);
+                    setUploadProgress(0);
+                    event.target.value = ''; // Reset input
+                }
+            },
+            'warning',
+            false
+        );
     };
 
     // Handler untuk Download
@@ -261,41 +436,60 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
 
     // Handler untuk Delete Year
     const handleDeleteYear = async () => {
-        const confirmed = window.confirm(
-            `⚠️ PERINGATAN: Hapus Data Tahun ${selectedYear}\n\n` +
-            `Anda akan menghapus SEMUA data revenue tahun ${selectedYear}:\n` +
-            `• ${uploadedCount} bulan data\n` +
-            `• File Excel yang tersimpan\n` +
-            `• Data revenue dan target\n\n` +
-            `Tindakan ini TIDAK DAPAT DIBATALKAN!\n\n` +
-            `Ketik "HAPUS" untuk konfirmasi:`
+        showConfirm(
+            `Hapus Data Tahun ${selectedYear}`,
+            `Anda akan menghapus SEMUA data revenue tahun ${selectedYear}:\n\n• ${uploadedCount} bulan data\n• File Excel yang tersimpan\n• Data revenue dan target\n\nTindakan ini TIDAK DAPAT DIBATALKAN!`,
+            async () => {
+                setConfirm(prev => ({...prev, show: false}));
+                setIsUploading(true);
+
+                try {
+                    await axios.delete(`/data-import/revenue/delete/${selectedYear}`);
+                    
+                    // Success - redirect ke current year atau tahun sebelumnya
+                    const targetYear = selectedYear === currentYear ? currentYear - 1 : currentYear;
+                    window.location.href = revenue.url({ query: { year: targetYear } });
+                } catch (error: any) {
+                    console.error('Delete error:', error);
+                    
+                    const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat menghapus data';
+                    showToast('error', 'Gagal Menghapus Data', errorMessage);
+                    
+                    setIsUploading(false);
+                }
+            },
+            'danger',
+            true  // Require typing "HAPUS"
         );
-        
-        if (!confirmed) return;
-        
-        const confirmation = window.prompt(`Ketik "HAPUS" untuk mengkonfirmasi penghapusan data tahun ${selectedYear}:`);
-        
-        if (confirmation !== 'HAPUS') {
-            alert('Konfirmasi tidak sesuai. Penghapusan dibatalkan.');
-            return;
-        }
+    };
 
-        setIsUploading(true);
+    const handleDeleteMonth = async (month: number) => {
+        const monthName = new Date(selectedYear, month - 1).toLocaleString('default', { month: 'long' });
+        
+        showConfirm(
+            `Hapus Data ${monthName} ${selectedYear}`,
+            `Anda akan menghapus:\\n\\n• Data revenue ${monthName} ${selectedYear}\\n• File Excel yang tersimpan\\n• Data target untuk bulan ini\\n\\nTindakan ini TIDAK DAPAT DIBATALKAN!`,
+            async () => {
+                setConfirm(prev => ({...prev, show: false}));
+                setIsUploading(true);
 
-        try {
-            await axios.delete(`/data-import/revenue/delete/${selectedYear}`);
-            
-            // Success - redirect ke current year atau tahun sebelumnya
-            const targetYear = selectedYear === currentYear ? currentYear - 1 : currentYear;
-            window.location.href = revenue.url({ query: { year: targetYear } });
-        } catch (error: any) {
-            console.error('Delete error:', error);
-            
-            const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat menghapus data';
-            alert(`Gagal menghapus data:\n${errorMessage}`);
-            
-            setIsUploading(false);
-        }
+                try {
+                    await axios.delete(`/data-import/revenue/delete/${selectedYear}/${month}`);
+                    
+                    // Refresh page to update data
+                    window.location.reload();
+                } catch (error: any) {
+                    console.error('Delete error:', error);
+                    
+                    const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat menghapus data';
+                    showToast('error', 'Gagal Menghapus Data', errorMessage);
+                } finally {
+                    setIsUploading(false);
+                }
+            },
+            'danger',
+            false  // No typing required for single month
+        );
     };
 
     const getStatusBadge = (status: MonthData['status']) => {
@@ -358,37 +552,52 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                             </div>
                         </div>
 
-                        {/* General Upload Button */}
-                        <div>
-                            <input
-                                type="file"
-                                id="general-upload"
-                                className="hidden"
-                                accept=".xlsx,.xls,.csv"
-                                onChange={handleGeneralUpload}
-                                key={fileInputKey}
+                        {/* Download Template and Quick Upload Buttons */}
+                        <div className="flex items-center gap-2">
+                            {/* Download Template Button */}
+                            <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:border-red-600 dark:text-red-400 dark:hover:text-red-300"
+                                onClick={() => window.location.href = `/data-import/revenue/download-template/${selectedYear}`}
                                 disabled={isUploading}
-                            />
-                            <label htmlFor="general-upload">
-                                <Button 
-                                    size="sm" 
-                                    className="cursor-pointer" 
-                                    disabled={isUploading && uploadingMonth === null}
-                                    asChild={!isUploading || uploadingMonth !== null}
-                                >
-                                    {isUploading && uploadingMonth === null ? (
-                                        <div className="flex items-center">
-                                            <span className="mr-2">Uploading...</span>
-                                            <span>{uploadProgress}%</span>
-                                        </div>
-                                    ) : (
-                                        <span>
-                                            <Upload className="w-4 h-4 mr-2" />
-                                            Quick Upload
-                                        </span>
-                                    )}
-                                </Button>
-                            </label>
+                            >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download Template
+                            </Button>
+                            
+                            {/* General Upload Button */}
+                            <div>
+                                <input
+                                    type="file"
+                                    id="general-upload"
+                                    className="hidden"
+                                    accept=".xlsx,.xls,.csv"
+                                    onChange={handleGeneralUpload}
+                                    key={fileInputKey}
+                                    disabled={isUploading}
+                                />
+                                <label htmlFor="general-upload">
+                                    <Button 
+                                        size="sm" 
+                                        className="cursor-pointer" 
+                                        disabled={isUploading && uploadingMonth === null}
+                                        asChild={!isUploading || uploadingMonth !== null}
+                                    >
+                                        {isUploading && uploadingMonth === null ? (
+                                            <div className="flex items-center">
+                                                <span className="mr-2">Uploading...</span>
+                                                <span>{uploadProgress}%</span>
+                                            </div>
+                                        ) : (
+                                            <span>
+                                                <Upload className="w-4 h-4 mr-2" />
+                                                Quick Upload
+                                            </span>
+                                        )}
+                                    </Button>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -412,6 +621,16 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                             {/* Yearly Action Buttons */}
                             {uploadedCount > 0 && (
                                 <div className="flex items-center gap-2">
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        className="text-red-600 hover:text-red-700 hover:border-red-600 dark:text-red-400 dark:hover:text-red-300"
+                                        onClick={() => window.location.href = `/data-import/revenue/download-year/${selectedYear}`}
+                                        disabled={isUploading}
+                                    >
+                                        <Download className="w-4 h-4 mr-2" />
+                                        Download {selectedYear}
+                                    </Button>
                                     <Button 
                                         size="sm" 
                                         variant="outline"
@@ -442,6 +661,12 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                                                     {monthData.name} {selectedYear}
                                                 </span>
+                                                {/* Activity indicator */}
+                                                {monthData.activityLogs && monthData.activityLogs.length > 0 && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                                        {monthData.activityLogs.length} activities
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 {getStatusBadge(monthData.status)}
@@ -481,41 +706,134 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                                                                     <span>•</span>
                                                                     <span>{monthData.uploadInfo.dateRange}</span>
                                                                 </div>
+                                                                {/* Description with Master Data Stats */}
+                                                                {monthData.uploadInfo.description && (
+                                                                    <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/30 px-2 py-1 rounded">
+                                                                        {monthData.uploadInfo.description}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
-                                                        <span className="text-sm text-gray-500 dark:text-gray-500">{monthData.uploadInfo.uploadDate}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm text-gray-500 dark:text-gray-500">{monthData.uploadInfo.uploadDate}</span>
+                                                            
+                                                            {/* Action Buttons */}
+                                                            <div className="flex items-center gap-2 ml-4">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleDownload(monthData.month)}
+                                                                    disabled={isUploading}
+                                                                    className="text-blue-600 hover:text-blue-700 hover:border-blue-600 dark:text-blue-400"
+                                                                >
+                                                                    <Download className="w-4 h-4 mr-2" />
+                                                                    Download
+                                                                </Button>
+                                                                
+                                                                <input
+                                                                    type="file"
+                                                                    id={`replace-file-${monthData.month}`}
+                                                                    className="hidden"
+                                                                    accept=".xlsx,.xls,.csv"
+                                                                    onChange={(e) => handleReplaceFileSelect(monthData.month, e)}
+                                                                    disabled={isUploading}
+                                                                />
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleReplaceClick(monthData.month)}
+                                                                    disabled={isUploading}
+                                                                    className="text-orange-600 hover:text-orange-700 hover:border-orange-600 dark:text-orange-400"
+                                                                >
+                                                                    <Upload className="w-4 h-4 mr-2" />
+                                                                    Replace
+                                                                </Button>
+                                                                
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleDeleteMonth(monthData.month)}
+                                                                    disabled={isUploading}
+                                                                    className="text-red-600 hover:text-red-700 hover:border-red-600 dark:text-red-400"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4 mr-2" />
+                                                                    Delete
+                                                                </Button>
+                                                            </div>
+                                                        </div>
                                                     </div>
 
                                                     {/* Activity Log */}
                                                     {monthData.activityLogs && monthData.activityLogs.length > 0 && (
                                                         <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Activity Log</h4>
-                                                            <div className="space-y-2">
-                                                                {monthData.activityLogs.map((log, index) => (
-                                                                    <div key={index} className="flex items-start gap-3 text-sm">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                    Activity History ({monthData.activityLogs.length})
+                                                                </h4>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setExpandedActivities(prev => 
+                                                                            prev.includes(monthData.month)
+                                                                                ? prev.filter(m => m !== monthData.month)
+                                                                                : [...prev, monthData.month]
+                                                                        );
+                                                                    }}
+                                                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                                                                >
+                                                                    {expandedActivities.includes(monthData.month) ? (
+                                                                        <>
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                                                            </svg>
+                                                                            Hide
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                            </svg>
+                                                                            Show
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                            
+                                                            {/* Show all activities when expanded */}
+                                                            {expandedActivities.includes(monthData.month) && (
+                                                                <div className="space-y-2">
+                                                                    {monthData.activityLogs.map((log, index) => (
+                                                                    <div key={index} className="flex items-start gap-3 text-sm bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
                                                                         <div className="mt-0.5">
-                                                                            {log.action === 'uploaded' && (
-                                                                                <div className="p-1.5 bg-blue-50 dark:bg-blue-950/30 rounded">
-                                                                                    <Upload className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                                                            {log.action === 'upload' && (
+                                                                                <div className="p-1.5 bg-green-50 dark:bg-green-950/30 rounded">
+                                                                                    <Upload className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
                                                                                 </div>
                                                                             )}
-                                                                            {log.action === 'replaced' && (
+                                                                            {log.action === 'replace' && (
                                                                                 <div className="p-1.5 bg-orange-50 dark:bg-orange-950/30 rounded">
                                                                                     <Upload className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                                                                                 </div>
                                                                             )}
-                                                                            {log.action === 'deleted' && (
+                                                                            {log.action === 'delete' && (
                                                                                 <div className="p-1.5 bg-red-50 dark:bg-red-950/30 rounded">
                                                                                     <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                                                                                 </div>
                                                                             )}
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
-                                                                            <p className="text-gray-900 dark:text-gray-100">
-                                                                                <span className="font-medium capitalize">{log.action}</span> by <span className="font-medium">{log.user}</span>
-                                                                            </p>
-                                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                                                {log.fileName}
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                                                    log.action === 'upload' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                                                    log.action === 'replace' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                                                                }`}>
+                                                                                    {log.action.toUpperCase()}
+                                                                                </span>
+                                                                                <span className="text-gray-500 dark:text-gray-400">by</span>
+                                                                                <span className="font-medium text-gray-900 dark:text-gray-100">{log.user}</span>
+                                                                            </div>
+                                                                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                                                {log.description}
                                                                             </p>
                                                                         </div>
                                                                         <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
@@ -524,13 +842,99 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                                                                         </div>
                                                                     </div>
                                                                 ))}
-                                                            </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
                                             ) : (
-                                                // Upload Form View
+                                                // Upload Form View (Pending)
                                                 <div className="space-y-4">
+                                                    {/* Show activity history even for pending months */}
+                                                    {monthData.activityLogs && monthData.activityLogs.length > 0 && (
+                                                        <div className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                    Activity History ({monthData.activityLogs.length})
+                                                                </h4>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setExpandedActivities(prev => 
+                                                                            prev.includes(monthData.month)
+                                                                                ? prev.filter(m => m !== monthData.month)
+                                                                                : [...prev, monthData.month]
+                                                                        );
+                                                                    }}
+                                                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                                                                >
+                                                                    {expandedActivities.includes(monthData.month) ? (
+                                                                        <>
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                                                            </svg>
+                                                                            Hide
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                            </svg>
+                                                                            Show
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                            
+                                                            {/* Show all activities when expanded */}
+                                                            {expandedActivities.includes(monthData.month) && (
+                                                                <div className="space-y-2">
+                                                                    {monthData.activityLogs.map((log, index) => (
+                                                                    <div key={index} className="flex items-start gap-3 text-sm bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+                                                                        <div className="mt-0.5">
+                                                                            {log.action === 'upload' && (
+                                                                                <div className="p-1.5 bg-green-50 dark:bg-green-950/30 rounded">
+                                                                                    <Upload className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                                                                </div>
+                                                                            )}
+                                                                            {log.action === 'replace' && (
+                                                                                <div className="p-1.5 bg-orange-50 dark:bg-orange-950/30 rounded">
+                                                                                    <Upload className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+                                                                                </div>
+                                                                            )}
+                                                                            {log.action === 'delete' && (
+                                                                                <div className="p-1.5 bg-red-50 dark:bg-red-950/30 rounded">
+                                                                                    <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                                                    log.action === 'upload' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                                                    log.action === 'replace' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                                                                }`}>
+                                                                                    {log.action.toUpperCase()}
+                                                                                </span>
+                                                                                <span className="text-gray-500 dark:text-gray-400">by</span>
+                                                                                <span className="font-medium text-gray-900 dark:text-gray-100">{log.user}</span>
+                                                                            </div>
+                                                                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                                                {log.description}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                                                            <Clock className="w-3 h-3" />
+                                                                            <span>{log.timestamp}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Upload form */}
                                                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
                                                         <Upload className="w-10 h-10 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
                                                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -553,9 +957,29 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                                                         </label>
                                                         {selectedFiles[monthData.month] && (
                                                             <div className="mt-4 space-y-3">
-                                                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                                    Selected: <span className="font-medium">{selectedFiles[monthData.month]?.name}</span>
-                                                                </p>
+                                                                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <div className="flex-1">
+                                                                            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                                                                File dipilih:
+                                                                            </p>
+                                                                            <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                                                                                {selectedFiles[monthData.month]?.name}
+                                                                            </p>
+                                                                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                                                                Ukuran: {((selectedFiles[monthData.month]?.size || 0) / 1024).toFixed(2)} KB
+                                                                            </p>
+                                                                        </div>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            onClick={() => setSelectedFiles(prev => ({ ...prev, [monthData.month]: null }))}
+                                                                            className="text-blue-600 hover:text-blue-700"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
                                                                 <Button 
                                                                     size="sm" 
                                                                     onClick={() => handleMonthUpload(monthData.month)}
@@ -608,6 +1032,29 @@ export default function DataImportRevenue({ initialMonthsData = [], selectedYear
                     </CardContent>
                 </Card>
             </div>
+            
+            {/* Toast Notification */}
+            <Toast 
+                show={toast.show}
+                type={toast.type}
+                title={toast.title}
+                message={toast.message}
+                onClose={() => setToast(prev => ({...prev, show: false}))}
+            />
+            
+            {/* Confirm Dialog */}
+            <ConfirmDialog 
+                show={confirm.show}
+                title={confirm.title}
+                message={confirm.message}
+                onConfirm={confirm.onConfirm}
+                onCancel={() => setConfirm(prev => ({...prev, show: false}))}
+                type={confirm.type}
+                requireTyping={confirm.requireTyping}
+                typingConfirmation="HAPUS"
+                confirmText="Hapus"
+                cancelText="Batal"
+            />
         </AppLayout>
     );
 }

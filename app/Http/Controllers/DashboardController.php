@@ -16,7 +16,7 @@ class DashboardController extends Controller
     {
         $this->analyticsService = $analyticsService;
     }
-
+    
     /**
      * Display main dashboard page
      */
@@ -167,7 +167,23 @@ class DashboardController extends Controller
         $selectedYear = $request->input('year', date('Y'));
         $currentYear = date('Y'); // Always use current year for dropdown
         
-        // Get uploaded months data with file info from revenue_uploads table
+        // Get all activity logs for the year (independent of revenue data)
+        $activityLogs = DB::table('revenue_uploads')
+            ->join('users', 'revenue_uploads.uploaded_by', '=', 'users.id')
+            ->select(
+                'revenue_uploads.bulan',
+                'revenue_uploads.action',
+                'revenue_uploads.description',
+                'revenue_uploads.created_at',
+                'users.name as user_name',
+                'revenue_uploads.ip_address'
+            )
+            ->where('revenue_uploads.tahun', $selectedYear)
+            ->orderBy('revenue_uploads.created_at', 'desc')
+            ->get()
+            ->groupBy('bulan');
+        
+        // Get latest upload info per month for summary (only for months with data)
         $uploadedMonths = DB::table('revenue_uploads as ru')
             ->join('revenues as r', function($join) {
                 $join->on('ru.tahun', '=', 'r.tahun')
@@ -179,11 +195,21 @@ class DashboardController extends Controller
                 'ru.file_size_kb',
                 'ru.uploaded_by',
                 'ru.updated_at as last_upload',
+                'ru.description',
+                'ru.action',
                 DB::raw('COUNT(DISTINCT r.group4_id) as record_count'),
                 DB::raw('SUM(r.revenue_realisasi) as total_revenue')
             )
             ->where('ru.tahun', $selectedYear)
-            ->groupBy('ru.bulan', 'ru.original_filename', 'ru.file_size_kb', 'ru.uploaded_by', 'ru.updated_at')
+            ->where('ru.action', '!=', 'delete') // Exclude delete actions from current data
+            ->whereIn('ru.id', function($query) use ($selectedYear) {
+                $query->select(DB::raw('MAX(id)'))
+                      ->from('revenue_uploads')
+                      ->where('tahun', $selectedYear)
+                      ->where('action', '!=', 'delete')
+                      ->groupBy('bulan');
+            })
+            ->groupBy('ru.bulan', 'ru.original_filename', 'ru.file_size_kb', 'ru.uploaded_by', 'ru.updated_at', 'ru.description', 'ru.action')
             ->get()
             ->keyBy('month');
         
@@ -202,6 +228,19 @@ class DashboardController extends Controller
                 'status' => 'pending',
             ];
             
+            // Add activity logs even if no current data (to show delete history)
+            if (isset($activityLogs[$month])) {
+                $monthData['activityLogs'] = $activityLogs[$month]->map(function($log) {
+                    return [
+                        'action' => $log->action,
+                        'description' => $log->description,
+                        'user' => $log->user_name,
+                        'timestamp' => \Carbon\Carbon::parse($log->created_at)->timezone('Asia/Jakarta')->format('M d, Y H:i'),
+                        'ip_address' => $log->ip_address,
+                    ];
+                })->toArray();
+            }
+            
             if (isset($uploadedMonths[$month])) {
                 $upload = $uploadedMonths[$month];
                 
@@ -219,7 +258,11 @@ class DashboardController extends Controller
                     'dateRange' => $monthNames[$month] . " 1 - " . $monthNames[$month] . " 31, {$selectedYear}",
                     'totalRevenue' => 'Rp ' . number_format($upload->total_revenue / 1000000, 1) . 'M',
                     'subsegmentCount' => 0, // Can be calculated if needed
+                    'description' => $upload->description,
+                    'action' => $upload->action,
                 ];
+                
+                // Activity logs already added above, no need to duplicate
             }
             
             $monthsData[] = $monthData;
@@ -846,10 +889,19 @@ class DashboardController extends Controller
 
         // Build period description
         $periodText = 'All Time';
+        $monthRange = null;
         if ($filterYear && $filterMonth) {
             $periodText = $monthNames[$filterMonth] . ' ' . $filterYear;
         } elseif ($filterYear) {
             $periodText = 'Year ' . $filterYear;
+            // Get actual months that have data for this year
+            $monthsWithData = $allMonthlyData->pluck('bulan')->sort()->values();
+            if ($monthsWithData->isNotEmpty()) {
+                $firstMonth = $monthNames[$monthsWithData->first()];
+                $lastMonth = $monthNames[$monthsWithData->last()];
+                $monthCount = $monthsWithData->count();
+                $monthRange = "({$firstMonth} - {$lastMonth}, {$monthCount} bulan)";
+            }
         }
 
         $summaryData = [
@@ -860,6 +912,7 @@ class DashboardController extends Controller
             'formatted_total_revenue' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'),
             'formatted_avg_monthly' => 'Rp ' . number_format($avgMonthlyRevenue, 0, ',', '.'),
             'period' => $periodText,
+            'month_range' => $monthRange,
             'filter_year' => $filterYear,
             'filter_month' => $filterMonth
         ];

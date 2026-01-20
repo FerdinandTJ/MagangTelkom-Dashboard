@@ -150,43 +150,39 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
                                     className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 cursor-pointer hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/40 dark:hover:to-indigo-900/40 transition-all"
                                     onClick={() => toggleSubsegment(subsegment.subsegment)}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-4 flex-1">
-                                            <div className="flex items-center gap-3 min-w-[200px]">
-                                                <span className="text-2xl">{SUBSEGMENT_ICONS[subsegment.subsegment] || '📊'}</span>
-                                                <div>
-                                                    <h4 className="font-bold text-gray-900 dark:text-gray-100">{subsegment.subsegment}</h4>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Click for regional breakdown</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-5 gap-4 flex-1">
-                                                <div className="text-center">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Revenue</p>
-                                                    <p className="font-bold text-blue-900 dark:text-blue-100">{subsegment.formatted_total_revenue}</p>
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Ach</p>
-                                                    <p className={`font-bold ${getAchievementColor(subsegment.total_achievement)}`}>
-                                                        {subsegment.total_achievement}%
-                                                    </p>
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Gr. YoY</p>
-                                                    {renderYoYGrowth(subsegment.total_growth_yoy, subsegment.has_previous_year_data)}
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Share</p>
-                                                    <p className="font-bold text-purple-900 dark:text-purple-100">{subsegment.share_percentage}%</p>
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">CC</p>
-                                                    <p className="font-bold text-gray-900 dark:text-gray-100">{subsegment.total_companies}</p>
-                                                </div>
+                                    <div className="flex items-center">
+                                        <div className="flex items-center gap-3 w-[260px] flex-shrink-0 pl-4">
+                                            <span className="text-2xl">{SUBSEGMENT_ICONS[subsegment.subsegment] || '📊'}</span>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 dark:text-gray-100">{subsegment.subsegment}</h4>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Click for regional breakdown</p>
                                             </div>
                                         </div>
 
-                                        <div className="ml-4">
+                                        <div className="text-center w-[160px] flex-shrink-0">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Revenue</p>
+                                            <p className="font-bold text-blue-900 dark:text-blue-100">{subsegment.formatted_total_revenue}</p>
+                                        </div>
+                                        <div className="text-center w-[150px] flex-shrink-0">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Ach</p>
+                                            <p className={`font-bold ${getAchievementColor(subsegment.total_achievement)}`}>
+                                                {subsegment.total_achievement}%
+                                            </p>
+                                        </div>
+                                        <div className="text-center w-[140px] flex-shrink-0">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Gr. YoY</p>
+                                            {renderYoYGrowth(subsegment.total_growth_yoy, subsegment.has_previous_year_data)}
+                                        </div>
+                                        <div className="text-center w-[120px] flex-shrink-0">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Share</p>
+                                            <p className="font-bold text-purple-900 dark:text-purple-100">{subsegment.share_percentage}%</p>
+                                        </div>
+                                        <div className="text-center w-[100px] flex-shrink-0">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">CC</p>
+                                            <p className="font-bold text-gray-900 dark:text-gray-100">{subsegment.total_companies}</p>
+                                        </div>
+
+                                        <div className="ml-auto pr-4">
                                             {isExpanded ? (
                                                 <ChevronUp className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                                             ) : (
@@ -199,23 +195,34 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
                                 {/* Regional Breakdown Table */}
                                 {isExpanded && (
                                     <div className="bg-white dark:bg-gray-950">
-                                        <table className="w-full">
+                                        <table className="w-full table-fixed">
+                                            <colgroup>
+                                                <col className="w-[260px]" />
+                                                <col className="w-[160px]" />
+                                                <col className="w-[150px]" />
+                                                <col className="w-[140px]" />
+                                                <col className="w-[120px]" />
+                                                <col />
+                                            </colgroup>
                                             <thead className="bg-gray-100 dark:bg-gray-800">
                                                 <tr>
                                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                        TREG
+                                                        Region
                                                     </th>
-                                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                        Top CC
-                                                    </th>
-                                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                                         Rev
                                                     </th>
                                                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                                         Ach
                                                     </th>
                                                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                        Gr YoY
+                                                        Gr. YoY
+                                                    </th>
+                                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                        Share
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                        Top CC
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -229,46 +236,39 @@ const SubsegmentRegionalTable: React.FC<SubsegmentRegionalTableProps> = ({
                                                         <td className="px-4 py-3">
                                                             <div>
                                                                 <p className="font-bold text-gray-900 dark:text-gray-100">{region.region_code}</p>
-                                                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                                    Rev: {region.formatted_revenue} | Gr. {region.growth_yoy !== null ? (region.growth_yoy > 0 ? '+' : '') + region.growth_yoy + '%' : 'N/A'}
-                                                                </p>
-                                                                <p className="text-xs text-gray-500 dark:text-gray-500">CC: {region.company_count}</p>
+                                                                <p className="text-xs text-gray-500 dark:text-gray-500">{region.region_name}</p>
+                                                                <p className="text-xs text-gray-400 dark:text-gray-600 mt-0.5">CC: {region.company_count}</p>
                                                             </div>
                                                         </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <p className="font-bold text-blue-900 dark:text-blue-100">{region.formatted_revenue}</p>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <p className={`font-bold ${getAchievementColor(region.achievement)}`}>
+                                                                {region.achievement}%
+                                                            </p>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            {renderYoYGrowth(region.growth_yoy, region.has_previous_year_data)}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <p className="font-bold text-purple-900 dark:text-purple-100">
+                                                                {((region.revenue / subsegment.total_revenue) * 100).toFixed(1)}%
+                                                            </p>
+                                                        </td>
                                                         <td className="px-4 py-3">
-                                                            <div className="space-y-1">
+                                                            <div className="space-y-1.5">
                                                                 {region.top_companies.slice(0, 3).map((company, idx) => (
                                                                     <div key={idx} className="text-sm">
                                                                         <p className="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[300px]">
                                                                             {company.nama_perusahaan}
                                                                         </p>
                                                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                            {company.formatted_revenue}
+                                                                            {company.formatted_revenue} • Ach: {company.achievement}% • Gr: {company.growth_yoy !== null ? (company.growth_yoy > 0 ? '+' : '') + company.growth_yoy + '%' : 'N/A'}
                                                                         </p>
                                                                     </div>
                                                                 ))}
                                                             </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            {region.top_companies.slice(0, 3).map((company, idx) => (
-                                                                <p key={idx} className="text-sm font-semibold text-gray-900 dark:text-gray-100 py-[9px]">
-                                                                    {company.formatted_revenue}
-                                                                </p>
-                                                            ))}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            {region.top_companies.slice(0, 3).map((company, idx) => (
-                                                                <p key={idx} className={`text-sm font-bold py-[9px] ${getAchievementColor(company.achievement)}`}>
-                                                                    {company.achievement}%
-                                                                </p>
-                                                            ))}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            {region.top_companies.slice(0, 3).map((company, idx) => (
-                                                                <p key={idx} className={`text-sm font-bold py-[9px] ${getTrendColor(company.growth_yoy)}`}>
-                                                                    {company.growth_yoy !== null ? (company.growth_yoy > 0 ? '+' : '') + company.growth_yoy + '%' : 'N/A'}
-                                                                </p>
-                                                            ))}
                                                         </td>
                                                     </tr>
                                                 ))}

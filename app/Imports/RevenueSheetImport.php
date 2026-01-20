@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Log;
 class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReading
 {
     protected int $year;
+    protected ?int $specificMonth = null; // Specific month to import (null = all months)
     protected array $errors = [];
     protected int $successCount = 0;
     protected int $skipCount = 0;
@@ -33,9 +34,10 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
     protected ?string $lastGroup2 = null; // Track last valid group2 for merged cells
     protected ?string $lastGroup3 = null; // Track last valid group3 for merged cells
 
-    public function __construct(int $year)
+    public function __construct(int $year, ?int $month = null)
     {
         $this->year = $year;
+        $this->specificMonth = $month;
     }
 
     /**
@@ -43,6 +45,104 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
      */
     public function collection(Collection $rows)
     {
+        // Validasi header/struktur file di awal
+        if ($rows->isEmpty()) {
+            throw new \Exception('File Excel kosong atau tidak memiliki data.');
+        }
+        
+        // Get first row to check structure
+        $firstRow = $rows->first();
+        $rowData = $firstRow instanceof Collection ? $firstRow->toArray() : (array) $firstRow;
+        
+        // Log struktur file untuk debugging
+        Log::info('Excel structure validation', [
+            'year' => $this->year,
+            'columns' => array_keys($rowData),
+            'first_row_sample' => array_slice($rowData, 0, 5, true)
+        ]);
+        
+        // Validasi kolom wajib ada
+        $requiredColumns = [
+            'sub_segment' => 'SUB_SEGMENT',
+            'nip_nas' => 'NIP_NAS',
+            'standard_name' => 'STANDARD_NAME',
+            'source_data' => 'SOURCE_DATA',
+            'witel_id' => 'WITEL_ID',
+            'group1' => 'GROUP1',
+            'group2' => 'GROUP2',
+            'group3' => 'GROUP3',
+            'group4' => 'GROUP4',
+        ];
+        
+        $missingColumns = [];
+        foreach ($requiredColumns as $key => $displayName) {
+            if (!array_key_exists($key, $rowData)) {
+                $missingColumns[] = $displayName;
+            }
+        }
+        
+        if (!empty($missingColumns)) {
+            Log::error('Excel structure mismatch', [
+                'missing_columns' => $missingColumns,
+                'found_columns' => array_keys($rowData)
+            ]);
+            
+            throw new \Exception(
+                'Struktur Excel tidak sesuai dengan template revenue. ' . 
+                'Kolom yang hilang: ' . implode(', ', $missingColumns) . 
+                '. Pastikan file memiliki header: SUB_SEGMENT, NIP_NAS, STANDARD_NAME, SOURCE_DATA, WITEL_ID, GROUP1-GROUP4, dan kolom bulan 1-12 dengan format interleaved (1, TARGET_1, 2, TARGET_2, ...).'
+            );
+        }
+        
+        // Validasi kolom bulan dan target (format interleaved: 1, TARGET_1, 2, TARGET_2, ...)
+        // Note: Tidak wajib semua 12 bulan ada, bisa partial upload
+        $missingMonthTargetPairs = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $monthKey = (string)$i;
+            $targetKey = 'target_' . $i;
+            
+            // Jika ada kolom bulan, harus ada target pair-nya
+            if (array_key_exists($monthKey, $rowData) && !array_key_exists($targetKey, $rowData)) {
+                $missingMonthTargetPairs[] = "TARGET_$i (ada kolom $i tapi tidak ada TARGET_$i)";
+            }
+            // Jika ada target, harus ada bulan pair-nya
+            if (array_key_exists($targetKey, $rowData) && !array_key_exists($monthKey, $rowData)) {
+                $missingMonthTargetPairs[] = "$i (ada TARGET_$i tapi tidak ada kolom $i)";
+            }
+        }
+        
+        if (!empty($missingMonthTargetPairs)) {
+            Log::error('Excel month-target pairs incomplete', [
+                'missing_pairs' => $missingMonthTargetPairs,
+                'found_columns' => array_keys($rowData)
+            ]);
+            
+            throw new \Exception(
+                'Pasangan kolom bulan dan target tidak lengkap. Yang hilang: ' . 
+                implode(', ', $missingMonthTargetPairs) . 
+                '. Format harus: 1, TARGET_1, 2, TARGET_2, dst (interleaved).'
+            );
+        }
+        
+        // Cek apakah minimal ada 1 pasang kolom bulan-target
+        $hasMonthColumns = false;
+        for ($month = 1; $month <= 12; $month++) {
+            if (array_key_exists((string)$month, $firstRow instanceof Collection ? $firstRow->toArray() : (array)$firstRow)) {
+                $hasMonthColumns = true;
+                break;
+            }
+        }
+
+        if (!$hasMonthColumns) {
+            Log::error('No month columns found in Excel');
+            
+            throw new \Exception(
+                'File tidak memiliki kolom bulan yang valid. ' .
+                'Format harus memiliki minimal 1 pasang kolom (contoh: 1, TARGET_1) dalam format interleaved.'
+            );
+        }
+        
+        // Proses setiap baris
         foreach ($rows as $index => $row) {
             $rowNumber = $index + 2; // +2 because: 1 for header, 1 for 0-based index
             
@@ -208,19 +308,19 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
             'month_10' => $this->parseRevenue($row['10'] ?? 0),
             'month_11' => $this->parseRevenue($row['11'] ?? 0),
             'month_12' => $this->parseRevenue($row['12'] ?? 0),
-            // Target columns (T-1 to T-12)
-            'target_1' => $this->parseRevenue($row['t_1'] ?? 0),
-            'target_2' => $this->parseRevenue($row['t_2'] ?? 0),
-            'target_3' => $this->parseRevenue($row['t_3'] ?? 0),
-            'target_4' => $this->parseRevenue($row['t_4'] ?? 0),
-            'target_5' => $this->parseRevenue($row['t_5'] ?? 0),
-            'target_6' => $this->parseRevenue($row['t_6'] ?? 0),
-            'target_7' => $this->parseRevenue($row['t_7'] ?? 0),
-            'target_8' => $this->parseRevenue($row['t_8'] ?? 0),
-            'target_9' => $this->parseRevenue($row['t_9'] ?? 0),
-            'target_10' => $this->parseRevenue($row['t_10'] ?? 0),
-            'target_11' => $this->parseRevenue($row['t_11'] ?? 0),
-            'target_12' => $this->parseRevenue($row['t_12'] ?? 0),
+            // Target columns (TARGET_1 to TARGET_12) - interleaved format
+            'target_1' => $this->parseRevenue($row['target_1'] ?? 0),
+            'target_2' => $this->parseRevenue($row['target_2'] ?? 0),
+            'target_3' => $this->parseRevenue($row['target_3'] ?? 0),
+            'target_4' => $this->parseRevenue($row['target_4'] ?? 0),
+            'target_5' => $this->parseRevenue($row['target_5'] ?? 0),
+            'target_6' => $this->parseRevenue($row['target_6'] ?? 0),
+            'target_7' => $this->parseRevenue($row['target_7'] ?? 0),
+            'target_8' => $this->parseRevenue($row['target_8'] ?? 0),
+            'target_9' => $this->parseRevenue($row['target_9'] ?? 0),
+            'target_10' => $this->parseRevenue($row['target_10'] ?? 0),
+            'target_11' => $this->parseRevenue($row['target_11'] ?? 0),
+            'target_12' => $this->parseRevenue($row['target_12'] ?? 0),
         ];
     }
 
@@ -250,10 +350,11 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
             if (empty($row[$field])) {
                 $this->errors[] = [
                     'row' => $rowNumber,
-                    'nip_nas' => $row['nip_nas'],
-                    'company' => $row['standard_name'],
-                    'error' => "Missing required field: {$field}"
+                    'nip_nas' => $row['nip_nas'] ?? 'N/A',
+                    'company' => $row['standard_name'] ?? 'N/A',
+                    'error' => "Kolom {$field} tidak boleh kosong"
                 ];
+                $this->skipCount++;
                 return false;
             }
         }
@@ -264,8 +365,64 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
                 'row' => $rowNumber,
                 'nip_nas' => $row['nip_nas'],
                 'company' => $row['standard_name'],
-                'error' => 'NIP_NAS exceeds maximum length of 25 characters'
+                'error' => 'NIP_NAS melebihi maksimal 25 karakter'
             ];
+            $this->skipCount++;
+            return false;
+        }
+        
+        // Validate STANDARD_NAME length
+        if (strlen($row['standard_name']) > 55) {
+            $this->errors[] = [
+                'row' => $rowNumber,
+                'nip_nas' => $row['nip_nas'],
+                'company' => $row['standard_name'],
+                'error' => 'STANDARD_NAME melebihi maksimal 55 karakter'
+            ];
+            $this->skipCount++;
+            return false;
+        }
+        
+        // Validate SOURCE_DATA values
+        $validSourceData = ['TIBS-NP', 'SISKA', 'NGTMA'];
+        if (!in_array($row['source_data'], $validSourceData)) {
+            $this->errors[] = [
+                'row' => $rowNumber,
+                'nip_nas' => $row['nip_nas'],
+                'company' => $row['standard_name'],
+                'error' => "SOURCE_DATA '{$row['source_data']}' tidak valid. Harus salah satu dari: " . implode(', ', $validSourceData)
+            ];
+            $this->skipCount++;
+            return false;
+        }
+        
+        // Validate GROUP fields length
+        $groupFields = ['group1', 'group2', 'group3', 'group4'];
+        foreach ($groupFields as $field) {
+            if (strlen($row[$field]) > 45) {
+                $this->errors[] = [
+                    'row' => $rowNumber,
+                    'nip_nas' => $row['nip_nas'],
+                    'company' => $row['standard_name'],
+                    'error' => "{$field} melebihi maksimal 45 karakter"
+                ];
+                $this->skipCount++;
+                return false;
+            }
+        }
+        
+        // Validate ada minimal 1 bulan dengan revenue > 0
+        $hasRevenue = false;
+        for ($month = 1; $month <= 12; $month++) {
+            if (isset($row["month_{$month}"]) && $row["month_{$month}"] > 0) {
+                $hasRevenue = true;
+                break;
+            }
+        }
+        
+        if (!$hasRevenue) {
+            // Ini warning saja, tidak error - skip row tanpa revenue
+            $this->skipCount++;
             return false;
         }
         
@@ -339,8 +496,11 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
             ]
         );
 
-        // 6. Create or update revenues for all 12 months and aggregate company targets
-        for ($month = 1; $month <= 12; $month++) {
+        // 6. Create or update revenues for specified month (or all 12 months if not specified)
+        // When uploading per month, only process that specific month
+        $monthsToProcess = $this->specificMonth ? [$this->specificMonth] : range(1, 12);
+        
+        foreach ($monthsToProcess as $month) {
             $revenueValue = $row["month_{$month}"];
             $targetValue = $row["target_{$month}"] ?? 0;
             

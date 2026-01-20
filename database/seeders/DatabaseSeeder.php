@@ -15,19 +15,46 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
+        // Create admin user
+        User::firstOrCreate(
+            ['email' => 'admin@gmail.com'],
+            [
+                'name' => 'Admin User',
+                'username' => 'admin',
+                'password' => 'admin123',
+                'email_verified_at' => now(),
+                'role' => 'admin',
+            ]
+        );
+
+        // Create viewer user for testing
+        User::firstOrCreate(
+            ['email' => 'viewer@gmail.com'],
+            [
+                'name' => 'Viewer User',
+                'username' => 'viewer',
+                'password' => 'viewer123',
+                'email_verified_at' => now(),
+                'role' => 'viewer',
+            ]
+        );
+
+        // Legacy test user - set as viewer
         User::firstOrCreate(
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
+                'username' => 'test',
                 'password' => 'password',
                 'email_verified_at' => now(),
+                'role' => 'viewer',
             ]
         );
 
         $this->call([
-            WitelSeeder::class,
-            AccountManagerSeeder::class,     
-            DummyDataSeeder::class,
+         //   WitelSeeder::class,              // Depends on: regions (auto-seeded)
+          //  AccountManagerSeeder::class,     // Depends on: witels
+            DummyDataSeeder::class,          // Insert dummy data for testing
         ]);
     }
 }

@@ -13,15 +13,20 @@ import {
 import { dashboard, performanceAm } from '@/routes';
 import { revenue as dataImportRevenue, performance as dataImportPerformance } from '@/routes/data-import';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, TrendingUp, Upload } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { BookOpen, Folder, Gauge, GaugeIcon, LayoutDashboardIcon, LayoutGrid, Monitor, MonitorCheck, TrendingUp, TvIcon, Upload } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
+        title: 'Daily Monitoring',
+        href: '/daily-monitoring',
+        icon: MonitorCheck,
+    },
+    {
         title: 'Revenue Dashboard',
         href: dashboard(),
-        icon: LayoutGrid,
+        icon: LayoutDashboardIcon,
     },
     {
         title: 'Performance AM',
@@ -59,6 +64,17 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage().props as { auth: { user: { role: string } } };
+    
+    // Filter navigation items based on user role
+    const filteredNavItems = mainNavItems.filter(item => {
+        // Data Upload menu only for admin
+        if (item.title === 'Data Upload') {
+            return auth.user.role === 'admin';
+        }
+        return true;
+    });
+    
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -74,7 +90,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={filteredNavItems} />
             </SidebarContent>
 
             <SidebarFooter>

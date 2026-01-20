@@ -12,7 +12,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Dashboard routes
+    // Dashboard routes - accessible by all authenticated users
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('performance-am', [DashboardController::class, 'performanceAM'])->name('performance-am');
     
@@ -24,6 +24,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('data-import/revenue/upload', [RevenueImportController::class, 'store'])->name('data-import.revenue.upload');
     Route::get('data-import/revenue/download/{year}/{month}', [RevenueImportController::class, 'downloadFile'])->name('data-import.revenue.download');
     Route::delete('data-import/revenue/delete/{year}', [RevenueImportController::class, 'deleteYear'])->name('data-import.revenue.delete');
+    Route::get('daily-monitoring', [DashboardController::class, 'dailymonitoring'])->name('daily-monitoring');
+
+    // Data Import routes - only accessible by admin
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('data-import/revenue', [DashboardController::class, 'dataImportRevenue'])->name('data-import.revenue');
+        Route::get('data-import/performance', [DashboardController::class, 'dataImportPerformance'])->name('data-import.performance');
+        
+        // Data Import - Upload & Template Download
+        Route::post('data-import/revenue/upload', [RevenueImportController::class, 'store'])->name('data-import.revenue.upload');
+        Route::get('data-import/revenue/download-template/{year}', [RevenueImportController::class, 'downloadTemplate'])->name('data-import.revenue.download-template');
+        Route::get('data-import/revenue/download/{year}/{month}', [RevenueImportController::class, 'downloadFile'])->name('data-import.revenue.download');
+        Route::get('data-import/revenue/download-year/{year}', [RevenueImportController::class, 'downloadYear'])->name('data-import.revenue.download-year');
+        Route::delete('data-import/revenue/delete/{year}/{month}', [RevenueImportController::class, 'deleteMonth'])->name('data-import.revenue.delete-month');
+        Route::delete('data-import/revenue/delete/{year}', [RevenueImportController::class, 'deleteYear'])->name('data-import.revenue.delete');
+    });
     
     // Data Import - Performance AM
     Route::post('/api/data-import/performance/upload', [DataImportPerformanceController::class, 'upload'])->name('data-import.performance.upload');
