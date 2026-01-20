@@ -51,12 +51,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Seed companies and revenue data
-        // $this->call([
-        //     CompanyRevenueSeeder::class,
-        // ]);
-        // Seed master data in order of dependencies
-        // Note: Regions are auto-seeded in migration 2025_11_12_000004
         $this->call([
          //   WitelSeeder::class,              // Depends on: regions (auto-seeded)
           //  AccountManagerSeeder::class,     // Depends on: witels

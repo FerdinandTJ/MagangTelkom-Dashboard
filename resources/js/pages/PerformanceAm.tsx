@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
+import { dashboard } from '@/routes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Target, Calendar, FileSpreadsheet, Download, Upload, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -284,6 +285,14 @@ export default function PerformanceAM({
         }
     };
 
+    // Handler untuk klik region code - navigate to Revenue Dashboard
+    const handleRegionClick = (regionCode: string) => {
+        router.get(dashboard().url, {
+            year: currentYear,
+            region: regionCode
+        });
+    };
+
     // Fungsi untuk fetch region revenue data
     const fetchRegionRevenueData = async () => {
         setLoadingRegionRevenue(true);
@@ -374,7 +383,7 @@ export default function PerformanceAM({
                                         {amMetrics.formatted_revenue_target}
                                     </p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {selectedRegion === 'ALL' ? 'Target periode ini' : `Region ${selectedRegion}`}
+                                        {selectedRegion === 'ALL' ? 'Target of this period' : `Region ${selectedRegion}`}
                                     </p>
                                 </div>
                                 <div className="flex-shrink-0 ml-4">
@@ -395,7 +404,7 @@ export default function PerformanceAM({
                                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                                         {amMetrics.formatted_revenue_actual}
                                     </p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Realisasi periode ini</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Realization of this period</p>
                                 </div>
                                 <div className="flex-shrink-0 ml-4">
                                     <div className="p-2 bg-green-50 dark:bg-green-950 rounded-lg">
@@ -499,8 +508,8 @@ export default function PerformanceAM({
                                         </CardTitle>
                                         <CardDescription>
                                             {activeRevenueTab === 'regional' 
-                                                ? 'Regional performance with top Account Managers'
-                                                : 'Target vs Realisasi Revenue by Region'
+                                                ? 'Regional Performance with Top Account Managers'
+                                                : 'Target vs Actual Revenue by Region'
                                             }
                                         </CardDescription>
                                     </div>
@@ -551,11 +560,16 @@ export default function PerformanceAM({
                                                             }`}
                                                         >
                                                             {idx === 0 ? (
-                                                                <td className="p-4 align-top bg-gray-50/50 border-r border-gray-300 pointer-events-none" rowSpan={region.top_ams.length}>
+                                                                <td className="p-4 align-top bg-gray-50/50 border-r border-gray-300" rowSpan={region.top_ams.length}>
                                                                     <div className="space-y-3">
                                                                         <div className="flex items-center gap-2">
                                                                             <div className="w-1 h-8 bg-red-600 rounded-full"></div>
-                                                                            <span className="font-bold text-lg text-gray-900">{region.region_code}</span>
+                                                                            <button
+                                                                                onClick={() => handleRegionClick(region.region_code)}
+                                                                                className="font-bold text-lg text-gray-900 hover:text-red-600 hover:underline cursor-pointer transition-colors"
+                                                                            >
+                                                                                {region.region_code}
+                                                                            </button>
                                                                         </div>
                                                                         <div className="pl-3 space-y-2 text-sm border-l-2 border-gray-200">
                                                                             <div className="flex items-center justify-between">
@@ -586,7 +600,12 @@ export default function PerformanceAM({
                                                                     }`}>
                                                                         {idx + 1}
                                                                     </div>
-                                                                    <span className="font-medium text-gray-900">{am.am_name}</span>
+                                                                    <button
+                                                                        onClick={() => handleAMClick(am.nik)}
+                                                                        className="font-medium text-gray-900 hover:text-red-600 hover:underline cursor-pointer transition-colors"
+                                                                    >
+                                                                        {am.am_name}
+                                                                    </button>
                                                                 </div>
                                                             </td>
                                                             <td className="p-4 text-right border-r border-gray-300">
@@ -655,7 +674,7 @@ export default function PerformanceAM({
                         </Card>
 
                         {/* Best Performance Card - Hanya muncul saat tab Regional Performance aktif */}
-                        {activeRevenueTab === 'regional' && <BestPerformanceSection bestPerformance={bestPerformance} />}
+                        {activeRevenueTab === 'regional' && <BestPerformanceSection bestPerformance={bestPerformance} onAMClick={handleAMClick} />}
                     </div>
                 </div>
 
@@ -674,7 +693,7 @@ export default function PerformanceAM({
                                     )}
                                 </CardTitle>
                                 <CardDescription>
-                                    Daftar Account Manager {selectedRegion === 'ALL' ? 'lengkap' : `di region ${selectedRegion}`} dengan detail informasi
+                                    List Account Manager {selectedRegion === 'ALL' ? 'complete' : `in region ${selectedRegion}`} with detailed information
                                 </CardDescription>
                             </div>
                             {/* Filter Region untuk List Account Manager */}

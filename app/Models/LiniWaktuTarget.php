@@ -69,7 +69,9 @@ class LiniWaktuTarget extends Pivot
         'target_id',
         // Realization fields
         'r_revenue',
+        'r_sustain',
         'r_scalling',
+        'r_ngtma',
         'r_datin',
         'r_hsi',
         'r_wireline',

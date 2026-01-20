@@ -94,6 +94,7 @@ interface DashboardProps {
         name: string;
     }>;
     currentYear: number;
+    currentRegion?: string;
 }
 
 export default function Dashboard({
@@ -106,6 +107,7 @@ export default function Dashboard({
     topCompanies,
     regions,
     currentYear,
+    currentRegion = 'ALL',
     comparisonYear: initialComparisonYear,
     hasComparison = false
 }: DashboardProps) {
@@ -130,7 +132,7 @@ export default function Dashboard({
     // Filter states
     const [monthlySortOrder, setMonthlySortOrder] = useState<'chronological' | 'asc' | 'desc'>('chronological');
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-    const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>('ALL');
+    const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>(currentRegion || 'ALL');
     
     // Sync selectedYear with currentYear from backend (query parameter)
     useEffect(() => {
@@ -138,6 +140,13 @@ export default function Dashboard({
             setSelectedYear(currentYear);
         }
     }, [currentYear]);
+    
+    // Sync selectedRegionFilter with currentRegion from backend (query parameter)
+    useEffect(() => {
+        if (currentRegion && currentRegion !== selectedRegionFilter) {
+            setSelectedRegionFilter(currentRegion);
+        }
+    }, [currentRegion]);
     
     // Comparison states
     const [comparisonMode, setComparisonMode] = useState<boolean>(false);

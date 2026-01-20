@@ -11,7 +11,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard, performanceAm } from '@/routes';
-import { dataImportRevenue, dataImportPerformance } from '@/actions/App/Http/Controllers/DashboardController';
+import { revenue as dataImportRevenue, performance as dataImportPerformance } from '@/routes/data-import';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, Gauge, GaugeIcon, LayoutDashboardIcon, LayoutGrid, Monitor, MonitorCheck, TrendingUp, TvIcon, Upload } from 'lucide-react';

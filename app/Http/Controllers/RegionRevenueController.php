@@ -54,26 +54,20 @@ class RegionRevenueController extends Controller
                     ->whereIn('amc.nik_am', $amNiks)
                     ->pluck('tam.id');
 
-                // Calculate target revenue with proporsi
+                // Calculate target revenue
                 $targetRevenue = DB::table('target_account_m as tam')
                     ->join('account_manager_company as amc', 'tam.account_manager_company_id', '=', 'amc.id')
                     ->join('lini_waktu_target as lwt', 'tam.id', '=', 'lwt.target_id')
                     ->whereIn('lwt.lini_waktu_id', $liniWaktuIds)
                     ->whereIn('tam.id', $targetIds)
-                    ->get()
-                    ->sum(function($row) {
-                        return $row->t_revenue * ($row->proporsi / 100);
-                    });
+                    ->sum('tam.t_revenue');
 
-                // Calculate realisasi revenue with proporsi
+                // Calculate realisasi revenue
                 $realisasiRevenue = DB::table('lini_waktu_target as lwt')
                     ->join('target_account_m as tam', 'lwt.target_id', '=', 'tam.id')
                     ->join('account_manager_company as amc', 'tam.account_manager_company_id', '=', 'amc.id')
                     ->whereIn('lwt.lini_waktu_id', $liniWaktuIds)
-                    ->get()
-                    ->sum(function($row) {
-                        return $row->r_revenue * ($row->proporsi / 100);
-                    });
+                    ->sum('lwt.r_revenue');
 
                 if ($targetRevenue == 0 && $realisasiRevenue == 0) {
                     continue;
@@ -123,9 +117,19 @@ class RegionRevenueController extends Controller
     private function formatCurrency(float $value, int $decimals = 2): string
     {
         if ($value >= 1000000000000) {
-            return 'Rp ' . number_format($value / 1000000000000, $decimals, '.', ',') . 'T';
+            // Triliun
+            return 'Rp ' . number_format($value / 1000000000000, $decimals, '.', ',') . ' T';
+        } elseif ($value >= 1000000000) {
+            // Miliar (Billion) - gunakan "M" atau "B"
+            return 'Rp ' . number_format($value / 1000000000, $decimals, '.', ',') . ' M';
+        } elseif ($value >= 1000000) {
+            // Juta (Million)
+            return 'Rp ' . number_format($value / 1000000, $decimals, '.', ',') . ' Jt';
+        } elseif ($value >= 1000) {
+            // Ribu
+            return 'Rp ' . number_format($value / 1000, $decimals, '.', ',') . ' Rb';
         } else {
-            return 'Rp ' . number_format($value / 1000000000, $decimals, '.', ',') . 'M';
+            return 'Rp ' . number_format($value, $decimals, '.', ',');
         }
     }
 }

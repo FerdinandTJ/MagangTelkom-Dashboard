@@ -24,6 +24,7 @@ class DashboardController extends Controller
     {
         $currentYear = $request->input('year', date('Y'));
         $comparisonYear = $request->input('comparison_year');
+        $currentRegion = $request->input('region', 'ALL');
         
         // Get monthly revenue with optional comparison
         $monthlyRevenue = $this->analyticsService->getMonthlyRevenue($currentYear);
@@ -72,6 +73,7 @@ class DashboardController extends Controller
             'topCompanies' => $this->analyticsService->getTopCompanies($currentYear, 5),
             'regions' => $regions,
             'currentYear' => (int)$currentYear,
+            'currentRegion' => $currentRegion,
             'comparisonYear' => $comparisonYear ? (int)$comparisonYear : null,
             'hasComparison' => !is_null($comparisonYear) && $comparisonYear != $currentYear,
         ]);
@@ -271,14 +273,6 @@ class DashboardController extends Controller
             'selectedYear' => $selectedYear,
             'currentYear' => $currentYear, // For calculating dropdown years
         ]);
-    }
-
-    /**
-     * Display Data Import Performance page
-     */
-    public function dataImportPerformance()
-    {
-        return Inertia::render('DataImportPerformance');
     }
 
     /**
@@ -1088,6 +1082,8 @@ class DashboardController extends Controller
                     'am_region' => $accountManager->region_code,
                     'total_target_revenue' => 0,
                     'formatted_total_revenue' => 'Rp 0.00M',
+                    'total_realisasi_revenue' => 0,
+                    'formatted_total_realisasi' => 'Rp 0.00M',
                     'total_companies' => 0,
                     'year' => $year,
                     'quartal' => $quartal,
@@ -1113,19 +1109,24 @@ class DashboardController extends Controller
                 'c.subsegment',
                 'w.nama_witels',
                 \DB::raw('SUM(t.t_revenue) as t_revenue'),
+                \DB::raw('SUM(lwt.r_revenue) as r_revenue'),
                 'w.idwitels',
                 'r.code as region_code',
                 'amc.pembagian',
                 'amc.proporsi',
                 \DB::raw('SUM(t.t_sustain) as t_sustain'),
                 \DB::raw('SUM(t.t_scalling) as t_scalling'),
-                \DB::raw('SUM(t.t_ngtma) as t_ngtma')
+                \DB::raw('SUM(t.t_ngtma) as t_ngtma'),
+                \DB::raw('SUM(lwt.r_sustain) as r_sustain'),
+                \DB::raw('SUM(lwt.r_scalling) as r_scalling'),
+                \DB::raw('SUM(lwt.r_ngtma) as r_ngtma')
             )
             ->groupBy('c.nip_nas', 'c.nama_perusahaan', 'c.subsegment', 'w.nama_witels', 'w.idwitels', 'r.code', 'amc.pembagian', 'amc.proporsi')
             ->get();
 
-        // Calculate total target revenue
+        // Calculate total target revenue and realisasi revenue
         $totalTargetRevenue = $targets->sum('t_revenue');
+        $totalRealisasiRevenue = $targets->sum('r_revenue');
 
         // Group by region for distribution
         $regionGroups = $targets->groupBy('region_code')->map(function ($companies, $regionCode) use ($targets) {
@@ -1147,14 +1148,22 @@ class DashboardController extends Controller
                 'region_code' => $company->region_code ?: 'Unassigned',
                 't_revenue' => (float) $company->t_revenue,
                 'formatted_revenue' => $this->formatCurrency($company->t_revenue, 2),
+                'r_revenue' => (float) $company->r_revenue,
+                'formatted_r_revenue' => $this->formatCurrency($company->r_revenue, 2),
                 'pembagian' => $company->pembagian,
                 'proporsi' => (float) $company->proporsi,
                 't_sustain' => (float) $company->t_sustain,
                 't_scalling' => (float) $company->t_scalling,
                 't_ngtma' => (float) $company->t_ngtma,
+                'r_sustain' => (float) $company->r_sustain,
+                'r_scalling' => (float) $company->r_scalling,
+                'r_ngtma' => (float) $company->r_ngtma,
                 'formatted_sustain' => $this->formatCurrency($company->t_sustain, 2),
                 'formatted_scalling' => $this->formatCurrency($company->t_scalling, 2),
-                'formatted_ngtma' => $this->formatCurrency($company->t_ngtma, 2)
+                'formatted_ngtma' => $this->formatCurrency($company->t_ngtma, 2),
+                'formatted_r_sustain' => $this->formatCurrency($company->r_sustain, 2),
+                'formatted_r_scalling' => $this->formatCurrency($company->r_scalling, 2),
+                'formatted_r_ngtma' => $this->formatCurrency($company->r_ngtma, 2)
             ];
         });
 
@@ -1174,6 +1183,8 @@ class DashboardController extends Controller
                 'am_region' => $accountManager->region_code,
                 'total_target_revenue' => (float) $totalTargetRevenue,
                 'formatted_total_revenue' => $this->formatCurrency($totalTargetRevenue, 2),
+                'total_realisasi_revenue' => (float) $totalRealisasiRevenue,
+                'formatted_total_realisasi' => $this->formatCurrency($totalRealisasiRevenue, 2),
                 'total_companies' => $targets->count(),
                 'year' => $year,
                 'quartal' => $quartal,
@@ -1524,9 +1535,15 @@ class DashboardController extends Controller
         if ($value >= 1000000000000) {
             // Triliun (>= 1000 Miliar)
             return 'Rp ' . number_format($value / 1000000000000, $decimals) . 'T';
-        } else {
-            // Miliar
+        } elseif ($value >= 1000000000) {
+            // Miliar (>= 1 Miliar)
             return 'Rp ' . number_format($value / 1000000000, $decimals) . 'M';
+        } elseif ($value >= 1000000) {
+            // Juta (>= 1 Juta)
+            return 'Rp ' . number_format($value / 1000000, $decimals) . ' Jt';
+        } else {
+            // Ribuan atau di bawahnya
+            return 'Rp ' . number_format($value, 0, ',', '.');
         }
     }
 
@@ -1792,8 +1809,8 @@ class DashboardController extends Controller
                     'witels.idwitels',
                     'witels.nama_witels as witel_name',
                     DB::raw('COUNT(DISTINCT am.nik) as am_count'),
-                    DB::raw('COALESCE(SUM(tam.t_revenue * (amc.proporsi / 100)), 0) as t_revenue'),
-                    DB::raw('COALESCE(SUM(lwt.r_revenue * (amc.proporsi / 100)), 0) as r_revenue')
+                    DB::raw('COALESCE(SUM(tam.t_revenue), 0) as t_revenue'),
+                    DB::raw('COALESCE(SUM(lwt.r_revenue), 0) as r_revenue')
                 )
                 ->groupBy('witels.idwitels', 'witels.nama_witels')
                 ->orderBy('witels.nama_witels')

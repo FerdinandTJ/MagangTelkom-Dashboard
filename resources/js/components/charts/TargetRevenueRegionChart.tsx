@@ -63,9 +63,23 @@ export default function TargetRevenueRegionChart({
                             
                             return Array.from({ length: yAxisSteps + 1 }, (_, i) => {
                                 const value = maxValue - (i * stepValue);
-                                const formatted = value >= 1000000000000 
-                                    ? `${(value / 1000000000000).toFixed(1)}T`
-                                    : `${(value / 1000000000).toFixed(0)}M`;
+                                let formatted: string;
+                                
+                                if (value >= 1000000000000) {
+                                    // Triliun
+                                    formatted = `${(value / 1000000000000).toFixed(1)} T`;
+                                } else if (value >= 1000000000) {
+                                    // Miliar
+                                    formatted = `${(value / 1000000000).toFixed(1)} M`;
+                                } else if (value >= 1000000) {
+                                    // Juta
+                                    formatted = `${(value / 1000000).toFixed(0)} Jt`;
+                                } else if (value >= 1000) {
+                                    // Ribu
+                                    formatted = `${(value / 1000).toFixed(0)} Rb`;
+                                } else {
+                                    formatted = `${value.toFixed(0)}`;
+                                }
                                 
                                 return (
                                     <div key={i} className="flex items-center justify-end gap-0.5">
@@ -114,7 +128,7 @@ export default function TargetRevenueRegionChart({
                                         </div>
                                         
                                         <div style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }} className="dark:border-gray-700">
-                                            <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Realisasi Revenue</p>
+                                            <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Actual Revenue</p>
                                             <p style={{ margin: '4px 0', fontSize: '14px' }} className="text-gray-900 dark:text-gray-100">
                                                 <span style={{ 
                                                     display: 'inline-block',

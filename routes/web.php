@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RevenueBreakdownController;
 use App\Http\Controllers\RevenueImportController;
+use App\Http\Controllers\DataImportPerformanceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -14,6 +15,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard routes - accessible by all authenticated users
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('performance-am', [DashboardController::class, 'performanceAM'])->name('performance-am');
+    
+    // Data Import routes
+    Route::get('data-import/revenue', [DashboardController::class, 'dataImportRevenue'])->name('data-import.revenue');
+    Route::get('data-import/performance', [DataImportPerformanceController::class, 'index'])->name('data-import.performance');
+    
+    // Data Import - Upload & Template Download (Revenue)
+    Route::post('data-import/revenue/upload', [RevenueImportController::class, 'store'])->name('data-import.revenue.upload');
+    Route::get('data-import/revenue/download/{year}/{month}', [RevenueImportController::class, 'downloadFile'])->name('data-import.revenue.download');
+    Route::delete('data-import/revenue/delete/{year}', [RevenueImportController::class, 'deleteYear'])->name('data-import.revenue.delete');
     Route::get('daily-monitoring', [DashboardController::class, 'dailymonitoring'])->name('daily-monitoring');
 
     // Data Import routes - only accessible by admin
@@ -29,6 +39,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('data-import/revenue/delete/{year}/{month}', [RevenueImportController::class, 'deleteMonth'])->name('data-import.revenue.delete-month');
         Route::delete('data-import/revenue/delete/{year}', [RevenueImportController::class, 'deleteYear'])->name('data-import.revenue.delete');
     });
+    
+    // Data Import - Performance AM
+    Route::post('/api/data-import/performance/upload', [DataImportPerformanceController::class, 'upload'])->name('data-import.performance.upload');
+    Route::get('/api/data-import/performance/template', [DataImportPerformanceController::class, 'downloadTemplate'])->name('data-import.performance.template');
+    Route::delete('/api/data-import/performance/delete/{year}/{quarter?}', [DataImportPerformanceController::class, 'delete'])->name('data-import.performance.delete');
     
     // API routes for dashboard analytics
     Route::prefix('api/dashboard')->group(function () {
@@ -48,6 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('region-nki-periods', [\App\Http\Controllers\RegionNkiController::class, 'getAvailablePeriods'])->name('api.dashboard.region-nki-periods');
         Route::get('region-nki-chart/{regionId}', [\App\Http\Controllers\RegionNkiController::class, 'getParameterChartData'])->name('api.dashboard.region-nki-chart');
         Route::get('witel-nki-detail', [\App\Http\Controllers\RegionNkiController::class, 'getWitelNkiDetail'])->name('api.dashboard.witel-nki-detail');
+        Route::get('witel-am-details', [\App\Http\Controllers\RegionNkiController::class, 'getWitelAMDetails'])->name('api.dashboard.witel-am-details');
         Route::get('region-revenue', [\App\Http\Controllers\RegionRevenueController::class, 'getRegionRevenue'])->name('api.dashboard.region-revenue');
         Route::get('region-witel-detail', [DashboardController::class, 'getRegionWitelDetail'])->name('api.dashboard.region-witel-detail');
         Route::get('am-performance-detail', [\App\Http\Controllers\AmPerformanceDetailController::class, 'getAmPerformanceDetail'])->name('api.dashboard.am-performance-detail');

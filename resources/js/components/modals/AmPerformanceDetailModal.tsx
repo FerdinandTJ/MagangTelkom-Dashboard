@@ -119,8 +119,19 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [chartFilter, setChartFilter] = useState<'quarter' | 'year'>('quarter');
 
+    // Reset data when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setData(null);
+            setError(null);
+        }
+    }, [isOpen]);
+
     useEffect(() => {
         if (isOpen && nikAm) {
+            // Reset data before fetching to ensure clean state
+            setData(null);
+            setError(null);
             fetchAMDetails();
         }
     }, [isOpen, nikAm, quarter, year, segment]);
@@ -156,7 +167,8 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
         }
     };
 
-    const formatNumber = (value: number | string, decimals: number = 2, isCurrency: boolean = true) => {
+    const formatNumber = (value: number | string | null | undefined, decimals: number = 2, isCurrency: boolean = true) => {
+        if (value === null || value === undefined) return isCurrency ? 'Rp 0' : '0';
         const num = typeof value === 'string' ? parseFloat(value) : value;
         if (isNaN(num)) return isCurrency ? 'Rp 0' : '0';
         const formatted = num.toLocaleString('id-ID', {
@@ -234,7 +246,7 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
                                         <Award className="h-5 w-5 text-red-600 dark:text-red-400" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Posisi</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Position</p>
                                         <p className="font-semibold text-gray-900 dark:text-white">{data.am_info.posisi}</p>
                                     </div>
                                 </div>
@@ -243,7 +255,7 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
                                         <User className="h-5 w-5 text-red-600 dark:text-red-400" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Nama</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Name</p>
                                         <p className="font-semibold text-gray-900 dark:text-white">{data.am_info.nama_am}</p>
                                     </div>
                                 </div>
@@ -274,7 +286,7 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
                                 <div className="p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Target Parameter Proses</p>
+                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Target Parameter Process</p>
                                             <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(data.summary.target_proses, 0)}</p>
                                         </div>
                                         <div className="flex-shrink-0 ml-4">
@@ -289,7 +301,7 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
                                 <div className="p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Realisasi Parameter Proses</p>
+                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Actual Parameter Process</p>
                                             <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(data.summary.realisasi_proses, 0)}</p>
                                         </div>
                                         <div className="flex-shrink-0 ml-4">
@@ -319,7 +331,7 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
                                 <div className="p-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Realisasi Parameter Result</p>
+                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Actual Parameter Result</p>
                                             <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(data.summary.realisasi_result, 0)}</p>
                                         </div>
                                         <div className="flex-shrink-0 ml-4">

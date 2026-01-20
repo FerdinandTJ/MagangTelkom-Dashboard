@@ -42,9 +42,8 @@ class AmPerformanceDetailController extends Controller
         // Get historical data (current + 2 previous quarters)
         $historicalData = $this->getHistoricalData($nikAm, $quarter, $year, $segment);
 
-        // Calculate summary from current period
-        $currentPeriod = collect($historicalData)->first();
-        $summary = $this->calculateSummary($currentPeriod);
+        // Calculate summary directly from database for current period
+        $summary = $this->calculateSummaryFromDatabase($nikAm, $quarter, $year, $segment);
 
         // Find best period based on highest NKI
         $bestPeriod = $this->findBestPeriod($historicalData);
@@ -238,13 +237,12 @@ class AmPerformanceDetailController extends Controller
             ];
         }
 
-        // Get pivot data with targets and proporsi - same method as RegionNkiController
+        // Get pivot data with targets (without proporsi)
         $pivotData = DB::table('lini_waktu_target as lwt')
             ->join('target_account_m as t', 'lwt.target_id', '=', 't.id')
-            ->join('account_manager_company as amc', 't.account_manager_company_id', '=', 'amc.id')
             ->where('lwt.lini_waktu_id', $liniWaktu->id)
             ->whereIn('lwt.target_id', $targetIds)
-            ->select('lwt.*', 't.*', 'amc.proporsi')
+            ->select('lwt.*', 't.*')
             ->get();
 
         if ($pivotData->isEmpty()) {
@@ -271,112 +269,56 @@ class AmPerformanceDetailController extends Controller
         $bobotCapability = $liniWaktu->percentage_capability ?? 0;
         $bobotCc = $liniWaktu->percentage_cc ?? 0;
 
-        // Aggregate targets and realisasi with proporsi - same calculation as RegionNkiController
-        $tRevenue = $pivotData->sum(function($row) {
-            return $row->t_revenue * ($row->proporsi / 100);
-        });
-        $rRevenue = $pivotData->sum(function($row) {
-            return $row->r_revenue * ($row->proporsi / 100);
-        });
-        $tScaling = $pivotData->sum(function($row) {
-            return $row->t_scalling * ($row->proporsi / 100);
-        });
-        $rScaling = $pivotData->sum(function($row) {
-            return $row->r_scalling * ($row->proporsi / 100);
-        });
-        $tDatin = $pivotData->sum(function($row) {
-            return $row->t_datin * ($row->proporsi / 100);
-        });
-        $rDatin = $pivotData->sum(function($row) {
-            return $row->r_datin * ($row->proporsi / 100);
-        });
-        $tHsi = $pivotData->sum(function($row) {
-            return $row->t_hsi * ($row->proporsi / 100);
-        });
-        $rHsi = $pivotData->sum(function($row) {
-            return $row->r_hsi * ($row->proporsi / 100);
-        });
-        $tWireline = $pivotData->sum(function($row) {
-            return $row->t_wireline * ($row->proporsi / 100);
-        });
-        $rWireline = $pivotData->sum(function($row) {
-            return $row->r_wireline * ($row->proporsi / 100);
-        });
-        $tWifi = $pivotData->sum(function($row) {
-            return $row->t_wifi * ($row->proporsi / 100);
-        });
-        $rWifi = $pivotData->sum(function($row) {
-            return $row->r_wifi * ($row->proporsi / 100);
-        });
-        $tCyc = $pivotData->sum(function($row) {
-            return $row->t_cyc * ($row->proporsi / 100);
-        });
-        $rCyc = $pivotData->sum(function($row) {
-            return $row->r_cyc * ($row->proporsi / 100);
-        });
-        $tCr = $pivotData->sum(function($row) {
-            return $row->t_cr * ($row->proporsi / 100);
-        });
-        $rCr = $pivotData->sum(function($row) {
-            return $row->r_cr * ($row->proporsi / 100);
-        });
-        $tProfit = $pivotData->sum(function($row) {
-            return $row->t_profit * ($row->proporsi / 100);
-        });
-        $rProfit = $pivotData->sum(function($row) {
-            return $row->r_profit * ($row->proporsi / 100);
-        });
-        $tNps = $pivotData->sum(function($row) {
-            return $row->t_nps * ($row->proporsi / 100);
-        });
-        $rNps = $pivotData->sum(function($row) {
-            return $row->r_nps * ($row->proporsi / 100);
-        });
-        $tMaps = $pivotData->sum(function($row) {
-            return $row->t_maps * ($row->proporsi / 100);
-        });
-        $rMaps = $pivotData->sum(function($row) {
-            return $row->r_maps * ($row->proporsi / 100);
-        });
-        $tLop = $pivotData->sum(function($row) {
-            return $row->t_lop * ($row->proporsi / 100);
-        });
-        $rLop = $pivotData->sum(function($row) {
-            return $row->r_lop * ($row->proporsi / 100);
-        });
-        $tCapability = $pivotData->sum(function($row) {
-            return $row->t_capability * ($row->proporsi / 100);
-        });
-        $rCapability = $pivotData->sum(function($row) {
-            return $row->r_capability * ($row->proporsi / 100);
-        });
-        $tCc = $pivotData->sum(function($row) {
-            return $row->t_cc * ($row->proporsi / 100);
-        });
-        $rCc = $pivotData->sum(function($row) {
-            return $row->r_cc * ($row->proporsi / 100);
-        });
+        // Aggregate targets and realisasi (without proporsi)
+        $tRevenue = $pivotData->sum('t_revenue');
+        $rRevenue = $pivotData->sum('r_revenue');
+        $tScaling = $pivotData->sum('t_scalling');
+        $rScaling = $pivotData->sum('r_scalling');
+        $tDatin = $pivotData->sum('t_datin');
+        $rDatin = $pivotData->sum('r_datin');
+        $tHsi = $pivotData->sum('t_hsi');
+        $rHsi = $pivotData->sum('r_hsi');
+        $tWireline = $pivotData->sum('t_wireline');
+        $rWireline = $pivotData->sum('r_wireline');
+        $tWifi = $pivotData->sum('t_wifi');
+        $rWifi = $pivotData->sum('r_wifi');
+        $tCyc = $pivotData->sum('t_cyc');
+        $rCyc = $pivotData->sum('r_cyc');
+        $tCr = $pivotData->sum('t_cr');
+        $rCr = $pivotData->sum('r_cr');
+        $tProfit = $pivotData->sum('t_profit');
+        $rProfit = $pivotData->sum('r_profit');
+        $tNps = $pivotData->sum('t_nps');
+        $rNps = $pivotData->sum('r_nps');
+        $tMaps = $pivotData->sum('t_maps');
+        $rMaps = $pivotData->sum('r_maps');
+        $tLop = $pivotData->sum('t_lop');
+        $rLop = $pivotData->sum('r_lop');
+        $tCapability = $pivotData->sum('t_capability');
+        $rCapability = $pivotData->sum('r_capability');
+        $tCc = $pivotData->sum('t_cc');
+        $rCc = $pivotData->sum('r_cc');
 
-        // Calculate achievements with bobot - same calculation as RegionNkiController
-        $achRevenue = $tRevenue > 0 ? ($rRevenue / $tRevenue) * $bobotRevenue : 0;
-        $achScaling = $tScaling > 0 ? ($rScaling / $tScaling) * $bobotScaling : 0;
-        $achDatin = $tDatin > 0 ? ($rDatin / $tDatin) * $bobotDatin : 0;
-        $achHsi = $tHsi > 0 ? ($rHsi / $tHsi) * $bobotHsi : 0;
-        $achWireline = $tWireline > 0 ? ($rWireline / $tWireline) * $bobotWireline : 0;
-        $achWifi = $tWifi > 0 ? ($rWifi / $tWifi) * $bobotWifi : 0;
-        $achCyc = $tCyc > 0 ? ($rCyc / $tCyc) * $bobotCyc : 0;
-        $achCr = $tCr > 0 ? ($rCr / $tCr) * $bobotCr : 0;
-        $achProfit = $tProfit > 0 ? ($rProfit / $tProfit) * $bobotProfit : 0;
-        $achNps = $tNps > 0 ? ($rNps / $tNps) * $bobotNps : 0;
-        $achMaps = $tMaps > 0 ? ($rMaps / $tMaps) * $bobotMaps : 0;
-        $achLop = $tLop > 0 ? ($rLop / $tLop) * $bobotLop : 0;
-        $achCapability = $tCapability > 0 ? ($rCapability / $tCapability) * $bobotCapability : 0;
-        $achCc = $tCc > 0 ? ($rCc / $tCc) * $bobotCc : 0;
+        // Get achievements directly from lini_waktu_target database (already stored)
+        $achRevenue = $pivotData->sum('ach_revenue_plan') ?? 0;
+        $achScaling = $pivotData->sum('ach_scaling') ?? 0;
+        $achDatin = $pivotData->sum('ach_sales_datin') ?? 0;
+        $achHsi = $pivotData->sum('ach_hsi') ?? 0;
+        $achWireline = $pivotData->sum('ach_wireline') ?? 0;
+        $achWifi = $pivotData->sum('ach_wifi') ?? 0;
+        $achCyc = $pivotData->sum('ach_cyc') ?? 0;
+        $achCr = $pivotData->sum('ach_cr') ?? 0;
+        $achProfit = $pivotData->sum('ach_profit') ?? 0;
+        $achNps = $pivotData->sum('ach_nps') ?? 0;
+        $achMaps = $pivotData->sum('ach_maps') ?? 0;
+        $achLop = $pivotData->sum('ach_lop') ?? 0;
+        $achCapability = $pivotData->sum('ach_capability') ?? 0;
+        $achCc = $pivotData->sum('ach_cc') ?? 0;
 
-        // Get ach_result, ach_proses, nki_adjustment from pivot
-        $achResult = $pivotData->avg('ach_result') ?? 0;
-        $achProses = $pivotData->avg('ach_proses') ?? 0;
-        $nkiAdjustment = $pivotData->avg('nki_adjustment') ?? 0;
+        // Get ach_result, ach_proses, nki_adjustment from pivot (already in percentage format or need conversion)
+        $achResult = ($pivotData->sum('ach_result') ?? 0);
+        $achProses = ($pivotData->sum('ach_proses') ?? 0);
+        $nkiAdjustment = ($pivotData->sum('nki_adjustment') ?? 0);
 
         // Format currency values
         $formattedTRevenue = $this->formatCurrency($tRevenue);
@@ -526,7 +468,91 @@ class AmPerformanceDetailController extends Controller
     }
 
     /**
-     * Calculate summary metrics for current period
+     * Calculate summary metrics directly from database for current period
+     */
+    private function calculateSummaryFromDatabase($nikAm, $quarter, $year, $segment)
+    {
+        $quartalEnum = "Q{$quarter}";
+
+        // Get lini_waktu for this AM and period
+        $liniWaktu = \App\Models\LiniWaktu::where('nik_am', $nikAm)
+            ->where('quartal', $quartalEnum)
+            ->where('tahun', $year)
+            ->first();
+
+        if (!$liniWaktu) {
+            return [
+                'target_proses' => 0,
+                'realisasi_proses' => 0,
+                'target_result' => 0,
+                'realisasi_result' => 0
+            ];
+        }
+
+        // Get account_manager_company records for this AM and segment
+        $amCompanyIds = DB::table('account_manager_company as amc')
+            ->where('amc.nik_am', $nikAm)
+            ->where('amc.segment', $segment)
+            ->pluck('amc.id')
+            ->toArray();
+
+        if (empty($amCompanyIds)) {
+            return [
+                'target_proses' => 0,
+                'realisasi_proses' => 0,
+                'target_result' => 0,
+                'realisasi_result' => 0
+            ];
+        }
+
+        // Get all targets for this AM
+        $targetIds = \App\Models\TargetAccountM::whereIn('account_manager_company_id', $amCompanyIds)
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($targetIds)) {
+            return [
+                'target_proses' => 0,
+                'realisasi_proses' => 0,
+                'target_result' => 0,
+                'realisasi_result' => 0
+            ];
+        }
+
+        // Get all target data from lini_waktu_target and target_account_m
+        // Target values (t_*) from target_account_m, Realisasi values (r_*) from lini_waktu_target
+        $pivotData = DB::table('lini_waktu_target as lwt')
+            ->join('target_account_m as t', 'lwt.target_id', '=', 't.id')
+            ->where('lwt.lini_waktu_id', $liniWaktu->id)
+            ->whereIn('lwt.target_id', $targetIds)
+            ->select('t.t_revenue', 'lwt.r_revenue', 't.t_scalling', 'lwt.r_scalling', 't.t_lop', 'lwt.r_lop')
+            ->get();
+
+        if ($pivotData->isEmpty()) {
+            return [
+                'target_proses' => 0,
+                'realisasi_proses' => 0,
+                'target_result' => 0,
+                'realisasi_result' => 0
+            ];
+        }
+
+        // Sum all values connected to this AM
+        $targetResult = $pivotData->sum('t_revenue') + $pivotData->sum('t_scalling');
+        $realisasiResult = $pivotData->sum('r_revenue') + $pivotData->sum('r_scalling');
+        $targetProses = $pivotData->sum('t_lop');
+        $realisasiProses = $pivotData->sum('r_lop');
+
+        return [
+            'target_proses' => $targetProses,
+            'realisasi_proses' => $realisasiProses,
+            'target_result' => $targetResult,
+            'realisasi_result' => $realisasiResult
+        ];
+    }
+
+    /**
+     * Calculate summary metrics for current period (OLD METHOD - DEPRECATED)
      */
     private function calculateSummary($currentData)
     {
@@ -539,39 +565,13 @@ class AmPerformanceDetailController extends Controller
             ];
         }
 
-        // Parameter Proses: MAPS, LOP, Capability, CC
-        $targetProses = ($currentData['t_maps'] ?? 0) + 
-                       ($currentData['t_lop'] ?? 0) + 
-                       ($currentData['t_capability'] ?? 0) + 
-                       ($currentData['t_cc'] ?? 0);
+        // Parameter Proses: LOP only
+        $targetProses = $currentData['t_lop'] ?? 0;
+        $realisasiProses = $currentData['r_lop'] ?? 0;
 
-        $realisasiProses = ($currentData['r_maps'] ?? 0) + 
-                          ($currentData['r_lop'] ?? 0) + 
-                          ($currentData['r_capability'] ?? 0) + 
-                          ($currentData['r_cc'] ?? 0);
-
-        // Parameter Result: Revenue, Scaling, Sales Datin, HSI, Wireline, WiFi, CYC, CR, Profit, NPS
-        $targetResult = ($currentData['t_revenue'] ?? 0) + 
-                       ($currentData['t_scaling'] ?? 0) + 
-                       ($currentData['t_sales_datin'] ?? 0) + 
-                       ($currentData['t_hsi'] ?? 0) + 
-                       ($currentData['t_wireline'] ?? 0) + 
-                       ($currentData['t_wifi'] ?? 0) + 
-                       ($currentData['t_cyc'] ?? 0) + 
-                       ($currentData['t_cr'] ?? 0) + 
-                       ($currentData['t_profit'] ?? 0) + 
-                       ($currentData['t_nps'] ?? 0);
-
-        $realisasiResult = ($currentData['r_revenue'] ?? 0) + 
-                          ($currentData['r_scaling'] ?? 0) + 
-                          ($currentData['r_sales_datin'] ?? 0) + 
-                          ($currentData['r_hsi'] ?? 0) + 
-                          ($currentData['r_wireline'] ?? 0) + 
-                          ($currentData['r_wifi'] ?? 0) + 
-                          ($currentData['r_cyc'] ?? 0) + 
-                          ($currentData['r_cr'] ?? 0) + 
-                          ($currentData['r_profit'] ?? 0) + 
-                          ($currentData['r_nps'] ?? 0);
+        // Parameter Result: Revenue and Scaling only
+        $targetResult = ($currentData['t_revenue'] ?? 0) + ($currentData['t_scaling'] ?? 0);
+        $realisasiResult = ($currentData['r_revenue'] ?? 0) + ($currentData['r_scaling'] ?? 0);
 
         return [
             'target_proses' => $targetProses,

@@ -15,9 +15,10 @@ interface BestPerformanceAM {
 
 interface BestPerformanceSectionProps {
     bestPerformance: BestPerformanceAM[];
+    onAMClick?: (nik: string) => void;
 }
 
-export default function BestPerformanceSection({ bestPerformance }: BestPerformanceSectionProps) {
+export default function BestPerformanceSection({ bestPerformance, onAMClick }: BestPerformanceSectionProps) {
     if (!bestPerformance || bestPerformance.length === 0) return null;
 
     const medals = ['🥇', '🥈', '🥉'];
@@ -40,7 +41,11 @@ export default function BestPerformanceSection({ bestPerformance }: BestPerforma
             <CardContent>
                 <div className="space-y-3">
                     {bestPerformance.map((am, index) => (
-                        <div key={am.nik} className={`p-4 bg-gradient-to-r ${bgGradients[index]} border-2 ${borderColors[index]} rounded-xl`}>
+                        <div 
+                            key={am.nik} 
+                            className={`p-4 bg-gradient-to-r ${bgGradients[index]} border-2 ${borderColors[index]} rounded-xl ${onAMClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+                            onClick={() => onAMClick && onAMClick(am.nik)}
+                        >
                             {/* Header dengan Rank dan Nama */}
                             <div className="flex items-center gap-3 mb-3">
                                 <div className="flex-shrink-0">
@@ -49,7 +54,7 @@ export default function BestPerformanceSection({ bestPerformance }: BestPerforma
                                     </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-base text-gray-900 truncate">{am.am_name}</h3>
+                                    <h3 className={`font-bold text-base text-gray-900 truncate ${onAMClick ? 'hover:text-red-600 transition-colors' : ''}`}>{am.am_name}</h3>
                                     <p className="text-xs text-gray-600">Region: {am.region_code}</p>
                                 </div>
                             </div>
