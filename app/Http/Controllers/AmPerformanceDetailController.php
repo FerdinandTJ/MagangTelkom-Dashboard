@@ -269,56 +269,63 @@ class AmPerformanceDetailController extends Controller
         $bobotCapability = $liniWaktu->percentage_capability ?? 0;
         $bobotCc = $liniWaktu->percentage_cc ?? 0;
 
-        // Aggregate targets and realisasi (without proporsi)
+        // Aggregate targets and realisasi
+        // ONLY Revenue & Scaling use sum() (data stored in all company records)
+        // ALL OTHER parameters use first() (import only saves to first record)
         $tRevenue = $pivotData->sum('t_revenue');
         $rRevenue = $pivotData->sum('r_revenue');
         $tScaling = $pivotData->sum('t_scalling');
         $rScaling = $pivotData->sum('r_scalling');
-        $tDatin = $pivotData->sum('t_datin');
-        $rDatin = $pivotData->sum('r_datin');
-        $tHsi = $pivotData->sum('t_hsi');
-        $rHsi = $pivotData->sum('r_hsi');
-        $tWireline = $pivotData->sum('t_wireline');
-        $rWireline = $pivotData->sum('r_wireline');
-        $tWifi = $pivotData->sum('t_wifi');
-        $rWifi = $pivotData->sum('r_wifi');
-        $tCyc = $pivotData->sum('t_cyc');
-        $rCyc = $pivotData->sum('r_cyc');
-        $tCr = $pivotData->sum('t_cr');
-        $rCr = $pivotData->sum('r_cr');
-        $tProfit = $pivotData->sum('t_profit');
-        $rProfit = $pivotData->sum('r_profit');
-        $tNps = $pivotData->sum('t_nps');
-        $rNps = $pivotData->sum('r_nps');
-        $tMaps = $pivotData->sum('t_maps');
-        $rMaps = $pivotData->sum('r_maps');
-        $tLop = $pivotData->sum('t_lop');
-        $rLop = $pivotData->sum('r_lop');
-        $tCapability = $pivotData->sum('t_capability');
-        $rCapability = $pivotData->sum('r_capability');
-        $tCc = $pivotData->sum('t_cc');
-        $rCc = $pivotData->sum('r_cc');
+        
+        // All other parameters: use FIRST record only (import only saves to first record)
+        $firstRecord = $pivotData->first();
+        $tDatin = $firstRecord->t_datin ?? 0;
+        $rDatin = $firstRecord->r_datin ?? 0;
+        $tHsi = $firstRecord->t_hsi ?? 0;
+        $rHsi = $firstRecord->r_hsi ?? 0;
+        $tWireline = $firstRecord->t_wireline ?? 0;
+        $rWireline = $firstRecord->r_wireline ?? 0;
+        $tWifi = $firstRecord->t_wifi ?? 0;
+        $rWifi = $firstRecord->r_wifi ?? 0;
+        $tCyc = $firstRecord->t_cyc ?? 0;
+        $rCyc = $firstRecord->r_cyc ?? 0;
+        $tCr = $firstRecord->t_cr ?? 0;
+        $rCr = $firstRecord->r_cr ?? 0;
+        $tProfit = $firstRecord->t_profit ?? 0;
+        $rProfit = $firstRecord->r_profit ?? 0;
+        $tNps = $firstRecord->t_nps ?? 0;
+        $rNps = $firstRecord->r_nps ?? 0;
+        $tMaps = $firstRecord->t_maps ?? 0;
+        $rMaps = $firstRecord->r_maps ?? 0;
+        $tLop = $firstRecord->t_lop ?? 0;
+        $rLop = $firstRecord->r_lop ?? 0;
+        $tCapability = $firstRecord->t_capability ?? 0;
+        $rCapability = $firstRecord->r_capability ?? 0;
+        $tCc = $firstRecord->t_cc ?? 0;
+        $rCc = $firstRecord->r_cc ?? 0;
 
-        // Get achievements directly from lini_waktu_target database (already stored)
-        $achRevenue = $pivotData->sum('ach_revenue_plan') ?? 0;
-        $achScaling = $pivotData->sum('ach_scaling') ?? 0;
-        $achDatin = $pivotData->sum('ach_sales_datin') ?? 0;
-        $achHsi = $pivotData->sum('ach_hsi') ?? 0;
-        $achWireline = $pivotData->sum('ach_wireline') ?? 0;
-        $achWifi = $pivotData->sum('ach_wifi') ?? 0;
-        $achCyc = $pivotData->sum('ach_cyc') ?? 0;
-        $achCr = $pivotData->sum('ach_cr') ?? 0;
-        $achProfit = $pivotData->sum('ach_profit') ?? 0;
-        $achNps = $pivotData->sum('ach_nps') ?? 0;
-        $achMaps = $pivotData->sum('ach_maps') ?? 0;
-        $achLop = $pivotData->sum('ach_lop') ?? 0;
-        $achCapability = $pivotData->sum('ach_capability') ?? 0;
-        $achCc = $pivotData->sum('ach_cc') ?? 0;
+        // Get achievements: sum / count to get average
+        // Achievement values are copied to all records during import, so we average them
+        $companyCount = $pivotData->count();
+        $achRevenue = $companyCount > 0 ? ($pivotData->sum('ach_revenue_plan') / $companyCount) : 0;
+        $achScaling = $companyCount > 0 ? ($pivotData->sum('ach_scaling') / $companyCount) : 0;
+        $achDatin = $companyCount > 0 ? ($pivotData->sum('ach_sales_datin') / $companyCount) : 0;
+        $achHsi = $companyCount > 0 ? ($pivotData->sum('ach_hsi') / $companyCount) : 0;
+        $achWireline = $companyCount > 0 ? ($pivotData->sum('ach_wireline') / $companyCount) : 0;
+        $achWifi = $companyCount > 0 ? ($pivotData->sum('ach_wifi') / $companyCount) : 0;
+        $achCyc = $companyCount > 0 ? ($pivotData->sum('ach_cyc') / $companyCount) : 0;
+        $achCr = $companyCount > 0 ? ($pivotData->sum('ach_cr') / $companyCount) : 0;
+        $achProfit = $companyCount > 0 ? ($pivotData->sum('ach_profit') / $companyCount) : 0;
+        $achNps = $companyCount > 0 ? ($pivotData->sum('ach_nps') / $companyCount) : 0;
+        $achMaps = $companyCount > 0 ? ($pivotData->sum('ach_maps') / $companyCount) : 0;
+        $achLop = $companyCount > 0 ? ($pivotData->sum('ach_lop') / $companyCount) : 0;
+        $achCapability = $companyCount > 0 ? ($pivotData->sum('ach_capability') / $companyCount) : 0;
+        $achCc = $companyCount > 0 ? ($pivotData->sum('ach_cc') / $companyCount) : 0;
 
-        // Get ach_result, ach_proses, nki_adjustment from pivot (already in percentage format or need conversion)
-        $achResult = ($pivotData->sum('ach_result') ?? 0);
-        $achProses = ($pivotData->sum('ach_proses') ?? 0);
-        $nkiAdjustment = ($pivotData->sum('nki_adjustment') ?? 0);
+        // Get ach_result, ach_proses, nki_adjustment from pivot (average across records)
+        $achResult = $companyCount > 0 ? ($pivotData->sum('ach_result') / $companyCount) : 0;
+        $achProses = $companyCount > 0 ? ($pivotData->sum('ach_proses') / $companyCount) : 0;
+        $nkiAdjustment = $companyCount > 0 ? ($pivotData->sum('nki_adjustment') / $companyCount) : 0;
 
         // Format currency values
         $formattedTRevenue = $this->formatCurrency($tRevenue);
@@ -341,16 +348,17 @@ class AmPerformanceDetailController extends Controller
             'r_wireline' => $rWireline,
             't_wifi' => $tWifi,
             'r_wifi' => $rWifi,
-            't_cyc' => $tCyc,
-            'r_cyc' => $rCyc,
-            't_cr' => $tCr,
-            'r_cr' => $rCr,
-            't_profit' => $tProfit,
-            'r_profit' => $rProfit,
+            // Percentage parameters: multiply by 100 for display
+            't_cyc' => $tCyc * 100,
+            'r_cyc' => $rCyc * 100,
+            't_cr' => $tCr * 100,
+            'r_cr' => $rCr * 100,
+            't_profit' => $tProfit * 100,
+            'r_profit' => $rProfit * 100,
             't_nps' => $tNps,
             'r_nps' => $rNps,
-            't_maps' => $tMaps,
-            'r_maps' => $rMaps,
+            't_maps' => $tMaps * 100,
+            'r_maps' => $rMaps * 100,
             't_lop' => $tLop,
             'r_lop' => $rLop,
             't_capability' => $tCapability,
@@ -521,6 +529,7 @@ class AmPerformanceDetailController extends Controller
 
         // Get all target data from lini_waktu_target and target_account_m
         // Target values (t_*) from target_account_m, Realisasi values (r_*) from lini_waktu_target
+        // Note: Only revenue and scaling can be summed. LOP is stored only in first record.
         $pivotData = DB::table('lini_waktu_target as lwt')
             ->join('target_account_m as t', 'lwt.target_id', '=', 't.id')
             ->where('lwt.lini_waktu_id', $liniWaktu->id)
@@ -537,11 +546,13 @@ class AmPerformanceDetailController extends Controller
             ];
         }
 
-        // Sum all values connected to this AM
+        // Revenue and Scaling: sum across all companies
+        // LOP: use first record only (import saves only to first record)
+        $firstRecord = $pivotData->first();
         $targetResult = $pivotData->sum('t_revenue') + $pivotData->sum('t_scalling');
         $realisasiResult = $pivotData->sum('r_revenue') + $pivotData->sum('r_scalling');
-        $targetProses = $pivotData->sum('t_lop');
-        $realisasiProses = $pivotData->sum('r_lop');
+        $targetProses = $firstRecord->t_lop ?? 0;
+        $realisasiProses = $firstRecord->r_lop ?? 0;
 
         return [
             'target_proses' => $targetProses,

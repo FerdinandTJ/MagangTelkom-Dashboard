@@ -60,6 +60,13 @@ class LiniWaktuTarget extends Pivot
      * Indicates if the IDs are auto-incrementing.
      */
     public $incrementing = true;
+    
+    /**
+     * Flag to skip validation (used during imports)
+     * 
+     * @var bool
+     */
+    public $skipValidation = false;
 
     /**
      * The attributes that are mass assignable.
@@ -155,7 +162,10 @@ class LiniWaktuTarget extends Pivot
     {
         // Validate before saving (creating or updating)
         static::saving(function (LiniWaktuTarget $pivot) {
-            $pivot->validateAchievements();
+            // Skip validation if flag is set (e.g., during imports)
+            if (!$pivot->skipValidation) {
+                $pivot->validateAchievements();
+            }
         });
     }
 

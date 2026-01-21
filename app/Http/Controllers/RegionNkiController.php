@@ -238,9 +238,10 @@ class RegionNkiController extends Controller
             foreach ($pivotsByAM as $liniWaktuId => $pivots) {
                 $liniWaktu = $liniWaktuRecords[$liniWaktuId];
                 
-                // Sum all achievements for this AM across all their assignments in this segment
-                $totalAchResult = $pivots->sum('ach_result');
-                $totalAchProses = $pivots->sum('ach_proses');
+                // Calculate AVERAGE achievements for this AM across all their assignments
+                // Sum all achievements then divide by number of assignments
+                $avgAchResult = $pivots->avg('ach_result');
+                $avgAchProses = $pivots->avg('ach_proses');
                 
                 // Get average NKI for this AM (for overall average calculation)
                 $avgNki = $pivots->avg('nki_adjustment');
@@ -251,14 +252,14 @@ class RegionNkiController extends Controller
                     $allNkiValues[] = $pivot->nki_adjustment;
                 }
 
-                // Compare with thresholds
-                if ($totalAchResult >= $liniWaktu->percentage_result) {
+                // Compare AVERAGE with thresholds (not sum)
+                if ($avgAchResult >= $liniWaktu->percentage_result) {
                     $resultAch++;
                 } else {
                     $resultNotAch++;
                 }
 
-                if ($totalAchProses >= $liniWaktu->percentage_proses) {
+                if ($avgAchProses >= $liniWaktu->percentage_proses) {
                     $prosesAch++;
                 } else {
                     $prosesNotAch++;
@@ -279,10 +280,12 @@ class RegionNkiController extends Controller
                 return $value > 0;
             });
             
-            // Calculate average: sum of all nki values / number of AMs
-            $totalNkiSum = array_sum($allNkiValues);
+            // Calculate average NKI: average of each AM's average NKI
+            // $avgNkiValues already contains the average NKI per AM
             $totalAMs = $pivotsByAM->count();
-            $averageNki = $totalAMs > 0 ? (float) round($totalNkiSum / $totalAMs, 2) : 0.0;
+            $averageNki = $totalAMs > 0 && count($avgNkiValues) > 0 
+                ? (float) round(array_sum($avgNkiValues) / count($avgNkiValues), 2) 
+                : 0.0;
             
             $segmentStats[] = [
                 'segment' => $segment,
@@ -333,11 +336,11 @@ class RegionNkiController extends Controller
 
             // Calculate per AM (per lini_waktu_id)
             foreach ($pivotsByLiniWaktu as $liniWaktuId => $pivots) {
-                // Sum all achievements for this AM across all their assignments
-                $totalAch = $pivots->sum($param['field']);
+                // Calculate AVERAGE achievement for this AM across all their assignments
+                $avgAch = $pivots->avg($param['field']);
                 
-                // Compare with bobot
-                if ($totalAch >= $bobot) {
+                // Compare average with bobot
+                if ($avgAch >= $bobot) {
                     $ach++;
                 } else {
                     $notAch++;
@@ -370,11 +373,11 @@ class RegionNkiController extends Controller
 
             // Calculate per AM (per lini_waktu_id)
             foreach ($pivotsByLiniWaktu as $liniWaktuId => $pivots) {
-                // Sum all achievements for this AM across all their assignments
-                $totalAch = $pivots->sum($param['field']);
+                // Calculate AVERAGE achievement for this AM across all their assignments
+                $avgAch = $pivots->avg($param['field']);
                 
-                // Compare with bobot
-                if ($totalAch >= $bobot) {
+                // Compare average with bobot
+                if ($avgAch >= $bobot) {
                     $ach++;
                 } else {
                     $notAch++;
@@ -524,9 +527,19 @@ class RegionNkiController extends Controller
 
         if ($amNiks->isEmpty()) {
             return response()->json([
-                'success' => false,
-                'message' => 'No Account Managers found in this region'
-            ], 404);
+                'success' => true,
+                'data' => [
+                    'region' => [
+                        'id' => $region->id,
+                        'name' => $region->name
+                    ],
+                    'period' => [
+                        'quarter' => $quarter,
+                        'year' => $year
+                    ],
+                    'parameters' => []
+                ]
+            ]);
         }
 
         // Get lini_waktu IDs for this region and period
@@ -538,15 +551,26 @@ class RegionNkiController extends Controller
 
         if ($liniWaktuIds->isEmpty()) {
             return response()->json([
-                'success' => false,
-                'message' => 'No data found for this period'
-            ], 404);
+                'success' => true,
+                'data' => [
+                    'region' => [
+                        'id' => $region->id,
+                        'name' => $region->name
+                    ],
+                    'period' => [
+                        'quarter' => $quarter,
+                        'year' => $year
+                    ],
+                    'parameters' => []
+                ]
+            ]);
         }
 
-        // Get sample lini_waktu for bobot (percentage fields)
-        $sampleLiniWaktu = DB::table('lini_waktu')
+        // Get all lini_waktu for bobot (percentage fields)
+        // Use average percentage across all AMs in case they differ
+        $allLiniWaktu = DB::table('lini_waktu')
             ->whereIn('id', $liniWaktuIds)
-            ->first();
+            ->get();
 
         // Get all lini_waktu_target for these lini_waktu IDs
         $liniWaktuTargets = DB::table('lini_waktu_target')
@@ -677,30 +701,34 @@ class RegionNkiController extends Controller
             // Calculate total realisasi
             $totalRealisasi = $realisasi->sum($param['realisasi_field']);
 
-            // Get bobot from lini_waktu
-            $bobot = $sampleLiniWaktu->{$param['bobot_field']} ?? 0;
+            // Get average bobot (percentage) from all lini_waktu
+            // In case different AMs have different percentage thresholds
+            $bobot = $allLiniWaktu->avg($param['bobot_field']) ?? 0;
 
             // Calculate average ach per AM from lini_waktu_target
             // Group by lini_waktu_id to handle multiple targets per AM
-            // Sum the ach values per AM (not average)
+            // First: Calculate average per AM (sum of ach / count of companies per AM)
+            // Then: Calculate average of all AM averages
             $achByLiniWaktu = $realisasi->groupBy('lini_waktu_id')
                 ->map(function($group) use ($param) {
-                    return $group->sum($param['ach_field']);
+                    // Average achievement per AM = avg of all their assignments
+                    return $group->avg($param['ach_field']);
                 });
             
+            // Average of averages: sum all AM averages / total AMs
             $totalAchFromLiniWaktu = $achByLiniWaktu->sum();
             $avgAchPerAM = $totalAMs > 0 ? round($totalAchFromLiniWaktu / $totalAMs, 2) : 0;
 
-            // Database stores both ach and bobot as percentages (30 for 30%)
-            // No need to multiply by 100 - use values as-is
-            $bobotPercentage = $bobot * 100; // bobot is stored as decimal (0.30), convert to percentage
+            // Database stores percentages as actual percentage values (30.000 for 30%)
+            // Both ach and bobot are already in percentage format - use as-is
+            $bobotPercentage = $bobot; // Already in percentage format
 
             $chartData[] = [
                 'parameter' => $param['name'],
                 'target' => round($totalTarget, 2),
                 'realisasi' => round($totalRealisasi, 2),
                 'bobot' => round($bobotPercentage, 2), // Send as percentage (30 for 30%)
-                'ach' => round($avgAchPerAM, 2), // Already in percentage format, no conversion needed
+                'ach' => round($avgAchPerAM, 2), // Already in percentage format
                 'avg_ach_per_am' => $avgAchPerAM / 100  // Convert to decimal for Top Parameter (0.30 for 30%)
             ];
         }
@@ -900,52 +928,63 @@ class RegionNkiController extends Controller
                 continue;
             }
 
-            // Aggregate targets and realisasi for this AM - direct sum without proporsi
+            // Aggregate targets and realisasi for this AM
+            // ONLY Revenue & Scaling are summed (stored in all company records)
+            // ALL OTHER parameters are stored only in FIRST record during import
             $amTargetRevenue = $pivotData->sum('t_revenue');
             \Log::info("AM {$am->nik} Target Revenue:", ['amount' => $amTargetRevenue, 'targets_count' => $pivotData->count()]);
             $amRealisasiRevenue = $pivotData->sum('r_revenue');
             $amTargetScaling = $pivotData->sum('t_scalling');
             $amRealisasiScaling = $pivotData->sum('r_scalling');
-            $amTargetDatin = $pivotData->sum('t_datin');
-            $amRealisasiDatin = $pivotData->sum('r_datin');
-            $amTargetHsi = $pivotData->sum('t_hsi');
-            $amRealisasiHsi = $pivotData->sum('r_hsi');
-            $amTargetWireline = $pivotData->sum('t_wireline');
-            $amRealisasiWireline = $pivotData->sum('r_wireline');
-            $amTargetWifi = $pivotData->sum('t_wifi');
-            $amRealisasiWifi = $pivotData->sum('r_wifi');
-            $amTargetCyc = $pivotData->sum('t_cyc');
-            $amRealisasiCyc = $pivotData->sum('r_cyc');
-            $amTargetCr = $pivotData->sum('t_cr');
-            $amRealisasiCr = $pivotData->sum('r_cr');
-            $amTargetProfit = $pivotData->sum('t_profit');
-            $amRealisasiProfit = $pivotData->sum('r_profit');
-            $amTargetNps = $pivotData->sum('t_nps');
-            $amRealisasiNps = $pivotData->sum('r_nps');
-            $amTargetMaps = $pivotData->sum('t_maps');
-            $amRealisasiMaps = $pivotData->sum('r_maps');
-            $amTargetLop = $pivotData->sum('t_lop');
-            $amRealisasiLop = $pivotData->sum('r_lop');
-            $amTargetCapability = $pivotData->sum('t_capability');
-            $amRealisasiCapability = $pivotData->sum('r_capability');
-            $amTargetCc = $pivotData->sum('t_cc');
-            $amRealisasiCc = $pivotData->sum('r_cc');
+            
+            // All other parameters: use FIRST record only (import only saves to first record)
+            // This includes: Datin, HSI, Wireline, WiFi, CYC, CR, Profit, NPS, MAPS, LOP, Capability, CC
+            $firstRecord = $pivotData->first();
+            $amTargetDatin = $firstRecord->t_datin ?? 0;
+            $amRealisasiDatin = $firstRecord->r_datin ?? 0;
+            $amTargetHsi = $firstRecord->t_hsi ?? 0;
+            $amRealisasiHsi = $firstRecord->r_hsi ?? 0;
+            $amTargetWireline = $firstRecord->t_wireline ?? 0;
+            $amRealisasiWireline = $firstRecord->r_wireline ?? 0;
+            $amTargetWifi = $firstRecord->t_wifi ?? 0;
+            $amRealisasiWifi = $firstRecord->r_wifi ?? 0;
+            
+            $amTargetCyc = $firstRecord->t_cyc ?? 0;
+            $amRealisasiCyc = $firstRecord->r_cyc ?? 0;
+            $amTargetCr = $firstRecord->t_cr ?? 0;
+            $amRealisasiCr = $firstRecord->r_cr ?? 0;
+            $amTargetProfit = $firstRecord->t_profit ?? 0;
+            $amRealisasiProfit = $firstRecord->r_profit ?? 0;
+            
+            $amTargetNps = $firstRecord->t_nps ?? 0;
+            $amRealisasiNps = $firstRecord->r_nps ?? 0;
+            
+            $amTargetMaps = $firstRecord->t_maps ?? 0;
+            $amRealisasiMaps = $firstRecord->r_maps ?? 0;
+            
+            $amTargetLop = $firstRecord->t_lop ?? 0;
+            $amRealisasiLop = $firstRecord->r_lop ?? 0;
+            $amTargetCapability = $firstRecord->t_capability ?? 0;
+            $amRealisasiCapability = $firstRecord->r_capability ?? 0;
+            $amTargetCc = $firstRecord->t_cc ?? 0;
+            $amRealisasiCc = $firstRecord->r_cc ?? 0;
 
-            // Get achievements directly from database (SUM of ach_* columns)
-            $achRevenue = $pivotData->sum('ach_revenue_plan');
-            $achScaling = $pivotData->sum('ach_scaling');
-            $achDatin = $pivotData->sum('ach_sales_datin');
-            $achHsi = $pivotData->sum('ach_hsi');
-            $achWireline = $pivotData->sum('ach_wireline');
-            $achWifi = $pivotData->sum('ach_wifi');
-            $achCyc = $pivotData->sum('ach_cyc');
-            $achCr = $pivotData->sum('ach_cr');
-            $achProfit = $pivotData->sum('ach_profit');
-            $achNps = $pivotData->sum('ach_nps');
-            $achMaps = $pivotData->sum('ach_maps');
-            $achLop = $pivotData->sum('ach_lop');
-            $achCapability = $pivotData->sum('ach_capability');
-            $achCc = $pivotData->sum('ach_cc');
+            // Get achievements: sum of all ach values divided by number of companies
+            $companyCount = $pivotData->count();
+            $achRevenue = $companyCount > 0 ? $pivotData->sum('ach_revenue_plan') / $companyCount : 0;
+            $achScaling = $companyCount > 0 ? $pivotData->sum('ach_scaling') / $companyCount : 0;
+            $achDatin = $companyCount > 0 ? $pivotData->sum('ach_sales_datin') / $companyCount : 0;
+            $achHsi = $companyCount > 0 ? $pivotData->sum('ach_hsi') / $companyCount : 0;
+            $achWireline = $companyCount > 0 ? $pivotData->sum('ach_wireline') / $companyCount : 0;
+            $achWifi = $companyCount > 0 ? $pivotData->sum('ach_wifi') / $companyCount : 0;
+            $achCyc = $companyCount > 0 ? $pivotData->sum('ach_cyc') / $companyCount : 0;
+            $achCr = $companyCount > 0 ? $pivotData->sum('ach_cr') / $companyCount : 0;
+            $achProfit = $companyCount > 0 ? $pivotData->sum('ach_profit') / $companyCount : 0;
+            $achNps = $companyCount > 0 ? $pivotData->sum('ach_nps') / $companyCount : 0;
+            $achMaps = $companyCount > 0 ? $pivotData->sum('ach_maps') / $companyCount : 0;
+            $achLop = $companyCount > 0 ? $pivotData->sum('ach_lop') / $companyCount : 0;
+            $achCapability = $companyCount > 0 ? $pivotData->sum('ach_capability') / $companyCount : 0;
+            $achCc = $companyCount > 0 ? $pivotData->sum('ach_cc') / $companyCount : 0;
 
             // Get ach_result, ach_proses, nki_adjustment from pivot
             $achResult = $pivotData->avg('ach_result') ?? 0;
@@ -996,20 +1035,21 @@ class RegionNkiController extends Controller
                 't_wifi' => $amTargetWifi,
                 'r_wifi' => $amRealisasiWifi,
                 'ach_wifi' => $achWifi,
-                't_cyc' => $amTargetCyc,
-                'r_cyc' => $amRealisasiCyc,
+                // Percentage-based parameters: multiply by 100 for display
+                't_cyc' => $amTargetCyc * 100,
+                'r_cyc' => $amRealisasiCyc * 100,
                 'ach_cyc' => $achCyc,
-                't_cr' => $amTargetCr,
-                'r_cr' => $amRealisasiCr,
+                't_cr' => $amTargetCr * 100,
+                'r_cr' => $amRealisasiCr * 100,
                 'ach_cr' => $achCr,
-                't_profit' => $amTargetProfit,
-                'r_profit' => $amRealisasiProfit,
+                't_profit' => $amTargetProfit * 100,
+                'r_profit' => $amRealisasiProfit * 100,
                 'ach_profit' => $achProfit,
                 't_nps' => $amTargetNps,
                 'r_nps' => $amRealisasiNps,
                 'ach_nps' => $achNps,
-                't_maps' => $amTargetMaps,
-                'r_maps' => $amRealisasiMaps,
+                't_maps' => $amTargetMaps * 100,
+                'r_maps' => $amRealisasiMaps * 100,
                 'ach_maps' => $achMaps,
                 't_lop' => $amTargetLop,
                 'r_lop' => $amRealisasiLop,

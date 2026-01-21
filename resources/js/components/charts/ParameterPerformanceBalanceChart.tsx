@@ -75,7 +75,8 @@ const CustomTooltip = React.memo(({ active, payload, compareMode, hasCompareData
                 {(() => {
                     const currentAch = Number(data.ach_current) || 0;
                     const bobot = Number(data.bobot) || 0;
-                    const isAchieved = currentAch >= bobot;
+                    const tolerance = 0.01;
+                    const isAchieved = (currentAch + tolerance) >= bobot;
                     const realisasiColor = isAchieved ? '#10b981' : '#ef4444';
                     
                     return (
@@ -99,7 +100,8 @@ const CustomTooltip = React.memo(({ active, payload, compareMode, hasCompareData
                         {(() => {
                             const compareAch = Number(data.ach_compare) || 0;
                             const bobotCompare = Number(data.bobot_compare) || Number(data.bobot) || 0;
-                            const isAchievedCompare = compareAch >= bobotCompare;
+                            const tolerance = 0.01;
+                            const isAchievedCompare = (compareAch + tolerance) >= bobotCompare;
                             const realisasiColor = isAchievedCompare ? '#10b981' : '#ef4444';
                             
                             return (
@@ -132,13 +134,9 @@ export default function ParameterPerformanceBalanceChart({
     // Memoize filtered data to prevent recalculation on every render
     const filteredData = useMemo(() => {
         if (activeChartTab === 'result') {
-            const filtered = chartData.filter((item) => resultParamNames.includes(item.parameter));
-            console.log('📊 Chart Data (Result):', filtered);
-            return filtered;
+            return chartData.filter((item) => resultParamNames.includes(item.parameter));
         } else {
-            const filtered = chartData.filter((item) => prosesParamNames.includes(item.parameter));
-            console.log('📊 Chart Data (Proses):', filtered);
-            return filtered;
+            return chartData.filter((item) => prosesParamNames.includes(item.parameter));
         }
     }, [chartData, activeChartTab, resultParamNames, prosesParamNames]);
     
@@ -164,7 +162,12 @@ export default function ParameterPerformanceBalanceChart({
         return filteredData.map((entry, index) => {
             const currentAch = Number(entry.ach_current || entry.ach || 0);
             const bobot = Number(entry.bobot) || 0;
-            const achievementColor = currentAch >= bobot ? '#10b981' : '#ef4444';
+            
+            // Use tolerance for floating point comparison (0.01 = 0.01%)
+            const tolerance = 0.01;
+            const isAchieved = (currentAch + tolerance) >= bobot;
+            const achievementColor = isAchieved ? '#10b981' : '#ef4444';
+            
             return <Cell key={`cell-${index}`} fill={achievementColor} />;
         });
     }, [filteredData]);
@@ -177,7 +180,11 @@ export default function ParameterPerformanceBalanceChart({
         const entry = filteredData[index];
         const currentAch = Number(entry.ach_current || entry.ach || 0);
         const bobot = Number(entry.bobot) || 0;
-        const achievementColor = currentAch >= bobot ? '#10b981' : '#ef4444';
+        
+        // Use same tolerance for consistency
+        const tolerance = 0.01;
+        const isAchieved = (currentAch + tolerance) >= bobot;
+        const achievementColor = isAchieved ? '#10b981' : '#ef4444';
         
         return (
             <text 
@@ -206,7 +213,7 @@ export default function ParameterPerformanceBalanceChart({
         // Determine color and arrow
         let color, arrow, displayText;
         if (Math.abs(difference) < 0.05) {
-            color = '#000000';
+            color = '#6B7280';
             arrow = '';
             displayText = '0.0%';
         } else {

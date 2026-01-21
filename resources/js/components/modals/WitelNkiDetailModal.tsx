@@ -598,24 +598,24 @@ const WitelNkiDetailModal: React.FC<WitelNkiDetailModalProps> = ({
                                                             <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_wifi, 0)}</td>
                                                             {renderAchCell(am.ach_wifi, 'wifi')}
                                                             {/* CYC */}
-                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cyc, 0)}</td>
-                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cyc, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cyc, 2)}%</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cyc, 2)}%</td>
                                                             {renderAchCell(am.ach_cyc, 'cyc')}
                                                             {/* CR */}
-                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cr, 0)}</td>
-                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cr, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_cr, 2)}%</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_cr, 2)}%</td>
                                                             {renderAchCell(am.ach_cr, 'cr')}
                                                             {/* Profit */}
-                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_profit, 0)}</td>
-                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_profit, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_profit, 2)}%</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_profit, 2)}%</td>
                                                             {renderAchCell(am.ach_profit, 'profit')}
                                                             {/* NPS */}
                                                             <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_nps, 0)}</td>
                                                             <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_nps, 0)}</td>
                                                             {renderAchCell(am.ach_nps, 'nps')}
                                                             {/* MAPS */}
-                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_maps, 0)}</td>
-                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_maps, 0)}</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.t_maps, 2)}%</td>
+                                                            <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(am.r_maps, 2)}%</td>
                                                             {renderAchCell(am.ach_maps, 'maps')}
                                                             {/* LOP */}
                                                             <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600 min-w-[90px] whitespace-nowrap">{am.formatted_t_lop || formatNumber(am.t_lop, 0)}</td>

@@ -67,24 +67,26 @@ class NkiSheetImport implements ToModel, WithStartRow
     {
         if ($rowNumber == 1) {
             // Row 1: G (percentage_result), AK (percentage_proses)
-            $this->percentageData['percentage_result'] = $row[6] ?? null; // Column G (index 6)
-            $this->percentageData['percentage_proses'] = $row[36] ?? null; // Column AK (index 36)
+            // Excel stores percentage as decimal (75% = 0.75), multiply by 100 to match ach_result format
+            $this->percentageData['percentage_result'] = isset($row[6]) ? $row[6] * 100 : null; // Column G (index 6)
+            $this->percentageData['percentage_proses'] = isset($row[36]) ? $row[36] * 100 : null; // Column AK (index 36)
         } elseif ($rowNumber == 2) {
             // Row 2: All other percentages
-            $this->percentageData['percentage_revenue'] = $row[6] ?? null;   // Column G
-            $this->percentageData['percentage_scaling'] = $row[9] ?? null;   // Column J
-            $this->percentageData['percentage_datin'] = $row[12] ?? null;    // Column M
-            $this->percentageData['percentage_hsi'] = $row[15] ?? null;      // Column P
-            $this->percentageData['percentage_wireline'] = $row[18] ?? null; // Column S
-            $this->percentageData['percentage_wifi'] = $row[21] ?? null;     // Column V
-            $this->percentageData['percentage_cyc'] = $row[24] ?? null;      // Column Y
-            $this->percentageData['percentage_cr'] = $row[27] ?? null;       // Column AB
-            $this->percentageData['percentage_profit'] = $row[30] ?? null;   // Column AE
-            $this->percentageData['percentage_customer'] = $row[33] ?? null; // Column AH
-            $this->percentageData['percentage_maps'] = $row[36] ?? null;     // Column AK
-            $this->percentageData['percentage_lop'] = $row[39] ?? null;      // Column AN
-            $this->percentageData['percentage_capability'] = $row[42] ?? null; // Column AQ
-            $this->percentageData['percentage_cc'] = $row[45] ?? null;       // Column AT
+            // Excel stores percentage as decimal (20% = 0.20), multiply by 100 to match ach_* format
+            $this->percentageData['percentage_revenue'] = isset($row[6]) ? $row[6] * 100 : null;   // Column G
+            $this->percentageData['percentage_scaling'] = isset($row[9]) ? $row[9] * 100 : null;   // Column J
+            $this->percentageData['percentage_datin'] = isset($row[12]) ? $row[12] * 100 : null;    // Column M
+            $this->percentageData['percentage_hsi'] = isset($row[15]) ? $row[15] * 100 : null;      // Column P
+            $this->percentageData['percentage_wireline'] = isset($row[18]) ? $row[18] * 100 : null; // Column S
+            $this->percentageData['percentage_wifi'] = isset($row[21]) ? $row[21] * 100 : null;     // Column V
+            $this->percentageData['percentage_cyc'] = isset($row[24]) ? $row[24] * 100 : null;      // Column Y
+            $this->percentageData['percentage_cr'] = isset($row[27]) ? $row[27] * 100 : null;       // Column AB
+            $this->percentageData['percentage_profit'] = isset($row[30]) ? $row[30] * 100 : null;   // Column AE
+            $this->percentageData['percentage_customer'] = isset($row[33]) ? $row[33] * 100 : null; // Column AH
+            $this->percentageData['percentage_maps'] = isset($row[36]) ? $row[36] * 100 : null;     // Column AK
+            $this->percentageData['percentage_lop'] = isset($row[39]) ? $row[39] * 100 : null;      // Column AN
+            $this->percentageData['percentage_capability'] = isset($row[42]) ? $row[42] * 100 : null; // Column AQ
+            $this->percentageData['percentage_cc'] = isset($row[45]) ? $row[45] * 100 : null;       // Column AT
 
             $this->hasProcessedPercentages = true;
         }
@@ -153,16 +155,21 @@ class NkiSheetImport implements ToModel, WithStartRow
             // Update percentage data to lini_waktu (only once per quartal)
             $this->updatePercentageData($quartal);
 
-            // Get LATEST lini_waktu_target for this NIK AM
-            // Each row in Excel = data for 1 NIK AM, update only the latest record
-            $liniWaktuTarget = LiniWaktuTarget::where('lini_waktu_id', $liniWaktu->id)
-                ->orderBy('created_at', 'desc')
-                ->first();
+            // Get ALL lini_waktu_target records for this NIK AM
+            // Each row in Excel = data for 1 NIK AM, but may have multiple assignments (companies)
+            // UPDATE: Now we update ALL records for this AM, not just the latest
+            $liniWaktuTargets = LiniWaktuTarget::where('lini_waktu_id', $liniWaktu->id)->get();
 
-            if (!$liniWaktuTarget) {
+            if ($liniWaktuTargets->isEmpty()) {
                 $this->errors[] = "Data lini_waktu_target untuk NIK {$nikAm}, {$quartal} {$this->year} tidak ditemukan";
                 return;
             }
+            
+            // For backward compatibility with old code, keep first record as main reference
+            $liniWaktuTarget = $liniWaktuTargets->first();
+            
+            // Skip validation during import to allow data from Excel as-is
+            $liniWaktuTarget->skipValidation = true;
 
             // Column F: Total Target Revenue (validation)
             $totalTargetRevenue = $row[5] ?? null;
@@ -428,11 +435,39 @@ class NkiSheetImport implements ToModel, WithStartRow
                 $liniWaktuTarget->nki_adjustment = $row[49] * 100;
             }
 
-            // Save both models
+            // Save target_account_m if modified
             if ($targetAccountM) {
                 $targetAccountM->save();
             }
-            $liniWaktuTarget->save();
+            
+            // Save ALL lini_waktu_target records for this AM (not just the first one)
+            // This ensures all assignments get the same achievement data
+            foreach ($liniWaktuTargets as $lwTarget) {
+                // Copy achievement data from the main reference to all records
+                $lwTarget->ach_revenue_plan = $liniWaktuTarget->ach_revenue_plan;
+                $lwTarget->ach_scaling = $liniWaktuTarget->ach_scaling;
+                $lwTarget->ach_sales_datin = $liniWaktuTarget->ach_sales_datin;
+                $lwTarget->ach_hsi = $liniWaktuTarget->ach_hsi;
+                $lwTarget->ach_wireline = $liniWaktuTarget->ach_wireline;
+                $lwTarget->ach_wifi = $liniWaktuTarget->ach_wifi;
+                $lwTarget->ach_cyc = $liniWaktuTarget->ach_cyc;
+                $lwTarget->ach_cr = $liniWaktuTarget->ach_cr;
+                $lwTarget->ach_profit = $liniWaktuTarget->ach_profit;
+                $lwTarget->ach_nps = $liniWaktuTarget->ach_nps;
+                $lwTarget->ach_maps = $liniWaktuTarget->ach_maps;
+                $lwTarget->ach_lop = $liniWaktuTarget->ach_lop;
+                $lwTarget->ach_capability = $liniWaktuTarget->ach_capability;
+                $lwTarget->ach_cc = $liniWaktuTarget->ach_cc;
+                $lwTarget->ach_result = $liniWaktuTarget->ach_result;
+                $lwTarget->ach_proses = $liniWaktuTarget->ach_proses;
+                $lwTarget->nki_adjustment = $liniWaktuTarget->nki_adjustment;
+                
+                // Skip validation during import to allow data from Excel as-is
+                $lwTarget->skipValidation = true;
+                
+                // Note: We don't copy realisasi (r_*) fields because they are specific to each assignment/company
+                $lwTarget->save();
+            }
 
         } catch (\Exception $e) {
             Log::error("NKI Import Error at row " . ($this->rowCount + 1) . ": " . $e->getMessage());

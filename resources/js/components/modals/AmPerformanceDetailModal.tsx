@@ -487,24 +487,24 @@ const AmPerformanceDetailModal: React.FC<AmPerformanceDetailModalProps> = ({
                                                         <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_wifi, 0, false)}</td>
                                                         {renderAchCell(period.ach_wifi)}
                                                         {/* CYC */}
-                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.t_cyc, 0, false)}</td>
-                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_cyc, 0, false)}</td>
+                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.t_cyc, 2, false)}%</td>
+                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_cyc, 2, false)}%</td>
                                                         {renderAchCell(period.ach_cyc)}
                                                         {/* CR */}
-                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.t_cr, 0, false)}</td>
-                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_cr, 0, false)}</td>
+                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.t_cr, 2, false)}%</td>
+                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_cr, 2, false)}%</td>
                                                         {renderAchCell(period.ach_cr)}
                                                         {/* Profit */}
-                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.t_profit, 0, false)}</td>
-                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_profit, 0, false)}</td>
+                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.t_profit, 2, false)}%</td>
+                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_profit, 2, false)}%</td>
                                                         {renderAchCell(period.ach_profit)}
                                                         {/* NPS */}
                                                         <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.t_nps, 0, false)}</td>
                                                         <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_nps, 0, false)}</td>
                                                         {renderAchCell(period.ach_nps)}
                                                         {/* MAPS */}
-                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.t_maps, 0, false)}</td>
-                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_maps, 0, false)}</td>
+                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.t_maps, 2, false)}%</td>
+                                                        <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600">{formatNumber(period.r_maps, 2, false)}%</td>
                                                         {renderAchCell(period.ach_maps)}
                                                         {/* LOP */}
                                                         <td className="text-right p-2 text-sm border-r border-gray-300 dark:border-gray-600 min-w-[120px] whitespace-nowrap">{period.formatted_t_lop || formatNumber(period.t_lop, 0, true)}</td>
