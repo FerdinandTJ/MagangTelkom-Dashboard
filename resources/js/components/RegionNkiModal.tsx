@@ -125,8 +125,9 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [compareMode, setCompareMode] = useState(false);
-    const [compareQuarter, setCompareQuarter] = useState(quarter > 1 ? quarter - 1 : 4);
-    const [compareYear, setCompareYear] = useState(quarter > 1 ? year : year - 1);
+    const [compareQuarter, setCompareQuarter] = useState(1);
+    const [compareYear, setCompareYear] = useState(2025);
+    const [hasInitializedCompare, setHasInitializedCompare] = useState(false);
     const [activeParameterTab, setActiveParameterTab] = useState<'result' | 'proses'>('result');
     const [activeChartTab, setActiveChartTab] = useState<'result' | 'proses'>('result');
     const [availableYears, setAvailableYears] = useState<number[]>([]);
@@ -142,6 +143,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedSegment, setSelectedSegment] = useState<string>('');
     const [selectedWitelId, setSelectedWitelId] = useState<number | undefined>(undefined);
+    const [showFutureErrorModal, setShowFutureErrorModal] = useState(false);
 
     // Fetch available periods from API
     useEffect(() => {
@@ -155,17 +157,62 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                     setAvailableYears(years);
                     setQuartersByYear(qByYear);
                     
-                    // Set quarters for current compareYear
-                    if (qByYear[compareYear]) {
+                    // Initialize compare period with valid values from available data
+                    if (years.length > 0 && !hasInitializedCompare) {
+                        let validYear = year;
+                        let validQuarter: number;
+                        
+                        // First, try to use previous quarter in the same year
+                        if (quarter > 1) {
+                            validQuarter = quarter - 1;
+                        } else {
+                            // Current quarter is Q1, check if previous year exists
+                            const previousYear = year - 1;
+                            if (years.includes(previousYear) && qByYear[previousYear]) {
+                                // Previous year exists, use Q4 of previous year
+                                validYear = previousYear;
+                                const quartersInPrevYear = qByYear[previousYear];
+                                validQuarter = Math.max(...quartersInPrevYear); // Get highest quarter available
+                            } else {
+                                // Previous year doesn't exist, stay in current year
+                                // But we can't use current quarter, so find the highest available quarter < current
+                                const quartersInCurrentYear = qByYear[year] || [1, 2, 3, 4];
+                                const lowerQuarters = quartersInCurrentYear.filter(q => q < quarter);
+                                if (lowerQuarters.length > 0) {
+                                    validQuarter = Math.max(...lowerQuarters);
+                                } else {
+                                    // No lower quarter available, use the last available quarter
+                                    validQuarter = Math.max(...quartersInCurrentYear.filter(q => q !== quarter));
+                                    if (!validQuarter) {
+                                        validQuarter = quartersInCurrentYear[0];
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Ensure the selected year exists in available years
+                        if (!years.includes(validYear)) {
+                            validYear = years.find(y => y <= year) || years[0];
+                        }
+                        
+                        // Ensure quarter is valid for selected year
+                        const quartersForYear = qByYear[validYear] || [1, 2, 3, 4];
+                        if (!quartersForYear.includes(validQuarter)) {
+                            validQuarter = quartersForYear[quartersForYear.length - 1] || 1;
+                        }
+                        
+                        setCompareYear(validYear);
+                        setCompareQuarter(validQuarter);
+                        setAvailableQuarters(quartersForYear);
+                        setHasInitializedCompare(true);
+                    } else if (qByYear[compareYear]) {
+                        // Update quarters for current compareYear
                         setAvailableQuarters(qByYear[compareYear]);
-                    } else if (years.length > 0) {
-                        // Fallback to first available year
-                        setAvailableQuarters(qByYear[years[0]] || [1, 2, 3, 4]);
                     }
                 }
             } catch (err) {
-                // Fallback to default values
-                setAvailableYears([year, year - 1, year - 2, year - 3, year - 4, year - 5]);
+                // Fallback to default values (include current and future years for testing)
+                setAvailableYears([year + 2, year + 1, year, year - 1, year - 2, year - 3, year - 4, year - 5]);
                 setAvailableQuarters([1, 2, 3, 4]);
             }
         };
@@ -193,8 +240,6 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
     useEffect(() => {
         if (isOpen && regionId) {
             setCompareMode(false);
-            setCompareQuarter(quarter > 1 ? quarter - 1 : 4);
-            setCompareYear(quarter > 1 ? year : year - 1);
             fetchData();
             fetchChartData();
             // Close detail modal when period changes
@@ -203,6 +248,9 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                 setSelectedSegment('');
                 setSelectedWitelId(undefined);
             }
+        } else if (!isOpen) {
+            // Reset flag when modal closes so compare period gets reinitialized on next open
+            setHasInitializedCompare(false);
         }
     }, [isOpen, regionId, quarter, year]);
     
@@ -221,19 +269,6 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
             fetchChartData();
         }
     }, [compareMode, compareQuarter, compareYear]);
-
-    // Auto-correct compare selection if it matches current period
-    useEffect(() => {
-        if (compareMode && compareQuarter === quarter && compareYear === year) {
-            // If user selected the same period, auto-adjust to previous quarter
-            if (quarter > 1) {
-                setCompareQuarter(quarter - 1);
-            } else {
-                setCompareQuarter(4);
-                setCompareYear(year - 1);
-            }
-        }
-    }, [compareQuarter, compareYear, compareMode, quarter, year]);
 
     const fetchData = async (forceDisableCompare: boolean = false) => {
         setLoading(true);
@@ -344,7 +379,53 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
         }
     };
 
+    const handleCloseFutureErrorModal = () => {
+        setShowFutureErrorModal(false);
+        setCompareMode(false);
+        
+        // Reset to a valid previous period that exists in database
+        let validYear = year;
+        let validQuarter: number;
+        
+        // Try previous quarter in same year first
+        if (quarter > 1) {
+            validQuarter = quarter - 1;
+        } else {
+            // Current is Q1, check if previous year exists
+            const previousYear = year - 1;
+            if (availableYears.includes(previousYear) && quartersByYear[previousYear]) {
+                // Previous year exists, use highest quarter from that year
+                validYear = previousYear;
+                const quartersInPrevYear = quartersByYear[previousYear];
+                validQuarter = Math.max(...quartersInPrevYear);
+            } else {
+                // Previous year doesn't exist, stay in current year
+                // Find any quarter lower than current quarter
+                const quartersInCurrentYear = quartersByYear[year] || [1, 2, 3, 4];
+                const lowerQuarters = quartersInCurrentYear.filter(q => q < quarter);
+                if (lowerQuarters.length > 0) {
+                    validQuarter = Math.max(...lowerQuarters);
+                } else {
+                    // No valid compare period available, just use current quarter (will show warning)
+                    validQuarter = quarter;
+                    validYear = year;
+                }
+            }
+        }
+        
+        setCompareQuarter(validQuarter);
+        setCompareYear(validYear);
+    };
+
     const handleApplyCompare = async () => {
+        // Validate: Cannot compare with future periods
+        const isFuturePeriod = compareYear > year || (compareYear === year && compareQuarter > quarter);
+        
+        if (isFuturePeriod) {
+            setShowFutureErrorModal(true);
+            return;
+        }
+        
         // Validate: Cannot compare with the same period
         if (compareQuarter === quarter && compareYear === year) {
             // Inline warning will be shown, no need to set error
@@ -584,8 +665,56 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
 
 
     return (
+        <>
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="wide-modal max-w-[98vw] w-[98vw] max-h-[95vh] overflow-y-auto p-6 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+                {/* Future Period Error Overlay */}
+                {showFutureErrorModal && (
+                    <div 
+                        className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center"
+                        style={{ margin: 0 }}
+                    >
+                        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl max-w-md w-full mx-4 p-6 border-2 border-red-500 animate-in fade-in zoom-in duration-200">
+                            <div className="flex items-center gap-2 mb-4 text-red-600 dark:text-red-400">
+                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                                <h3 className="text-lg font-semibold">Periode Perbandingan Tidak Valid</h3>
+                            </div>
+                            
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                Tidak dapat membandingkan dengan periode masa depan
+                            </p>
+                            
+                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                                    <strong>Periode Saat Ini:</strong> Q{quarter} {year}
+                                </p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                                    <strong>Periode yang Dipilih:</strong> Q{compareQuarter} {compareYear}
+                                </p>
+                                <div className="flex items-start gap-2 mt-3 pt-3 border-t border-red-200 dark:border-red-800">
+                                    <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                    <p className="text-sm text-red-700 dark:text-red-300">
+                                        Perbandingan data hanya dapat dilakukan dengan periode waktu sebelumnya. Silakan pilih periode yang lebih awal dari Q{quarter} {year}.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex justify-end">
+                                <Button 
+                                    onClick={handleCloseFutureErrorModal}
+                                    className="px-6 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+                                >
+                                    Mengerti
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
                 {/* Transitioning Overlay */}
                 {isTransitioning && (
                     <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
@@ -649,7 +778,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
 
                             {compareMode && (
                                 <>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                         <span className="text-sm text-gray-600 dark:text-gray-400">Compare with:</span>
                                         <select
                                             value={compareQuarter}
@@ -657,7 +786,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                             className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                                         >
                                             {availableQuarters.map((q) => (
-                                                <option key={q} value={q} disabled={compareYear === year && quarter === q}>
+                                                <option key={q} value={q}>
                                                     Q{q}{compareYear === year && quarter === q ? ' (Current)' : ''}
                                                 </option>
                                             ))}
@@ -672,10 +801,33 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                                             ))}
                                         </select>
                                         <Button
-                                            onClick={handleApplyCompare}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                
+                                                const currentQ = Number(quarter);
+                                                const currentY = Number(year);
+                                                const selectedQ = Number(compareQuarter);
+                                                const selectedY = Number(compareYear);
+                                                
+                                                // Check for future period
+                                                const isFuture = selectedY > currentY || (selectedY === currentY && selectedQ > currentQ);
+                                                
+                                                if (isFuture) {
+                                                    setShowFutureErrorModal(true);
+                                                    return;
+                                                }
+                                                
+                                                // Check for same period
+                                                if (selectedQ === currentQ && selectedY === currentY) {
+                                                    return;
+                                                }
+                                                
+                                                // Valid past period - proceed
+                                                handleApplyCompare();
+                                            }}
                                             size="sm"
                                             className="ml-2"
-                                            disabled={compareQuarter === quarter && compareYear === year}
                                         >
                                             Apply
                                         </Button>
@@ -1408,17 +1560,18 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
                     </Button>
                 </div>
             </DialogContent>
-
-            {/* Witel NKI Detail Modal */}
-            <WitelNkiDetailModal
-                isOpen={showDetailModal}
-                onClose={() => setShowDetailModal(false)}
-                regionId={regionId}
-                quarter={quarter}
-                year={year}
-                segment={selectedSegment}
-                witelId={selectedWitelId}
-            />
         </Dialog>
+
+        {/* Witel NKI Detail Modal */}
+        <WitelNkiDetailModal
+            isOpen={showDetailModal}
+            onClose={() => setShowDetailModal(false)}
+            regionId={regionId}
+            quarter={quarter}
+            year={year}
+            segment={selectedSegment}
+            witelId={selectedWitelId}
+        />
+    </>
     );
 }

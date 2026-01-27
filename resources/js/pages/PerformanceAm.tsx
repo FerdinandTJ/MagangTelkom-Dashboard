@@ -463,7 +463,7 @@ export default function PerformanceAM({
                         </CardHeader>
                     </Card>
 
-                    {/* Card 5: Export Button - Placeholder untuk fitur nanti */}
+                    {/* Card 5: Export Button */}
                     <Card className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
@@ -474,12 +474,20 @@ export default function PerformanceAM({
                                             variant="outline" 
                                             size="sm" 
                                             className="w-full"
-                                            onClick={() => alert('Export feature coming soon')}
+                                            onClick={() => {
+                                                const baseQ = selectedQuartal.replace(' YTD', '');
+                                                const isYtd = selectedQuartal.includes('YTD') ? '1' : '0';
+                                                const exportUrl = `/performance-am/export?year=${selectedYear}&quartal=${baseQ}&region=${selectedRegion}&ytd=${isYtd}`;
+                                                window.location.href = exportUrl;
+                                            }}
                                         >
                                             <Download className="h-4 w-4 mr-2" />
-                                            Export
+                                            Export Excel
                                         </Button>
                                     </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Download semua data AM untuk {selectedQuartal} {selectedYear} {selectedRegion !== 'ALL' ? `(${selectedRegion})` : '(Semua Region)'}
+                                    </p>
                                 </div>
                                 <div className="flex-shrink-0 ml-4">
                                     <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">

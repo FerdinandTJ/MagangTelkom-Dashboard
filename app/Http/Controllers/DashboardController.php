@@ -7,6 +7,9 @@ use App\Models\Region;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\PerformanceAMExport;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class DashboardController extends Controller
 {
@@ -273,16 +276,6 @@ class DashboardController extends Controller
             'selectedYear' => $selectedYear,
             'currentYear' => $currentYear, // For calculating dropdown years
         ]);
-    }
-
-    /**
-     * Display Daily Monitoring page
-     */
-    public function dailymonitoring(Request $request)
-    {
-        // Currently just rendering the page with no backend data
-        // Data will be displayed as dummy frontend data
-        return Inertia::render('DailyMonitoring');
     }
 
     /**
@@ -1909,4 +1902,42 @@ class DashboardController extends Controller
             return 'Rp ' . number_format($amount, 0, ',', '.');
         }
     }
+    
+    /**
+     * Export Performance AM data to Excel
+     * Mengexport semua data Performance AM sesuai dengan filter period dan region
+     */
+    public function exportPerformanceAM(Request $request)
+    {
+        $year = $request->input('year', date('Y'));
+        $quartal = $request->input('quartal', $this->getCurrentQuartal());
+        $region = $request->input('region', 'ALL');
+        $isYtd = $request->input('ytd', '0') === '1';
+        
+        // Extract quarter number from quartal string (Q1, Q2, Q3, Q4)
+        $quarterNumber = (int) str_replace('Q', '', $quartal);
+        
+        // Get quartals to include based on YTD
+        $quartalsToInclude = $this->getQuartalsForYTD($quartal, $isYtd);
+        
+        // Generate filename with period info
+        $regionText = $region === 'ALL' ? 'All_Regions' : $region;
+        $periodText = $isYtd && $quartal !== 'Q1' ? "Q1-{$quartal}_YTD" : $quartal;
+        $filename = "Performance_AM_{$periodText}_{$year}_{$regionText}_" . date('Y-m-d_His') . ".xlsx";
+        
+        // Create export instance and get spreadsheet
+        $export = new PerformanceAMExport($quarterNumber, $year, $region === 'ALL' ? null : $region, $isYtd, $quartalsToInclude);
+        $spreadsheet = $export->export();
+        
+        // Write to temporary file
+        $tempFile = tempnam(sys_get_temp_dir(), 'export_');
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($tempFile);
+        
+        // Return download response
+        return response()->download($tempFile, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+    }
 }
+

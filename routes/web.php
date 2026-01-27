@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RevenueBreakdownController;
 use App\Http\Controllers\RevenueImportController;
 use App\Http\Controllers\DataImportPerformanceController;
+use App\Http\Controllers\DailyMonitoringController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -15,7 +16,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard routes - accessible by all authenticated users
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('performance-am', [DashboardController::class, 'performanceAM'])->name('performance-am');
-    Route::get('daily-monitoring', [DashboardController::class, 'dailymonitoring'])->name('daily-monitoring');
+    Route::get('daily-monitoring', [DailyMonitoringController::class, 'index'])->name('daily-monitoring');
+    
+    // Export routes - accessible by all authenticated users
+    Route::get('performance-am/export', [DashboardController::class, 'exportPerformanceAM'])->name('performance-am.export');
 
     // Data Import routes - only accessible by admin
     Route::middleware(['role:admin'])->group(function () {
@@ -34,6 +38,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/api/data-import/performance/upload', [DataImportPerformanceController::class, 'upload'])->name('data-import.performance.upload');
         Route::get('/api/data-import/performance/template', [DataImportPerformanceController::class, 'downloadTemplate'])->name('data-import.performance.template');
         Route::delete('/api/data-import/performance/delete/{year}/{quarter?}', [DataImportPerformanceController::class, 'delete'])->name('data-import.performance.delete');
+        
+        // Daily Monitoring - Upload Bulanan (admin only)
+        Route::post('daily-monitoring/upload-bulanan', [DailyMonitoringController::class, 'uploadBulanan'])->name('daily-monitoring.upload-bulanan');
+        
+        // Daily Monitoring - Update Harian (admin only)
+        Route::post('daily-monitoring/update-harian', [DailyMonitoringController::class, 'updateHarian'])->name('daily-monitoring.update-harian');
     });
     
     // API routes for dashboard analytics
