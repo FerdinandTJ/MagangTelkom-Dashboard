@@ -209,31 +209,48 @@ export default function DataImportPerformance({
                 },
             });
 
-            if (response.data.success) {
+            // Check if response indicates success
+            if (response.data && response.data.success === true) {
                 setAlertModal({
                     isOpen: true,
                     type: 'success',
                     title: 'Upload Berhasil!',
                     message: `Data Performance AM untuk Q${quarter} ${selectedYear} telah berhasil diupload.`,
                     details: response.data.summary ? [
-                        `Total AM: ${response.data.summary.am_count || 0}`,
-                        `Total Company: ${response.data.summary.company_count || 0}`,
-                        `Total Records: ${response.data.summary.row_count || 0}`
+                        `Total Records: ${response.data.summary.row_count || 0} baris`
                     ] : undefined
                 });
                 
                 // Reload after modal closes
                 setTimeout(() => window.location.reload(), 2000);
+            } else {
+                // Response came back but success was false
+                throw new Error(response.data?.message || 'Upload gagal tanpa pesan error');
             }
         } catch (error: any) {
             console.error('Upload error:', error);
             
-            if (error.response?.status === 422 && error.response?.data?.conflicts) {
-                // Handle conflict errors
+            // Handle validation errors
+            if (error.response?.status === 422 && error.response?.data?.error_type === 'validation_error') {
+                const errors = error.response.data.errors;
+                const errorDetails = Object.keys(errors).map(key => 
+                    `${key}: ${errors[key].join(', ')}`
+                );
+                setAlertModal({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Validasi Gagal',
+                    message: 'File atau parameter upload tidak valid',
+                    details: errorDetails
+                });
+            }
+            // Handle conflict errors
+            else if (error.response?.status === 422 && error.response?.data?.error_type === 'conflict_error') {
                 setUploadErrors(error.response.data.conflicts);
                 setShowErrorModal(true);
-            } else if (error.response?.status === 422 && error.response?.data?.error_type === 'missing_revenue_data') {
-                // Handle missing revenue data error
+            }
+            // Handle missing revenue data error
+            else if (error.response?.status === 422 && error.response?.data?.error_type === 'missing_revenue_data') {
                 const errorMessage = error.response?.data?.message || 'Upload Data Revenue Dashboard First';
                 setAlertModal({
                     isOpen: true,
@@ -245,8 +262,20 @@ export default function DataImportPerformance({
                         'Data Performance AM memerlukan data Revenue untuk validasi'
                     ]
                 });
-            } else {
-                const errorMessage = error.response?.data?.message || 'Upload failed';
+            }
+            // Handle Excel validation errors
+            else if (error.response?.status === 422 && error.response?.data?.error_type === 'excel_validation_error') {
+                setAlertModal({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Validasi Excel Gagal',
+                    message: 'Terdapat kesalahan pada format atau isi file Excel',
+                    details: error.response.data.details || []
+                });
+            }
+            // Handle other errors
+            else {
+                const errorMessage = error.response?.data?.message || error.message || 'Upload gagal';
                 setAlertModal({
                     isOpen: true,
                     type: 'error',

@@ -8,6 +8,7 @@ import { dailyMonitoring } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { PageProps } from '@inertiajs/core';
 import UpdateHarianModal from '@/components/modals/UpdateHarianModal';
+import AlertModal, { AlertType } from '@/components/modals/AlertModal';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -144,6 +145,21 @@ export default function DailyMonitoring() {
     const [isUpdateHarianModalOpen, setIsUpdateHarianModalOpen] = useState(false);
     const [cmTab, setCmTab] = useState<'daily' | 'monthly'>('daily');
 
+    // Alert Modal State
+    const [alertModal, setAlertModal] = useState<{
+        isOpen: boolean;
+        type: AlertType;
+        title: string;
+        message: string;
+        details?: string[];
+    }>({
+        isOpen: false,
+        type: 'info',
+        title: '',
+        message: '',
+        details: []
+    });
+
     // Format number as Indonesian Rupiah currency
     const formatCurrency = (value: string | number): string => {
         let numValue: number;
@@ -165,20 +181,83 @@ export default function DailyMonitoring() {
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
+            // Validate file type
+            const validExtensions = ['.xlsx', '.xls'];
+            const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (!validExtensions.includes(fileExtension)) {
+                setAlertModal({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Tipe File Tidak Valid',
+                    message: 'Silakan upload file Excel dengan format .xlsx atau .xls',
+                    details: [
+                        `File yang dipilih: ${file.name}`,
+                        'Format yang diterima: .xlsx, .xls'
+                    ]
+                });
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+                return;
+            }
+
             const formData = new FormData();
             formData.append('file', file);
 
             router.post('/daily-monitoring/upload-bulanan', formData, {
-                onSuccess: () => {
-                    alert('Data bulanan berhasil diupload!');
-                    // Reset input
-                    if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
+                onSuccess: (page) => {
+                    // Check if there are errors in the response
+                    const errors = page.props.errors as Record<string, string> | undefined;
+                    
+                    if (errors && Object.keys(errors).length > 0) {
+                        // There are errors, show error alert
+                        const errorMessage = errors.file || Object.values(errors)[0] || 'Upload gagal. Silakan coba lagi.';
+                        setAlertModal({
+                            isOpen: true,
+                            type: 'error',
+                            title: 'Upload Gagal',
+                            message: typeof errorMessage === 'string' ? errorMessage : 'Terjadi kesalahan saat upload',
+                            details: typeof errorMessage === 'string' && errorMessage.includes('|') 
+                                ? errorMessage.split('|').map(e => e.trim())
+                                : undefined
+                        });
+                        // Reset input
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                        }
+                    } else {
+                        // No errors, show success alert
+                        setAlertModal({
+                            isOpen: true,
+                            type: 'success',
+                            title: 'Upload Berhasil!',
+                            message: 'Data bulanan berhasil diupload dan progress scaling telah diperbarui.',
+                            details: [
+                                'Data telah berhasil diproses',
+                                'Halaman akan direfresh otomatis'
+                            ]
+                        });
+                        // Reset input and reload after modal closes
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                        }
+                        setTimeout(() => window.location.reload(), 2000);
                     }
                 },
                 onError: (errors) => {
                     console.error('Upload error:', errors);
-                    alert('Gagal upload data: ' + (errors.file || 'Unknown error'));
+                    const errorMessage = errors.file || errors.message || 'Upload gagal. Silakan coba lagi.';
+                    setAlertModal({
+                        isOpen: true,
+                        type: 'error',
+                        title: 'Upload Gagal',
+                        message: typeof errorMessage === 'string' ? errorMessage : 'Terjadi kesalahan saat upload',
+                        details: typeof errorMessage === 'object' ? Object.values(errorMessage) : undefined
+                    });
+                    // Reset input
+                    if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                    }
                 },
             });
         }
@@ -456,7 +535,7 @@ export default function DailyMonitoring() {
                                                     <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-gray-700 whitespace-nowrap border-r border-gray-200">{row.treg}</td>
                                                     <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-gray-700 border-r border-gray-200">{row.namaCC}</td>
                                                     <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-gray-700 border-r border-gray-200">{row.project}</td>
-                                                    <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-right font-semibold text-gray-900 whitespace-nowrap border-r border-gray-200">{row.scaling}</td>
+                                                    <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-right font-semibold text-gray-900 whitespace-nowrap border-r border-gray-200">Rp. {row.scaling}</td>
                                                     <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-right font-semibold text-gray-900 whitespace-nowrap">{row.progress}</td>
                                                 </tr>
                                             ))
@@ -482,6 +561,16 @@ export default function DailyMonitoring() {
                 currentDate={currentDate}
                 currentMonth={currentMonth}
                 currentYear={currentYear}
+            />
+
+            {/* Alert Modal */}
+            <AlertModal
+                isOpen={alertModal.isOpen}
+                onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                type={alertModal.type}
+                title={alertModal.title}
+                message={alertModal.message}
+                details={alertModal.details}
             />
         </AppSidebarLayout>
     );

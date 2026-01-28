@@ -26,7 +26,7 @@ class BulanSheetImport implements ToCollection
             
             if ($rows->count() < 12) {
                 Log::warning('Sheet Target bulan kosong atau tidak valid');
-                return;
+                throw new \Exception('Format file tidak valid: Sheet "Target 2026" harus memiliki minimal 12 baris data.');
             }
 
             // Ambil header bulan dari baris 1, kolom B-M (index 1-12)

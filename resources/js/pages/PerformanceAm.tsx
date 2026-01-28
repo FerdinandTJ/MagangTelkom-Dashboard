@@ -352,7 +352,7 @@ export default function PerformanceAM({
             <Head title="Performance AM" />
             <div className="min-h-screen bg-gradient-to-br from-red-50/70 via-white to-pink-50/70 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 p-4 sm:p-6 lg:p-6">
                 {/* Metrics Cards - Fungsi ini untuk menampilkan metrik utama Performance AM */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mb-8">
                     {/* Card 1: Total AM - Total Account Manager yang terdaftar */}
                     <Card className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <CardHeader className="pb-3">
@@ -486,7 +486,7 @@ export default function PerformanceAM({
                                         </Button>
                                     </div>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        Download semua data AM untuk {selectedQuartal} {selectedYear} {selectedRegion !== 'ALL' ? `(${selectedRegion})` : '(Semua Region)'}
+                                        Download data AM untuk {selectedQuartal} {selectedYear}
                                     </p>
                                 </div>
                                 <div className="flex-shrink-0 ml-4">

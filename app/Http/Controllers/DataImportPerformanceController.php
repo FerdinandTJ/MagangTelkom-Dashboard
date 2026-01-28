@@ -135,11 +135,20 @@ class DataImportPerformanceController extends Controller
 
     public function upload(Request $request)
     {
-        $request->validate([
-            'file' => 'required|mimes:xlsx,xls|max:10240',
-            'quarter' => 'required|integer|between:1,4',
-            'year' => 'required|integer',
-        ]);
+        try {
+            $request->validate([
+                'file' => 'required|mimes:xlsx,xls|max:10240',
+                'quarter' => 'required|integer|between:1,4',
+                'year' => 'required|integer',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'error_type' => 'validation_error',
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         try {
             DB::beginTransaction();
@@ -163,6 +172,7 @@ class DataImportPerformanceController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Data conflicts detected between sheets',
+                    'error_type' => 'conflict_error',
                     'conflicts' => $conflicts,
                     'conflict_count' => count($conflicts),
                 ], 422);
@@ -209,13 +219,29 @@ class DataImportPerformanceController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Data imported successfully',
-                'data' => [
+                'summary' => [
                     'quarter' => $request->input('quarter'),
                     'year' => $request->input('year'),
-                    'rows_imported' => $import->getRowCount(),
+                    'row_count' => $import->getRowCount(),
                 ],
             ]);
 
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            DB::rollBack();
+            $failures = $e->failures();
+            $errorMessages = [];
+            foreach ($failures as $failure) {
+                $errorMessages[] = "Baris {$failure->row()}: " . implode(', ', $failure->errors());
+            }
+            
+            \Log::error('Performance AM Excel Validation Error', ['errors' => $errorMessages]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi Excel gagal',
+                'error_type' => 'excel_validation_error',
+                'details' => $errorMessages,
+            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Performance AM Import Error: ' . $e->getMessage());
@@ -230,9 +256,11 @@ class DataImportPerformanceController extends Controller
                 ], 422);
             }
             
+            // Generic error with more details
             return response()->json([
                 'success' => false,
-                'message' => 'Import failed: ' . $e->getMessage(),
+                'message' => 'Import gagal: ' . $e->getMessage(),
+                'error_type' => 'import_error',
             ], 500);
         }
     }

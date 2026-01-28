@@ -3,28 +3,36 @@
 namespace App\Imports;
 
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
-use Maatwebsite\Excel\Concerns\SkipsUnknownSheets;
 use Illuminate\Support\Facades\Log;
 
-class BulananImport implements WithMultipleSheets, SkipsUnknownSheets
+class BulananImport implements WithMultipleSheets
 {
-    public function sheets(): array
+    private $sheetNames = [];
+
+    public function __construct(array $sheetNames = [])
     {
-        Log::info("BulananImport: Registering sheet importers");
-        
-        $sheets = [
-            'Target 2026' => new BulanSheetImport('Target 2026'),
-            'List LOP 2026' => new LopBulanSheetImport('List LOP 2026'),
-        ];
-        
-        Log::info("BulananImport: Registered sheets", ['sheets' => array_keys($sheets)]);
-        
-        return $sheets;
+        $this->sheetNames = $sheetNames;
     }
 
-    public function onUnknownSheet($sheetName)
+    public function sheets(): array
     {
-        Log::warning("BulananImport: Skipping unknown sheet: {$sheetName}");
-        // Skip sheet yang tidak dikenal
+        Log::info("BulananImport: Registering sheet importers", ['sheets' => $this->sheetNames]);
+        
+        $sheets = [];
+        
+        foreach ($this->sheetNames as $sheetName) {
+            // Check if it matches "Target YYYY" pattern
+            if (preg_match('/^Target\s+\d{4}$/i', $sheetName)) {
+                Log::info("BulananImport: Registering Target sheet: {$sheetName}");
+                $sheets[$sheetName] = new BulanSheetImport($sheetName);
+            }
+            // Check if it matches "List LOP YYYY" pattern
+            elseif (preg_match('/^List\s+LOP\s+\d{4}$/i', $sheetName)) {
+                Log::info("BulananImport: Registering List LOP sheet: {$sheetName}");
+                $sheets[$sheetName] = new LopBulanSheetImport($sheetName);
+            }
+        }
+        
+        return $sheets;
     }
 }

@@ -27,7 +27,7 @@ class LopBulanSheetImport implements ToCollection
         try {
             if ($rows->count() < 4) {
                 Log::warning('Sheet List LOP kosong atau tidak valid', ['row_count' => $rows->count()]);
-                return;
+                throw new \Exception('Format file tidak valid: Sheet "List LOP 2026" harus memiliki minimal 4 baris data.');
             }
 
             // Baris 1 (index 0): Header dengan metadata
@@ -47,12 +47,12 @@ class LopBulanSheetImport implements ToCollection
 
             if (!$bulan || $bulan < 1 || $bulan > 12) {
                 Log::error("Bulan tidak valid: {$bulanValue}");
-                return;
+                throw new \Exception("Format file tidak valid: Bulan harus berada di antara 1-12. Ditemukan: {$bulanValue}");
             }
 
             if (!$tahun || $tahun < 2000) {
                 Log::error("Tahun tidak valid: {$tahunValue}");
-                return;
+                throw new \Exception("Format file tidak valid: Tahun harus >= 2000. Ditemukan: {$tahunValue}");
             }
 
             Log::info("Processing List LOP untuk bulan {$bulan}/{$tahun}");
@@ -168,7 +168,8 @@ class LopBulanSheetImport implements ToCollection
                         $hari = Hari::firstOrCreate(
                             [
                                 'bulan_id' => $bulanRecord->id,
-                                'tanggal' => $parsedDate
+                                'tanggal' => $parsedDate,
+                                'tahun' => $tahun  // Tambahkan tahun di sini
                             ],
                             [
                                 'sustain' => 0,

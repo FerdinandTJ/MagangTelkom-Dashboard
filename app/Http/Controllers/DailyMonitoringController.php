@@ -502,18 +502,69 @@ class DailyMonitoringController extends Controller
      */
     public function uploadBulanan(Request $request)
     {
-        $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
-        ]);
+        try {
+            $request->validate([
+                'file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()->withErrors([
+                'file' => 'File tidak valid. Pastikan file berformat Excel (.xlsx atau .xls) dan maksimal 10MB.'
+            ]);
+        }
 
         try {
             $file = $request->file('file');
             Log::info('Starting Excel import for daily monitoring', ['filename' => $file->getClientOriginalName()]);
             
+            // Validate that file has required sheets
+            try {
+                $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load($file->getRealPath());
+                $sheetNames = $spreadsheet->getSheetNames();
+                
+                // Check for sheets with pattern "Target YYYY" and "List LOP YYYY"
+                $hasTargetSheet = false;
+                $hasLopSheet = false;
+                
+                foreach ($sheetNames as $sheetName) {
+                    if (preg_match('/^Target\s+\d{4}$/i', $sheetName)) {
+                        $hasTargetSheet = true;
+                    }
+                    if (preg_match('/^List\s+LOP\s+\d{4}$/i', $sheetName)) {
+                        $hasLopSheet = true;
+                    }
+                }
+                
+                $missingSheets = [];
+                if (!$hasTargetSheet) {
+                    $missingSheets[] = 'Target YYYY (contoh: Target 2026)';
+                }
+                if (!$hasLopSheet) {
+                    $missingSheets[] = 'List LOP YYYY (contoh: List LOP 2026)';
+                }
+                
+                if (!empty($missingSheets)) {
+                    Log::error('Missing required sheets', [
+                        'found' => $sheetNames,
+                        'missing' => $missingSheets
+                    ]);
+                    return redirect()->back()->withErrors([
+                        'file' => 'File tidak valid: Sheet yang diperlukan tidak ditemukan (' . implode(', ', $missingSheets) . ')'
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Error reading Excel file structure: ' . $e->getMessage());
+                return redirect()->back()->withErrors([
+                    'file' => 'File tidak dapat dibaca. Pastikan file adalah Excel yang valid (.xlsx atau .xls)'
+                ]);
+            }
+            
             DB::beginTransaction();
             
             // Import menggunakan BulananImport yang handle multiple sheets
-            Excel::import(new BulananImport(), $file);
+            // Pass the actual sheet names from the file
+            Excel::import(new BulananImport($sheetNames), $file);
 
             DB::commit();
             
@@ -525,11 +576,13 @@ class DailyMonitoringController extends Controller
             $failures = $e->failures();
             $errorMessages = [];
             foreach ($failures as $failure) {
-                $errorMessages[] = "Row {$failure->row()}: " . implode(', ', $failure->errors());
+                $errorMessages[] = "Baris {$failure->row()}: " . implode(', ', $failure->errors());
             }
             
             Log::error('Excel validation failed', ['errors' => $errorMessages]);
-            return redirect()->back()->with('error', 'Validasi gagal: ' . implode(' | ', $errorMessages));
+            return redirect()->back()->withErrors([
+                'file' => 'Validasi Excel gagal: ' . implode(' | ', array_slice($errorMessages, 0, 3))
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             
@@ -538,7 +591,9 @@ class DailyMonitoringController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return redirect()->back()->with('error', 'Gagal upload data: ' . $e->getMessage());
+            return redirect()->back()->withErrors([
+                'file' => 'Gagal upload data: ' . $e->getMessage()
+            ]);
         }
     }
 

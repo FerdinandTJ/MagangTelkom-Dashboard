@@ -288,17 +288,49 @@ export default function Dashboard({
                         value={dashboardSummary.formatted_total_revenue}
                         subtitle={`${currentMonthName} ${currentYear} Year-to-Date`}
                         tooltip={formatCurrencyFull(dashboardSummary.total_revenue)}
-                        trend={{
-                            value: ytdComparison.growth_percentage,
-                            isPositive: ytdComparison.is_positive_growth,
-                            label: `vs ${ytdComparison.previous_year}`
-                        }}
                         icon={
                             <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                             </svg>
                         }
                     />
+                    
+                                        {/* YTD Growth Card */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
+                        <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">YTD Growth</p>
+                                <div className="mt-2">
+                                    <div className={`flex items-center gap-2 ${ytdComparison.is_positive_growth ? 'text-green-600 dark:text-green-400' : ytdComparison.is_positive_growth === false ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                                        {ytdComparison.is_positive_growth !== null && (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                {ytdComparison.is_positive_growth ? (
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                ) : (
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                                                )}
+                                            </svg>
+                                        )}
+                                        <span className="text-2xl font-bold">
+                                            {ytdComparison.growth_percentage !== null 
+                                                ? `${ytdComparison.growth_percentage.toFixed(2)}%` 
+                                                : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        vs {ytdComparison.previous_year}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex-shrink-0 ml-4">
+                                <div className={`p-2 rounded-lg ${ytdComparison.is_positive_growth ? 'bg-green-50 dark:bg-green-950' : ytdComparison.is_positive_growth === false ? 'bg-red-50 dark:bg-red-950' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                                    <svg className={`w-6 h-6 ${ytdComparison.is_positive_growth ? 'text-green-600 dark:text-green-400' : ytdComparison.is_positive_growth === false ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <StatCard
                         title="Current Month"
@@ -311,6 +343,7 @@ export default function Dashboard({
                             </svg>
                         }
                     />
+
                     
                     {/* Filter Card */}
                     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
@@ -345,31 +378,6 @@ export default function Dashboard({
                                 <div className="p-1 bg-red-50 dark:bg-red-950 rounded-lg">
                                     <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Data Actions Card */}
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Data Actions</p>
-                                <div className="space-y-2 mt-2">
-                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium text-sm"
-                                    onClick={() => alert('Download feature coming soon')}>
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        Download
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="flex-shrink-0 ml-4">
-                                <div className="p-2 bg-red-50 dark:bg-red-950 rounded-lg">
-                                    <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                 </div>
                             </div>
