@@ -193,12 +193,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                         </svg>
                                     </Label>
-                                    <div className="relative group">
-
-                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-pink-600 to-red-600 dark:from-red-500 dark:via-pink-500 dark:to-red-500 rounded-lg opacity-0 group-hover:opacity-75 group-focus-within:opacity-75 transition-all duration-300 animate-pulse"></div>
-                                        
-                                        <div className="absolute -inset-1 bg-gradient-to-r from-red-400/20 to-pink-400/20 dark:from-red-600/20 dark:to-pink-600/20 rounded-lg opacity-0 group-focus-within:opacity-100 transition-all duration-500 blur-md"></div>
-                                        
+                                    <div className="relative">
                                         <Input
                                             id="email"
                                             type="text"
@@ -208,40 +203,20 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                             tabIndex={1}
                                             autoComplete="username"
                                             placeholder="Enter your email or username"
-                                            className="relative h-12 px-4 text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 focus:border-red-500 dark:focus:border-red-400 focus:ring-0 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 hover:border-red-300 dark:hover:border-red-600 transform hover:scale-[1.02] focus:scale-[1.02] group-focus-within:shadow-lg"
+                                            className="h-12 px-4 text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 focus:ring-0 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300"
                                         />
-                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300">
-                                            <div className="w-5 h-5 border-2 border-red-400 dark:border-red-500 rounded-full animate-spin group-focus-within:border-red-500 dark:group-focus-within:border-red-400"></div>
-                                        </div>
                                     </div>
                                     <InputError message={errors.email} />
                                 </div>
 
                                 <div className={`grid gap-3 transition-all duration-500 delay-400 ${showForm ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
-                                    <div className="flex items-center">
-                                        <Label htmlFor="password" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 group cursor-pointer hover:text-red-600 dark:hover:text-red-400 transition-colors duration-300">
-                                            <span className="group-hover:translate-x-1 transition-transform duration-300">Password</span>
-                                            <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                            </svg>
-                                        </Label>
-                                        {canResetPassword && (
-                                            <TextLink
-                                                href={request()}
-                                                className="ml-auto text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 font-medium transition-colors duration-200 hover:underline"
-                                                tabIndex={5}
-                                            >
-                                                Forgot password?
-                                            </TextLink>
-                                        )}
-                                    </div>
-                                    <div className="relative group">
-                                        {/* Animated border */}
-                                        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-pink-600 to-red-600 dark:from-red-500 dark:via-pink-500 dark:to-red-500 rounded-lg opacity-0 group-hover:opacity-75 group-focus-within:opacity-75 transition-all duration-300 animate-pulse"></div>
-                                        
-                                        {/* Focus glow effect */}
-                                        <div className="absolute -inset-1 bg-gradient-to-r from-red-400/20 to-pink-400/20 dark:from-red-600/20 dark:to-pink-600/20 rounded-lg opacity-0 group-focus-within:opacity-100 transition-all duration-500 blur-md"></div>
-                                        
+                                    <Label htmlFor="password" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 group cursor-pointer hover:text-red-600 dark:hover:text-red-400 transition-colors duration-300">
+                                        <span className="group-hover:translate-x-1 transition-transform duration-300">Password</span>
+                                        <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                    </Label>
+                                    <div className="relative">
                                         <Input
                                             id="password"
                                             type={showPassword ? "text" : "password"}
@@ -250,7 +225,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                             tabIndex={2}
                                             autoComplete="current-password"
                                             placeholder="Enter your password"
-                                            className="relative h-12 px-4 pr-12 text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 focus:border-red-500 dark:focus:border-red-400 focus:ring-0 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300 hover:border-red-300 dark:hover:border-red-600 transform hover:scale-[1.02] focus:scale-[1.02] group-focus-within:shadow-lg"
+                                            className="h-12 px-4 pr-12 text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 focus:ring-0 rounded-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all duration-300"
                                         />
                                         <button
                                             type="button"
@@ -264,15 +239,19 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                                 <Eye className="h-5 w-5" />
                                             )}
                                         </button>
-                                        {/* Lock icon animation */}
-                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300">
-                                            <svg className="w-5 h-5 text-red-400 dark:text-red-500 group-focus-within:text-red-500 dark:group-focus-within:text-red-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                                 style={{animation: 'wiggle 2s ease-in-out infinite'}}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                            </svg>
-                                        </div>
                                     </div>
                                     <InputError message={errors.password} />
+                                    {canResetPassword && (
+                                        <div className="flex justify-end">
+                                            <TextLink
+                                                href={request()}
+                                                className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 font-medium transition-colors duration-200 hover:underline"
+                                                tabIndex={5}
+                                            >
+                                                Forgot password?
+                                            </TextLink>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className={`flex items-center space-x-3 py-2 transition-all duration-500 delay-500 ${showForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>

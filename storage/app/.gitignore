@@ -1,5 +1,5 @@
 *
 !private/
 !public/
-!templates/template_upload.xlsx
+!templates/
 !.gitignore
