@@ -283,18 +283,18 @@ export default function DailyMonitoring() {
         <AppSidebarLayout breadcrumbs={breadcrumbs}>
             <Head title="Daily Monitoring" />
 
-            <div className="min-h-screen max-h-screen overflow-hidden bg-gradient-to-br from-red-50/70 via-white to-pink-50/70 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 p-2 sm:p-3">
-                <div className="h-full flex flex-col gap-2 max-h-screen overflow-hidden">
+            <div className="min-h-screen lg:max-h-screen overflow-y-auto lg:overflow-hidden bg-gradient-to-br from-red-50/70 via-white to-pink-50/70 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 p-2 sm:p-3 md:p-4">
+                <div className="h-full flex flex-col gap-2 sm:gap-3 lg:max-h-screen lg:overflow-hidden">
                     {/* Header with Filters and Admin Buttons */}
                     <div className="flex-shrink-0">
-                        <div className="flex items-center justify-between mb-1.5 sm:mb-2 gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2 sm:gap-3">
                             <div className="min-w-0 flex-1">
-                                <h1 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
+                                <h1 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 mb-2 sm:mb-0 truncate">
                                     Daily Monitoring
                                 </h1>
                                 
                                 {/* Filter Tanggal, Bulan, Tahun */}
-                                <div className="flex gap-2 mt-1.5 items-center flex-wrap">
+                                <div className="flex gap-1.5 sm:gap-2 mt-1.5 items-center flex-wrap">
                                     <div className="flex items-center gap-1.5">
                                         <label className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
                                             Tahun:
@@ -351,16 +351,15 @@ export default function DailyMonitoring() {
                                 </div>
                             </div>
                             {isAdmin && (
-                                <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 ml-2">
+                                <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 sm:ml-2 w-full sm:w-auto">
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="gap-1 sm:gap-1.5 text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3 whitespace-nowrap"
+                                        className="gap-1 sm:gap-1.5 text-[10px] sm:text-xs h-8 sm:h-8 px-2 sm:px-3 whitespace-nowrap flex-1 sm:flex-initial"
                                         onClick={() => setIsUpdateHarianModalOpen(true)}
                                     >
                                         <RefreshCw className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
-                                        <span className="hidden sm:inline">Update Harian</span>
-                                        <span className="sm:hidden">Update</span>
+                                        <span>Update Harian</span>
                                     </Button>
                                     <input
                                         ref={fileInputRef}
@@ -372,12 +371,11 @@ export default function DailyMonitoring() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="gap-1 sm:gap-1.5 text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3 whitespace-nowrap"
+                                        className="gap-1 sm:gap-1.5 text-[10px] sm:text-xs h-8 sm:h-8 px-2 sm:px-3 whitespace-nowrap flex-1 sm:flex-initial"
                                         onClick={handleUploadBulanan}
                                     >
                                         <Upload className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
-                                        <span className="hidden sm:inline">Upload Bulanan</span>
-                                        <span className="sm:hidden">Upload</span>
+                                        <span>Upload Bulanan</span>
                                     </Button>
                                 </div>
                             )}
@@ -385,19 +383,19 @@ export default function DailyMonitoring() {
                     </div>
 
                     {/* Metrics Section - 3 Columns with Achievement on Right */}
-                    <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1.5fr_2fr] gap-1.5 sm:gap-2 flex-shrink-0" style={{height: 'clamp(200px, 40vh, 400px)'}}>
+                    <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1.5fr_2fr] gap-2 sm:gap-2 md:gap-3 flex-shrink-0 lg:h-[clamp(200px,40vh,400px)]">
                         {/* CM Card - Full */}
-                        <Card className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col min-h-0 overflow-hidden">
-                            <CardHeader className="flex-shrink-0 py-0.5 px-2 sm:px-3 pb-0">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100">
+                        <Card className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col min-h-0 overflow-hidden h-auto lg:h-full">
+                            <CardHeader className="flex-shrink-0 py-1.5 sm:py-2 px-3 sm:px-4 pb-1">
+                                <div className="flex items-center justify-between gap-2">
+                                    <CardTitle className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100">
                                         Current Month (CM)
                                     </CardTitle>
                                     {/* Tab Switcher */}
-                                    <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+                                    <div className="flex gap-0.5 sm:gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                                         <button
                                             onClick={() => setCmTab('daily')}
-                                            className={`px-2 py-0.5 text-[9px] sm:text-[10px] font-medium rounded transition-colors ${
+                                            className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded transition-colors ${
                                                 cmTab === 'daily'
                                                     ? 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-sm'
                                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -407,7 +405,7 @@ export default function DailyMonitoring() {
                                         </button>
                                         <button
                                             onClick={() => setCmTab('monthly')}
-                                            className={`px-2 py-0.5 text-[9px] sm:text-[10px] font-medium rounded transition-colors ${
+                                            className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded transition-colors ${
                                                 cmTab === 'monthly'
                                                     ? 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-sm'
                                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -418,14 +416,14 @@ export default function DailyMonitoring() {
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="flex-1 min-h-0 overflow-y-auto px-1.5 sm:px-2 pb-1.5 sm:pb-2 pt-0.5 space-y-1 sm:space-y-1.5">
+                            <CardContent className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 pb-2 sm:pb-3 pt-1 space-y-1.5 sm:space-y-2">
                                 {(cmTab === 'daily' ? metricsCM : metricsMonthly).map((metric, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-1.5 sm:p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
-                                        <div className="flex-1 min-w-0 mr-1.5 sm:mr-2">
-                                            <p className="text-[9px] sm:text-[10px] font-medium text-gray-600 dark:text-gray-400 truncate">
+                                    <div key={idx} className="flex items-center justify-between p-2 sm:p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
+                                        <div className="flex-1 min-w-0 mr-2">
+                                            <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 truncate mb-0.5">
                                                 {metric.label}
                                             </p>
-                                            <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
+                                            <p className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100 truncate">
                                                 {formatCurrency(metric.value)}
                                             </p>
                                         </div>
@@ -440,26 +438,26 @@ export default function DailyMonitoring() {
                         </Card>
 
                         {/* YTD Card - Full */}
-                        <Card className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col min-h-0 overflow-hidden">
-                            <CardHeader className="flex-shrink-0 py-0.5 px-2 sm:px-3 pb-0">
-                                <CardTitle className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100">
+                        <Card className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col min-h-0 overflow-hidden h-auto lg:h-full">
+                            <CardHeader className="flex-shrink-0 py-1.5 sm:py-2 px-3 sm:px-4 pb-1">
+                                <CardTitle className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100">
                                     Year-to-Date (YTD)
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="flex-1 min-h-0 overflow-y-auto px-1.5 sm:px-2 pb-1.5 sm:pb-2 pt-0.5 space-y-1 sm:space-y-1.5">
+                            <CardContent className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 pb-2 sm:pb-3 pt-1 space-y-1.5 sm:space-y-2">
                                 {metricsYTD.map((metric, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-1.5 sm:p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
-                                        <div className="flex-1 min-w-0 mr-1.5 sm:mr-2">
-                                            <p className="text-[9px] sm:text-[10px] font-medium text-gray-600 dark:text-gray-400 truncate">
+                                    <div key={idx} className="flex items-center justify-between p-2 sm:p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
+                                        <div className="flex-1 min-w-0 mr-2">
+                                            <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 truncate mb-0.5">
                                                 {metric.label}
                                             </p>
-                                            <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
+                                            <p className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100 truncate">
                                                 {formatCurrency(metric.value)}
                                             </p>
                                         </div>
                                         <div className="flex-shrink-0">
-                                            <div className="p-1 sm:p-1.5 bg-red-50 dark:bg-red-950 rounded-lg">
-                                                <div className="h-3 w-3 sm:h-4 sm:w-4 text-red-600 dark:text-red-400" />
+                                            <div className="p-1.5 sm:p-2 bg-red-50 dark:bg-red-950 rounded-lg">
+                                                <div className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
                                             </div>
                                         </div>
                                     </div>
@@ -468,16 +466,16 @@ export default function DailyMonitoring() {
                         </Card>
 
                         {/* Achievement Column - Stacked */}
-                        <div className="flex flex-col gap-1.5 sm:gap-2 min-h-0">
+                        <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-2 md:gap-3 lg:flex lg:flex-col min-h-0">
                             {/* Achievement CM */}
                             <Card className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col flex-1 min-h-0 overflow-hidden">
-                                <CardHeader className="flex-shrink-0 py-0.5 px-2 pb-0 pl-3">
-                                    <CardTitle className="text-[10px] sm:text-xs font-bold text-gray-900 dark:text-gray-100 text-left truncate">
+                                <CardHeader className="flex-shrink-0 py-2 sm:py-2 px-3 pb-1">
+                                    <CardTitle className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 text-left truncate">
                                         {cmTab === 'daily' ? achievementCM.label : achievementMonthly.label}
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="flex-1 min-h-0 flex items-center justify-center px-1 sm:px-1.5 pb-1 sm:pb-1.5 pt-0">
-                                    <div className="w-full" style={{maxWidth: 'min(180px, 100%)'}}>
+                                <CardContent className="flex-1 min-h-0 flex items-center justify-center px-2 sm:px-3 pb-2 sm:pb-3 pt-1">
+                                    <div className="w-full" style={{maxWidth: 'min(190px, 100%)'}}>
                                         <GaugeChart 
                                             percentage={cmTab === 'daily' ? achievementCM.percentage : achievementMonthly.percentage} 
                                             color="#ef4444" 
@@ -488,13 +486,13 @@ export default function DailyMonitoring() {
 
                             {/* Achievement YTD */}
                             <Card className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col flex-1 min-h-0 overflow-hidden">
-                                <CardHeader className="flex-shrink-0 py-0.5 px-2 pb-0 pl-3">
-                                    <CardTitle className="text-[10px] sm:text-xs font-bold text-gray-900 dark:text-gray-100 text-left truncate">
+                                <CardHeader className="flex-shrink-0 py-2 sm:py-2 px-3 pb-1">
+                                    <CardTitle className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 text-left truncate">
                                         {achievementYTD.label}
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="flex-1 min-h-0 flex items-center justify-center px-1 sm:px-1.5 pb-1 sm:pb-1.5 pt-0">
-                                    <div className="w-full" style={{maxWidth: 'min(180px, 100%)'}}>
+                                <CardContent className="flex-1 min-h-0 flex items-center justify-center px-2 sm:px-3 pb-2 sm:pb-3 pt-1">
+                                    <div className="w-full" style={{maxWidth: 'min(190px, 100%)'}}>
                                         <GaugeChart 
                                             percentage={achievementYTD.percentage} 
                                             color="#ef4444" 
@@ -507,41 +505,41 @@ export default function DailyMonitoring() {
 
                     {/* Data Table */}
                     <Card className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col flex-1 min-h-0 overflow-hidden">
-                        <CardHeader className="flex-shrink-0 py-1.5 sm:py-2 px-2 sm:px-3">
-                            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
+                        <CardHeader className="flex-shrink-0 py-2 sm:py-2.5 px-3 sm:px-4">
+                            <CardTitle className="text-sm sm:text-base font-medium text-gray-600 dark:text-gray-400">
                                 Data LOP Monitoring
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="flex-1 min-h-0 overflow-auto p-0">
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
                                 <table className="w-full">
                                     <thead className="sticky top-0 bg-gray-100 dark:bg-gray-100 z-10">
                                         <tr className="border-b border-gray-700">
-                                            <th className="text-left py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">ID LOP</th>
-                                            <th className="text-left py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">AM</th>
-                                            <th className="text-left py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">TREG</th>
-                                            <th className="text-left py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">NAMA CC</th>
-                                            <th className="text-left py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">PROJECT</th>
-                                            <th className="text-right py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">SCALING</th>
-                                            <th className="text-right py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold text-black whitespace-nowrap">PROGRESS</th>
+                                            <th className="text-left py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">ID LOP</th>
+                                            <th className="text-left py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">AM</th>
+                                            <th className="text-left py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">TREG</th>
+                                            <th className="text-left py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">NAMA CC</th>
+                                            <th className="text-left py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">PROJECT</th>
+                                            <th className="text-right py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs font-semibold text-black whitespace-nowrap border-r border-gray-700">SCALING</th>
+                                            <th className="text-right py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs font-semibold text-black whitespace-nowrap">PROGRESS</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {tableData.length > 0 ? (
                                             tableData.map((row, idx) => (
-                                                <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                                    <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-gray-700 whitespace-nowrap border-r border-gray-200">{row.idlop || '-'}</td>
-                                                    <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs font-medium text-gray-900 whitespace-nowrap border-r border-gray-200">{row.am}</td>
-                                                    <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-gray-700 whitespace-nowrap border-r border-gray-200">{row.treg}</td>
-                                                    <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-gray-700 border-r border-gray-200">{row.namaCC}</td>
-                                                    <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-gray-700 border-r border-gray-200">{row.project}</td>
-                                                    <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-right font-semibold text-gray-900 whitespace-nowrap border-r border-gray-200">Rp. {row.scaling}</td>
-                                                    <td className="py-1.5 sm:py-2 px-2 sm:px-3 text-[10px] sm:text-xs text-right font-semibold text-gray-900 whitespace-nowrap">{row.progress}</td>
+                                                <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100">
+                                                    <td className="py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs text-gray-700 whitespace-nowrap border-r border-gray-200">{row.idlop || '-'}</td>
+                                                    <td className="py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs font-medium text-gray-900 whitespace-nowrap border-r border-gray-200">{row.am}</td>
+                                                    <td className="py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs text-gray-700 whitespace-nowrap border-r border-gray-200">{row.treg}</td>
+                                                    <td className="py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs text-gray-700 border-r border-gray-200">{row.namaCC}</td>
+                                                    <td className="py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs text-gray-700 border-r border-gray-200">{row.project}</td>
+                                                    <td className="py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs text-right font-semibold text-gray-900 whitespace-nowrap border-r border-gray-200">Rp. {row.scaling}</td>
+                                                    <td className="py-2 sm:py-2.5 px-2 sm:px-3 text-[9px] sm:text-xs text-right font-semibold text-gray-900 whitespace-nowrap">{row.progress}</td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={7} className="text-center py-4 sm:py-6 text-gray-500 dark:text-gray-400 text-[10px] sm:text-xs">
+                                                <td colSpan={7} className="text-center py-8 sm:py-10 text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
                                                     Tidak ada data
                                                 </td>
                                             </tr>
