@@ -287,7 +287,7 @@ export default function RegionNkiModal({ isOpen, onClose, regionId, regionName, 
             
             setData(response.data);
         } catch (error: any) {
-            setError(error.response?.data?.message || 'Failed to load data');
+            setError(error.response?.data?.error || error.response?.data?.message || 'Failed to load data');
         } finally {
             setLoading(false);
         }

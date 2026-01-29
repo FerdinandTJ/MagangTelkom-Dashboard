@@ -43,6 +43,13 @@ class RegionNkiController extends Controller
         // Get current period data
         $currentData = $this->getPeriodData($regionId, $quarter, $year);
         
+        // Check if current period has no data
+        if ($currentData === null) {
+            return response()->json([
+                'error' => "Belum ada data NKI {$region->name} untuk periode Q{$quarter} {$year}"
+            ], 404);
+        }
+        
         // Get comparison period data if compare is enabled
         $comparisonData = null;
         $comparisonPeriod = null;
@@ -55,6 +62,13 @@ class RegionNkiController extends Controller
                 'year' => $compareYear
             ];
             $comparisonData = $this->getPeriodData($regionId, $compareQuarter, $compareYear);
+            
+            // Check if comparison period has no data
+            if ($comparisonData === null) {
+                return response()->json([
+                    'error' => "Belum ada data NKI {$region->name} untuk periode perbandingan Q{$compareQuarter} {$compareYear}"
+                ], 404);
+            }
         }
         
         // Return different structure based on compare mode
