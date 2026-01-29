@@ -93,9 +93,6 @@ const GaugeChart: React.FC<{ percentage: number; color: string }> = ({ percentag
                     strokeLinecap="round"
                     strokeDasharray={`${(rotation / 180) * 251.2} 251.2`}
                     className="transition-all duration-1000 ease-out"
-                    style={{
-                        filter: 'drop-shadow(0 0 8px currentColor)',
-                    }}
                 />
                 
                 {/* Center dot */}

@@ -42,9 +42,9 @@ class DatabaseSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'viewer@gmail.com'],
             [
-                'name' => 'Viewer User',
-                'username' => 'viewer',
-                'password' => 'viewer123',
+                'name' => 'User1',
+                'username' => 'telkom1',
+                'password' => 'password123',
                 'email_verified_at' => now(),
                 'role' => 'viewer',
             ]
