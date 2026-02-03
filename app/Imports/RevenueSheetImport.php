@@ -66,7 +66,6 @@ class RevenueSheetImport implements ToCollection, WithHeadingRow, WithChunkReadi
             'sub_segment' => 'SUB_SEGMENT',
             'nip_nas' => 'NIP_NAS',
             'standard_name' => 'STANDARD_NAME',
-            'source_data' => 'SOURCE_DATA',
             'witel_id' => 'WITEL_ID',
             'group1' => 'GROUP1',
             'group2' => 'GROUP2',
