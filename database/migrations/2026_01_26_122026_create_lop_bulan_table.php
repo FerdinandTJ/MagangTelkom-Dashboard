@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('AM', 100)->nullable();
             $table->string('Nama_CC', 100)->nullable();
             $table->unsignedBigInteger('ID_Region')->nullable();
-            $table->string('Project', 100)->nullable();
+            $table->string('Project', 500)->nullable();
             $table->decimal('Scaling', 20, 2)->nullable();
             $table->string('Progress', 50)->nullable();
             
